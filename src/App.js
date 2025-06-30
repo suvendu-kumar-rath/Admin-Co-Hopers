@@ -1,24 +1,37 @@
-import logo from './logo.svg';
-import './App.css';
+import React from 'react';
+import { Box, CssBaseline, ThemeProvider, createTheme } from '@mui/material';
+import Sidebar from './components/Sidebar';
+import Header from './components/Header';
+import Dashboard from './components/Dashboard';
+
+const theme = createTheme({
+  typography: {
+    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+  },
+  palette: {
+    primary: {
+      main: '#5B4DBC',
+    },
+    background: {
+      default: '#F8F9FA',
+    },
+  },
+});
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+        <Sidebar />
+        <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', marginLeft: '250px' }}>
+          <Header />
+          <Box component="main" sx={{ flexGrow: 1, bgcolor: 'background.default' }}>
+            <Dashboard />
+          </Box>
+        </Box>
+      </Box>
+    </ThemeProvider>
   );
 }
 
