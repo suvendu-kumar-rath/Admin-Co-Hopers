@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, List, ListItem, ListItemIcon, ListItemText, styled } from '@mui/material';
+import { useNavigate, useLocation } from 'react-router-dom';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
 import StarIcon from '@mui/icons-material/Star';
@@ -89,15 +90,22 @@ const itemVariants = {
 };
 
 const Sidebar = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, active: true },
-    { text: 'Users', icon: <PeopleIcon /> },
-    { text: 'Active members', icon: <StarIcon /> },
-    { text: 'Past members', icon: <HistoryIcon /> },
-    { text: 'KYC', icon: <VerifiedUserIcon /> },
-    { text: 'Payments', icon: <PaymentsIcon /> },
-    { text: 'Inventory', icon: <InventoryIcon /> },
+    { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
+    { text: 'Users', icon: <PeopleIcon />, path: '/users' },
+    { text: 'Active members', icon: <StarIcon />, path: '/active-members' },
+    { text: 'Past members', icon: <HistoryIcon />, path: '/past-members' },
+    { text: 'KYC', icon: <VerifiedUserIcon />, path: '/kyc' },
+    { text: 'Payments', icon: <PaymentsIcon />, path: '/payments' },
+    { text: 'Inventory', icon: <InventoryIcon />, path: '/inventory' },
   ];
+
+  const handleNavigation = (path) => {
+    navigate(path);
+  };
 
   return (
     <SidebarContainer
@@ -126,7 +134,8 @@ const Sidebar = () => {
           <MenuItem 
             button 
             key={item.text} 
-            active={item.active}
+            active={location.pathname === item.path}
+            onClick={() => handleNavigation(item.path)}
             variants={itemVariants}
             custom={index}
             transition={{ delay: 0.4 + index * 0.1 }}

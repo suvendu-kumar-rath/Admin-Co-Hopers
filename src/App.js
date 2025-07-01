@@ -1,8 +1,10 @@
 import React from 'react';
 import { Box, CssBaseline, ThemeProvider, createTheme } from '@mui/material';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
+import User from './components/User';
 
 const theme = createTheme({
   typography: {
@@ -10,7 +12,7 @@ const theme = createTheme({
   },
   palette: {
     primary: {
-      main: '#5B4DBC',
+      main: '#4461F2',
     },
     background: {
       default: '#F8F9FA',
@@ -22,15 +24,22 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-        <Sidebar />
-        <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', marginLeft: '250px' }}>
-          <Header />
-          <Box component="main" sx={{ flexGrow: 1, bgcolor: 'background.default' }}>
-            <Dashboard />
+      <Router>
+        <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+          <Sidebar />
+          <Box sx={{ flexGrow: 1 }}>
+            <Routes>
+              <Route path="/" element={
+                <>
+                  <Header />
+                  <Dashboard />
+                </>
+              } />
+              <Route path="/users" element={<User />} />
+            </Routes>
           </Box>
         </Box>
-      </Box>
+      </Router>
     </ThemeProvider>
   );
 }

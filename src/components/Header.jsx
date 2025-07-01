@@ -29,6 +29,8 @@ const StyledAppBar = styled(MotionAppBar)({
   boxShadow: 'none',
   color: '#000',
   marginTop: '20px',
+  marginLeft: '250px',
+  width: 'calc(100% - 250px)',
 });
 
 const SearchTextField = styled(TextField)({

@@ -23,6 +23,11 @@ const MotionBox = motion(Box);
 const MotionTypography = motion(Typography);
 const MotionListItem = motion(ListItem);
 
+const Container = styled(Box)({
+  padding: '24px',
+  marginLeft: '250px', // Add margin to prevent overlap with sidebar
+});
+
 const StyledCard = styled(MotionCard)({
   padding: 24,
   borderRadius: 20,
@@ -96,182 +101,177 @@ const Dashboard = () => {
   const chartCategories = ['Mar 1-7', 'Mar 8-14', 'Mar 15-21', 'Mar 22-28', 'Final wk'];
 
   return (
-    <MotionBox 
-      sx={{ p: 3 }}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-    >
-      <MotionTypography 
-        variant="h6" 
-        sx={{ mb: 3, fontWeight: 600 }}
-        {...fadeInUp}
+    <Container>
+      <MotionBox
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
       >
-        Top Vendor Representative
-      </MotionTypography>
-      
-      <StyledCard 
-        sx={{ mb: 4 }}
-        {...scaleIn}
-      >
-        <List>
-          {topVendors.map((vendor, index) => (
-            <MotionListItem
-              key={index}
-              {...listItemAnimation}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
-              secondaryAction={
-                <IconButton edge="end">
-                  <MoreVertIcon />
-                </IconButton>
-              }
-              sx={{ py: 2 }}
-            >
-              <ListItemAvatar>
-                <Avatar sx={{ width: 40, height: 40 }}>{vendor.name[0]}</Avatar>
-              </ListItemAvatar>
-              <ListItemText
-                primary={vendor.name}
-                secondary={vendor.users}
-                primaryTypographyProps={{ fontWeight: 500 }}
-              />
-              <Box sx={{ mr: 4 }}>
-                <Typography variant="body1" fontWeight={500}>
-                  {vendor.amount}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {vendor.subscription}
-                </Typography>
-              </Box>
-              <Typography
-                variant="body2"
-                color={vendor.status === 'Gold' ? '#FFB800' : '#4CAF50'}
-                sx={{ fontWeight: 500 }}
-              >
-                +{vendor.status}
-              </Typography>
-            </MotionListItem>
-          ))}
-        </List>
-      </StyledCard>
-
-      <MotionBox 
-        sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 3, mb: 4 }}
-        {...fadeInUp}
-      >
-        {[
-          { title: 'Vendors', value: '25.1k', change: '+15%', isIncrease: true },
-          { title: 'Users', value: '43.5k', change: '-3.5%', isIncrease: false },
-          { title: 'Total No. of members', value: '3.5M', change: '+15%', isIncrease: true },
-          { title: 'Payments', value: '43.5k', change: '+10%', isIncrease: true },
-        ].map((stat, index) => (
-          <StatCard
-            key={index}
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.3, delay: index * 0.1 }}
-            whileHover={{ scale: 1.02 }}
-          >
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Typography color="text.secondary">{stat.title}</Typography>
-              <Typography 
-                color={stat.isIncrease ? 'success.main' : 'error.main'} 
-                sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-              >
-                {stat.isIncrease ? <TrendingUpIcon fontSize="small" /> : <TrendingDownIcon fontSize="small" />} {stat.change}
-              </Typography>
-            </Box>
-            <StatValue>{stat.value}</StatValue>
-            <Typography variant="body2" color="primary" sx={{ cursor: 'pointer', fontWeight: 500 }}>
-              View {stat.title === 'Total No. of members' || stat.title === 'Payments' ? 'More' : 'Report'}
-            </Typography>
-          </StatCard>
-        ))}
-      </MotionBox>
-
-      <MotionBox 
-        sx={{ display: 'flex', gap: 4 }}
-        {...fadeInUp}
-      >
+        <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>Top Vendor Representative</Typography>
+        
         <StyledCard 
-          sx={{ flex: 1 }}
-          initial={{ x: -20, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.5 }}
+          sx={{ mb: 4 }}
+          {...scaleIn}
         >
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography variant="h6" fontWeight={500}>Last 30 days</Typography>
-          </Box>
-          <Box sx={{ height: 300 }}>
-            <BarChart
-              series={[{
-                data: chartData,
-                color: '#E7D8FD',
-              }]}
-              height={300}
-              xAxis={[{ 
-                data: chartCategories, 
-                scaleType: 'band',
-                tickLabelStyle: {
-                  angle: 0,
-                  textAnchor: 'middle',
+          <List>
+            {topVendors.map((vendor, index) => (
+              <MotionListItem
+                key={index}
+                {...listItemAnimation}
+                transition={{ duration: 0.3, delay: index * 0.1 }}
+                secondaryAction={
+                  <IconButton edge="end">
+                    <MoreVertIcon />
+                  </IconButton>
                 }
-              }]}
-              sx={{
-                '& .MuiBarElement-root:hover': {
-                  fill: '#8B5CF6',
-                },
-              }}
-            />
-          </Box>
+                sx={{ py: 2 }}
+              >
+                <ListItemAvatar>
+                  <Avatar sx={{ width: 40, height: 40 }}>{vendor.name[0]}</Avatar>
+                </ListItemAvatar>
+                <ListItemText
+                  primary={vendor.name}
+                  secondary={vendor.users}
+                  primaryTypographyProps={{ fontWeight: 500 }}
+                />
+                <Box sx={{ mr: 4 }}>
+                  <Typography variant="body1" fontWeight={500}>
+                    {vendor.amount}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {vendor.subscription}
+                  </Typography>
+                </Box>
+                <Typography
+                  variant="body2"
+                  color={vendor.status === 'Gold' ? '#FFB800' : '#4CAF50'}
+                  sx={{ fontWeight: 500 }}
+                >
+                  +{vendor.status}
+                </Typography>
+              </MotionListItem>
+            ))}
+          </List>
         </StyledCard>
 
-        <StyledCard 
-          sx={{ width: 300 }}
-          initial={{ x: 20, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.5 }}
+        <MotionBox 
+          sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 3, mb: 4 }}
+          {...fadeInUp}
         >
-          <Typography variant="h6" fontWeight={500} align="center" gutterBottom>
-            Success rate
-          </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, mt: 3 }}>
-            <SuccessRateCircle
-              initial={{ scale: 0, rotate: -180 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ duration: 0.8, type: "spring" }}
+          {[
+            { title: 'Vendors', value: '25.1k', change: '+15%', isIncrease: true },
+            { title: 'Users', value: '43.5k', change: '-3.5%', isIncrease: false },
+            { title: 'Total No. of members', value: '3.5M', change: '+15%', isIncrease: true },
+            { title: 'Payments', value: '43.5k', change: '+10%', isIncrease: true },
+          ].map((stat, index) => (
+            <StatCard
+              key={index}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.3, delay: index * 0.1 }}
+              whileHover={{ scale: 1.02 }}
             >
-              <Typography
-                sx={{
-                  position: 'relative',
-                  zIndex: 1,
-                  fontSize: '2rem',
-                  fontWeight: 600,
-                  color: '#4CAF50',
-                }}
-              >
-                98%
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography color="text.secondary">{stat.title}</Typography>
+                <Typography 
+                  color={stat.isIncrease ? 'success.main' : 'error.main'} 
+                  sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+                >
+                  {stat.isIncrease ? <TrendingUpIcon fontSize="small" /> : <TrendingDownIcon fontSize="small" />} {stat.change}
+                </Typography>
+              </Box>
+              <StatValue>{stat.value}</StatValue>
+              <Typography variant="body2" color="primary" sx={{ cursor: 'pointer', fontWeight: 500 }}>
+                View {stat.title === 'Total No. of members' || stat.title === 'Payments' ? 'More' : 'Report'}
               </Typography>
-            </SuccessRateCircle>
-            <MotionBox 
-              sx={{ display: 'flex', width: '100%', justifyContent: 'space-around', mt: 2 }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-            >
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="h6" color="error.main">1</Typography>
-                <Typography variant="body2" color="text.secondary">Unsuccessful</Typography>
-              </Box>
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="h6" color="success.main">150</Typography>
-                <Typography variant="body2" color="text.secondary">Successful</Typography>
-              </Box>
-            </MotionBox>
-          </Box>
-        </StyledCard>
+            </StatCard>
+          ))}
+        </MotionBox>
+
+        <MotionBox 
+          sx={{ display: 'flex', gap: 4 }}
+          {...fadeInUp}
+        >
+          <StyledCard 
+            sx={{ flex: 1 }}
+            initial={{ x: -20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h6" fontWeight={500}>Last 30 days</Typography>
+            </Box>
+            <Box sx={{ height: 300 }}>
+              <BarChart
+                series={[{
+                  data: chartData,
+                  color: '#E7D8FD',
+                }]}
+                height={300}
+                xAxis={[{ 
+                  data: chartCategories, 
+                  scaleType: 'band',
+                  tickLabelStyle: {
+                    angle: 0,
+                    textAnchor: 'middle',
+                  }
+                }]}
+                sx={{
+                  '& .MuiBarElement-root:hover': {
+                    fill: '#8B5CF6',
+                  },
+                }}
+              />
+            </Box>
+          </StyledCard>
+
+          <StyledCard 
+            sx={{ width: 300 }}
+            initial={{ x: 20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Typography variant="h6" fontWeight={500} align="center" gutterBottom>
+              Success rate
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, mt: 3 }}>
+              <SuccessRateCircle
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ duration: 0.8, type: "spring" }}
+              >
+                <Typography
+                  sx={{
+                    position: 'relative',
+                    zIndex: 1,
+                    fontSize: '2rem',
+                    fontWeight: 600,
+                    color: '#4CAF50',
+                  }}
+                >
+                  98%
+                </Typography>
+              </SuccessRateCircle>
+              <MotionBox 
+                sx={{ display: 'flex', width: '100%', justifyContent: 'space-around', mt: 2 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+              >
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="h6" color="error.main">1</Typography>
+                  <Typography variant="body2" color="text.secondary">Unsuccessful</Typography>
+                </Box>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="h6" color="success.main">150</Typography>
+                  <Typography variant="body2" color="text.secondary">Successful</Typography>
+                </Box>
+              </MotionBox>
+            </Box>
+          </StyledCard>
+        </MotionBox>
       </MotionBox>
-    </MotionBox>
+    </Container>
   );
 };
 
