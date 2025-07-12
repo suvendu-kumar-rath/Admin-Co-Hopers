@@ -5,6 +5,11 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
 import User from './components/User';
+import ActiveMembers from './components/Active members';
+import Kyc from './components/Kyc';
+import Payments from './components/Payments';
+import PastMembers from './components/PastMembers';
+import Inventory from './components/Inventory';
 
 const theme = createTheme({
   typography: {
@@ -36,6 +41,36 @@ function App() {
                 </>
               } />
               <Route path="/users" element={<User />} />
+              <Route path="/active-members" element={
+                <>
+                  <Header />
+                  <ActiveMembers />
+                </>
+              } />
+              <Route path="/past-members" element={
+                <>
+                  <Header />
+                  <PastMembers />
+                </>
+              } />
+              <Route path="/kyc" element={
+                <>
+                  <Header />
+                  <Kyc />
+                </>
+              } />
+              <Route path="/payments" element={
+                <>
+                  <Header />
+                  <Payments />
+                </>
+              } />
+              <Route path="/inventory" element={
+                <>
+                  <Header />
+                  <Inventory />
+                </>
+              } />
             </Routes>
           </Box>
         </Box>
