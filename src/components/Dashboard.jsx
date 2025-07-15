@@ -10,6 +10,9 @@ import {
   Avatar,
   IconButton,
   styled,
+  useTheme,
+  useMediaQuery,
+  Grid,
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
@@ -23,19 +26,33 @@ const MotionBox = motion(Box);
 const MotionTypography = motion(Typography);
 const MotionListItem = motion(ListItem);
 
-const Container = styled(Box)({
+const Container = styled(Box)(({ theme }) => ({
   padding: '24px',
-  marginLeft: '250px', // Add margin to prevent overlap with sidebar
-});
+  marginLeft: 0,
+  [theme.breakpoints.down('md')]: {
+    padding: '16px',
+  },
+  [theme.breakpoints.down('sm')]: {
+    padding: '12px',
+  },
+}));
 
-const StyledCard = styled(MotionCard)({
+const StyledCard = styled(MotionCard)(({ theme }) => ({
   padding: 24,
   borderRadius: 20,
   boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.05)',
   backgroundColor: 'white',
-});
+  [theme.breakpoints.down('md')]: {
+    padding: 16,
+    borderRadius: 16,
+  },
+  [theme.breakpoints.down('sm')]: {
+    padding: 12,
+    borderRadius: 12,
+  },
+}));
 
-const StatCard = styled(MotionBox)({
+const StatCard = styled(MotionBox)(({ theme }) => ({
   padding: 24,
   borderRadius: 20,
   backgroundColor: 'white',
@@ -43,12 +60,29 @@ const StatCard = styled(MotionBox)({
   flexDirection: 'column',
   gap: 12,
   boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.05)',
-});
+  [theme.breakpoints.down('md')]: {
+    padding: 16,
+    borderRadius: 16,
+    gap: 8,
+  },
+  [theme.breakpoints.down('sm')]: {
+    padding: 12,
+    borderRadius: 12,
+    gap: 6,
+  },
+}));
 
-const StatValue = styled(MotionTypography)({
+const StatValue = styled(MotionTypography)(({ theme }) => ({
   fontSize: '2rem',
   fontWeight: 600,
-});
+  color: '#1F2937',
+  [theme.breakpoints.down('md')]: {
+    fontSize: '1.75rem',
+  },
+  [theme.breakpoints.down('sm')]: {
+    fontSize: '1.5rem',
+  },
+}));
 
 const SuccessRateCircle = styled(MotionBox)({
   position: 'relative',
@@ -91,6 +125,10 @@ const listItemAnimation = {
 };
 
 const Dashboard = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
+
   const topVendors = [
     { name: 'Nicholas Patrick', amount: '₹2540.58', users: '150 users', subscription: '105 subscription', status: 'Gold' },
     { name: 'Cordell Edwards', amount: '₹1567.80', users: '95 users', subscription: '60 subscription', status: 'Silver' },
@@ -154,23 +192,21 @@ const Dashboard = () => {
           </List>
         </StyledCard>
 
-        <MotionBox 
-          sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 3, mb: 4 }}
-          {...fadeInUp}
-        >
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+        
           {[
             { title: 'Vendors', value: '25.1k', change: '+15%', isIncrease: true },
             { title: 'Users', value: '43.5k', change: '-3.5%', isIncrease: false },
             { title: 'Total No. of members', value: '3.5M', change: '+15%', isIncrease: true },
             { title: 'Payments', value: '43.5k', change: '+10%', isIncrease: true },
           ].map((stat, index) => (
-            <StatCard
-              key={index}
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
-              whileHover={{ scale: 1.02 }}
-            >
+            <Grid item xs={12} sm={6} md={3} key={index}>
+              <StatCard
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.3, delay: index * 0.1 }}
+                whileHover={{ scale: 1.02 }}
+              >
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography color="text.secondary">{stat.title}</Typography>
                 <Typography 
@@ -184,20 +220,19 @@ const Dashboard = () => {
               <Typography variant="body2" color="primary" sx={{ cursor: 'pointer', fontWeight: 500 }}>
                 View {stat.title === 'Total No. of members' || stat.title === 'Payments' ? 'More' : 'Report'}
               </Typography>
-            </StatCard>
+              </StatCard>
+            </Grid>
           ))}
-        </MotionBox>
+        </Grid>
 
-        <MotionBox 
-          sx={{ display: 'flex', gap: 4 }}
-          {...fadeInUp}
-        >
-          <StyledCard 
-            sx={{ flex: 1 }}
-            initial={{ x: -20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.5 }}
-          >
+        <Grid container spacing={3}>
+          <Grid item xs={12} lg={8}>
+            <StyledCard 
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              sx={{ height: '100%' }}
+            >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
               <Typography variant="h6" fontWeight={500}>Last 30 days</Typography>
             </Box>
@@ -224,13 +259,15 @@ const Dashboard = () => {
               />
             </Box>
           </StyledCard>
+          </Grid>
 
-          <StyledCard 
-            sx={{ width: 300 }}
-            initial={{ x: 20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.5 }}
-          >
+          <Grid item xs={12} lg={4}>
+            <StyledCard 
+              initial={{ x: 20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              sx={{ height: '100%' }}
+            >
             <Typography variant="h6" fontWeight={500} align="center" gutterBottom>
               Success rate
             </Typography>
@@ -269,7 +306,8 @@ const Dashboard = () => {
               </MotionBox>
             </Box>
           </StyledCard>
-        </MotionBox>
+          </Grid>
+        </Grid>
       </MotionBox>
     </Container>
   );

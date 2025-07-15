@@ -25,19 +25,30 @@ import { motion } from 'framer-motion';
 
 const MotionBox = motion(Box);
 
-const Container = styled(Box)({
+const Container = styled(Box)(({ theme }) => ({
   padding: '24px',
-  marginLeft: '250px', // Space for sidebar
-});
+  marginLeft: 0,
+  [theme.breakpoints.down('md')]: {
+    padding: '16px',
+  },
+  [theme.breakpoints.down('sm')]: {
+    padding: '12px',
+  },
+}));
 
-const SearchContainer = styled(Box)({
+const SearchContainer = styled(Box)(({ theme }) => ({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
   marginBottom: '24px',
-});
+  [theme.breakpoints.down('md')]: {
+    flexDirection: 'column',
+    gap: '16px',
+    alignItems: 'stretch',
+  },
+}));
 
-const SearchField = styled(TextField)({
+const SearchField = styled(TextField)(({ theme }) => ({
   width: '400px',
   '& .MuiOutlinedInput-root': {
     backgroundColor: '#F8F9FA',
@@ -46,7 +57,10 @@ const SearchField = styled(TextField)({
       borderColor: '#E0E0E0',
     },
   },
-});
+  [theme.breakpoints.down('md')]: {
+    width: '100%',
+  },
+}));
 
 const AddButton = styled(Button)({
   backgroundColor: '#4461F2',

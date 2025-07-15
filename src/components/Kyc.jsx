@@ -2,10 +2,16 @@ import React from "react";
 import { Box, Paper } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
-const Container = styled(Box)({
+const Container = styled(Box)(({ theme }) => ({
   padding: '24px',
-  marginLeft: '250px',
-});
+  marginLeft: 0,
+  [theme.breakpoints.down('md')]: {
+    padding: '16px',
+  },
+  [theme.breakpoints.down('sm')]: {
+    padding: '12px',
+  },
+}));
 
 const StyledPaper = styled(Paper)({
   backgroundColor: 'white',

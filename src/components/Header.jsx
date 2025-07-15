@@ -12,6 +12,8 @@ import {
   Menu,
   MenuItem,
   ListItemIcon,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import NotificationsIcon from '@mui/icons-material/Notifications';
@@ -24,31 +26,61 @@ const MotionAppBar = motion(AppBar);
 const MotionBox = motion(Box);
 const MotionIconButton = motion(IconButton);
 
-const StyledAppBar = styled(MotionAppBar)({
+const StyledAppBar = styled(MotionAppBar)(({ theme }) => ({
   backgroundColor: 'transparent',
   boxShadow: 'none',
   color: '#000',
   marginTop: '20px',
-  marginLeft: '250px',
-  width: 'calc(100% - 250px)',
-});
+  marginLeft: 0,
+  width: '100%',
+  padding: '0 20px',
+  [theme.breakpoints.up('lg')]: {
+    marginLeft: 0,
+    width: '100%',
+  },
+  [theme.breakpoints.down('lg')]: {
+    marginLeft: 0,
+    marginTop: '80px', // Account for mobile menu button
+  },
+  [theme.breakpoints.down('md')]: {
+    marginTop: '70px',
+    padding: '0 16px',
+  },
+  [theme.breakpoints.down('sm')]: {
+    marginTop: '60px',
+    padding: '0 12px',
+  },
+}));
 
-const SearchTextField = styled(TextField)({
+const SearchTextField = styled(TextField)(({ theme }) => ({
   '& .MuiOutlinedInput-root': {
     backgroundColor: '#F3F0FF',
     borderRadius: 20,
+    fontSize: '14px',
     '& fieldset': {
       border: 'none',
     },
+    [theme.breakpoints.down('md')]: {
+      fontSize: '13px',
+    },
+    [theme.breakpoints.down('sm')]: {
+      fontSize: '12px',
+    },
   },
-});
+}));
 
-const UserProfile = styled(MotionBox)({
+const UserProfile = styled(MotionBox)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
   gap: 8,
   cursor: 'pointer',
-});
+  [theme.breakpoints.down('md')]: {
+    gap: 6,
+  },
+  [theme.breakpoints.down('sm')]: {
+    gap: 4,
+  },
+}));
 
 const StyledMenu = styled(Menu)({
   '& .MuiPaper-root': {
@@ -72,6 +104,9 @@ const MotionMenuItem = motion(StyledMenuItem);
 const Header = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -88,13 +123,21 @@ const Header = () => {
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: "spring", stiffness: 100, damping: 20 }}
     >
-      <Toolbar>
+      <Toolbar sx={{ minHeight: { xs: '56px', sm: '64px' }, px: { xs: 1, sm: 2, md: 3 } }}>
         <motion.div
           initial={{ x: -20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ delay: 0.2 }}
         >
-          <Typography variant="h5" component="div" sx={{ flexGrow: 0, mr: 4 }}>
+          <Typography 
+            variant={isMobile ? "h6" : "h5"} 
+            component="div" 
+            sx={{ 
+              flexGrow: 0, 
+              mr: { xs: 1, sm: 2, md: 4 },
+              fontSize: { xs: '1.1rem', sm: '1.25rem', md: '1.5rem' }
+            }}
+          >
             Overview
           </Typography>
         </motion.div>
@@ -103,15 +146,20 @@ const Header = () => {
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.3 }}
-          style={{ flexGrow: 1, maxWidth: 400 }}
+          style={{ 
+            flexGrow: 1, 
+            maxWidth: isMobile ? 200 : 400,
+            minWidth: isSmall ? 120 : 180 
+          }}
         >
           <SearchTextField
             placeholder="Search"
             fullWidth
+            size={isMobile ? "small" : "medium"}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon />
+                  <SearchIcon fontSize={isSmall ? "small" : "medium"} />
                 </InputAdornment>
               ),
             }}
@@ -121,39 +169,59 @@ const Header = () => {
         <Box sx={{ flexGrow: 1 }} />
         
         <MotionIconButton 
-          sx={{ mr: 2 }}
+          sx={{ 
+            mr: { xs: 1, sm: 2 },
+            padding: { xs: '6px', sm: '8px' }
+          }}
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ delay: 0.4 }}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
         >
-          <NotificationsIcon />
+          <NotificationsIcon fontSize={isSmall ? "small" : "medium"} />
         </MotionIconButton>
         
-        <UserProfile 
-          onClick={handleClick}
-          initial={{ x: 20, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          whileHover={{ scale: 1.02 }}
-        >
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.6 }}
+                  <UserProfile 
+            onClick={handleClick}
+            initial={{ x: 20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            whileHover={{ scale: 1.02 }}
           >
-            <Avatar src="/path-to-user-image.jpg" />
-          </motion.div>
-          <Typography variant="subtitle1">Danielle Campbell</Typography>
-          <MotionIconButton 
-            size="small"
-            animate={{ rotate: open ? 180 : 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <KeyboardArrowDownIcon />
-          </MotionIconButton>
-        </UserProfile>
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.6 }}
+            >
+              <Avatar 
+                src="/path-to-user-image.jpg"
+                sx={{ 
+                  width: { xs: 32, sm: 40 }, 
+                  height: { xs: 32, sm: 40 } 
+                }}
+              />
+            </motion.div>
+            {!isSmall && (
+              <Typography 
+                variant="subtitle1"
+                sx={{ 
+                  fontSize: { xs: '0.8rem', sm: '0.9rem', md: '1rem' },
+                  display: { xs: 'none', sm: 'block' }
+                }}
+              >
+                Danielle Campbell
+              </Typography>
+            )}
+            <MotionIconButton 
+              size="small"
+              animate={{ rotate: open ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+              sx={{ padding: { xs: '4px', sm: '6px' } }}
+            >
+              <KeyboardArrowDownIcon fontSize={isSmall ? "small" : "medium"} />
+            </MotionIconButton>
+          </UserProfile>
 
         <AnimatePresence>
           {open && (

@@ -1,15 +1,15 @@
 import React from 'react';
-import { Box, CssBaseline, ThemeProvider, createTheme } from '@mui/material';
+import { Box, CssBaseline, ThemeProvider, createTheme, useTheme, useMediaQuery } from '@mui/material';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Sidebar from './components/Sidebar';
-import Header from './components/Header';
-import Dashboard from './components/Dashboard';
-import User from './components/User';
-import ActiveMembers from './components/Active members';
-import Kyc from './components/Kyc';
-import Payments from './components/Payments';
-import PastMembers from './components/PastMembers';
-import Inventory from './components/Inventory';
+import Sidebar, { SidebarProvider } from './components/Sidebar.jsx';
+import Header from './components/Header.jsx';
+import Dashboard from './components/Dashboard.jsx';
+import User from './components/User.jsx';
+import ActiveMembers from './components/Active members.jsx';
+import Kyc from './components/Kyc.jsx';
+import Payments from './components/Payments.jsx';
+import PastMembers from './components/PastMembers.jsx';
+import Inventory from './components/Inventory.jsx';
 
 const theme = createTheme({
   typography: {
@@ -23,16 +23,54 @@ const theme = createTheme({
       default: '#F8F9FA',
     },
   },
+  breakpoints: {
+    values: {
+      xs: 0,
+      sm: 600,
+      md: 768,
+      lg: 1024,
+      xl: 1280,
+    },
+  },
 });
+
+// Responsive Layout Component
+const ResponsiveLayout = ({ children }) => {
+  const theme = useTheme();
+  const isLargeScreen = useMediaQuery(theme.breakpoints.up('lg'));
+  
+  return (
+    <Box 
+      sx={{ 
+        display: 'flex', 
+        minHeight: '100vh', 
+        bgcolor: 'background.default',
+        position: 'relative',
+      }}
+    >
+      <Box 
+        sx={{ 
+          flexGrow: 1,
+          marginLeft: isLargeScreen ? '250px' : '0',
+          minHeight: '100vh',
+          transition: 'margin-left 0.3s ease-in-out',
+          width: isLargeScreen ? 'calc(100% - 250px)' : '100%',
+        }}
+      >
+        {children}
+      </Box>
+    </Box>
+  );
+};
 
 function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
-        <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+        <SidebarProvider>
           <Sidebar />
-          <Box sx={{ flexGrow: 1 }}>
+          <ResponsiveLayout>
             <Routes>
               <Route path="/" element={
                 <>
@@ -72,8 +110,8 @@ function App() {
                 </>
               } />
             </Routes>
-          </Box>
-        </Box>
+          </ResponsiveLayout>
+        </SidebarProvider>
       </Router>
     </ThemeProvider>
   );

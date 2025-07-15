@@ -1,5 +1,18 @@
-import React from 'react';
-import { Box, List, ListItem, ListItemIcon, ListItemText, styled } from '@mui/material';
+import React, { useState, useContext, createContext } from 'react';
+import { 
+  Box, 
+  List, 
+  ListItem, 
+  ListItemIcon, 
+  ListItemText, 
+  styled, 
+  Drawer,
+  IconButton,
+  useTheme,
+  useMediaQuery
+} from '@mui/material';
+import MenuIcon from '@mui/icons-material/Menu';
+import CloseIcon from '@mui/icons-material/Close';
 import { useNavigate, useLocation } from 'react-router-dom';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
@@ -11,11 +24,16 @@ import InventoryIcon from '@mui/icons-material/Inventory';
 import CoHopersLogo from '../assets/images/BoldTribe Logo-3.png';
 import { motion } from 'framer-motion';
 
+// Create a context for sidebar state
+export const SidebarContext = createContext();
+
 const MotionBox = motion(Box);
 const MotionList = motion(List);
 const MotionListItem = motion(ListItem);
 
-const SidebarContainer = styled(MotionBox)(({ theme }) => ({
+const SidebarContainer = styled(MotionBox, {
+  shouldForwardProp: (prop) => prop !== 'isopen',
+})(({ theme, isopen }) => ({
   width: 250,
   backgroundColor: '#8EC8D4',
   height: '100%',
@@ -28,18 +46,62 @@ const SidebarContainer = styled(MotionBox)(({ theme }) => ({
   bottom: 0,
   borderTopRightRadius: 24,
   borderBottomRightRadius: 24,
+  zIndex: 1200,
+  transition: 'transform 0.3s ease-in-out',
+  [theme.breakpoints.down('lg')]: {
+    transform: isopen ? 'translateX(0)' : 'translateX(-100%)',
+  },
+  [theme.breakpoints.up('lg')]: {
+    transform: 'translateX(0)',
+  },
 }));
 
-const Logo = styled(MotionBox)({
+const MobileMenuButton = styled(IconButton)(({ theme }) => ({
+  position: 'fixed',
+  top: 20,
+  left: 20,
+  zIndex: 1300,
+  backgroundColor: '#8EC8D4',
+  color: 'white',
+  '&:hover': {
+    backgroundColor: '#7BB8C5',
+  },
+  [theme.breakpoints.up('lg')]: {
+    display: 'none',
+  },
+}));
+
+const Overlay = styled(Box)(({ theme }) => ({
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  width: '100%',
+  height: '100%',
+  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  zIndex: 1100,
+  [theme.breakpoints.up('lg')]: {
+    display: 'none',
+  },
+}));
+
+const Logo = styled(MotionBox)(({ theme }) => ({
   padding: '10px 0',
   marginTop: '-80px',
   '& img': {
     width: 180,
     height: 'auto',
+    [theme.breakpoints.down('md')]: {
+      width: 140,
+    },
+    [theme.breakpoints.down('sm')]: {
+      width: 120,
+    },
   },
-});
+}));
 
-const MenuItem = styled(MotionListItem)(({ active }) => ({
+const MenuItem = styled(MotionListItem, {
+  shouldForwardProp: (prop) => prop !== 'active',
+})(({ active, theme }) => ({
   borderRadius: 12,
   marginBottom: 8,
   backgroundColor: active ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
@@ -48,22 +110,35 @@ const MenuItem = styled(MotionListItem)(({ active }) => ({
     cursor: 'pointer',
   },
   padding: '10px 16px',
+  [theme.breakpoints.down('sm')]: {
+    padding: '8px 12px',
+    marginBottom: 6,
+  },
 }));
 
-const MenuItemText = styled(ListItemText)({
+const MenuItemText = styled(ListItemText)(({ theme }) => ({
   '& .MuiListItemText-primary': {
     fontSize: '0.95rem',
     fontWeight: 500,
+    [theme.breakpoints.down('sm')]: {
+      fontSize: '0.85rem',
+    },
   },
-});
+}));
 
-const MenuItemIcon = styled(ListItemIcon)({
+const MenuItemIcon = styled(ListItemIcon)(({ theme }) => ({
   minWidth: 40,
   color: 'white',
   '& .MuiSvgIcon-root': {
     fontSize: '1.3rem',
+    [theme.breakpoints.down('sm')]: {
+      fontSize: '1.1rem',
+    },
   },
-});
+  [theme.breakpoints.down('sm')]: {
+    minWidth: 35,
+  },
+}));
 
 // Animation variants
 const sidebarVariants = {
@@ -89,9 +164,33 @@ const itemVariants = {
   animate: { x: 0, opacity: 1 }
 };
 
+// Provider component for sidebar state
+export const SidebarProvider = ({ children }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const theme = useTheme();
+  const isLargeScreen = useMediaQuery(theme.breakpoints.up('lg'));
+
+  const toggleSidebar = () => setIsOpen(!isOpen);
+  const closeSidebar = () => setIsOpen(false);
+
+  return (
+    <SidebarContext.Provider value={{ isOpen, toggleSidebar, closeSidebar, isLargeScreen }}>
+      {children}
+    </SidebarContext.Provider>
+  );
+};
+
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const context = useContext(SidebarContext);
+  
+  // Handle case where context is not provided (fallback for development)
+  if (!context) {
+    throw new Error('Sidebar must be used within a SidebarProvider');
+  }
+  
+  const { isOpen, toggleSidebar, closeSidebar, isLargeScreen } = context;
 
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
@@ -105,14 +204,47 @@ const Sidebar = () => {
 
   const handleNavigation = (path) => {
     navigate(path);
+    if (!isLargeScreen) {
+      closeSidebar();
+    }
   };
 
   return (
-    <SidebarContainer
-      initial="initial"
-      animate="animate"
-      variants={sidebarVariants}
-    >
+    <>
+      {/* Mobile menu button */}
+      <MobileMenuButton onClick={toggleSidebar}>
+        <MenuIcon />
+      </MobileMenuButton>
+
+      {/* Overlay for mobile */}
+      {isOpen && !isLargeScreen && (
+        <Overlay onClick={closeSidebar} />
+      )}
+
+      <SidebarContainer
+        isopen={isOpen}
+        initial="initial"
+        animate="animate"
+        variants={sidebarVariants}
+      >
+      {/* Mobile close button */}
+      {!isLargeScreen && (
+        <IconButton
+          onClick={closeSidebar}
+          sx={{
+            position: 'absolute',
+            top: 16,
+            right: 16,
+            color: 'white',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            },
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
+      )}
+
       <Logo
         variants={logoVariants}
         initial="initial"
@@ -132,7 +264,6 @@ const Sidebar = () => {
       >
         {menuItems.map((item, index) => (
           <MenuItem 
-            button 
             key={item.text} 
             active={location.pathname === item.path}
             onClick={() => handleNavigation(item.path)}
@@ -159,6 +290,7 @@ const Sidebar = () => {
         ))}
       </MotionList>
     </SidebarContainer>
+    </>
   );
 };
 
