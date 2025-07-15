@@ -20,7 +20,6 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
-import AddIcon from '@mui/icons-material/Add';
 import { motion } from 'framer-motion';
 
 const MotionBox = motion(Box);
@@ -62,15 +61,7 @@ const SearchField = styled(TextField)(({ theme }) => ({
   },
 }));
 
-const AddButton = styled(Button)({
-  backgroundColor: '#4461F2',
-  borderRadius: '8px',
-  textTransform: 'none',
-  padding: '8px 16px',
-  '&:hover': {
-    backgroundColor: '#3451E2',
-  },
-});
+
 
 const StyledTableContainer = styled(TableContainer)({
   backgroundColor: 'white',
@@ -159,12 +150,6 @@ const User = () => {
               <FilterListIcon />
             </IconButton>
           </Box>
-          <AddButton
-            variant="contained"
-            startIcon={<AddIcon />}
-          >
-            Add user
-          </AddButton>
         </SearchContainer>
 
         <StyledTableContainer component={Paper}>
