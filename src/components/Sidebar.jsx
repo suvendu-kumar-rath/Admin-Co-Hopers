@@ -18,8 +18,8 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
 import StarIcon from '@mui/icons-material/Star';
 import HistoryIcon from '@mui/icons-material/History';
-import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
-import PaymentsIcon from '@mui/icons-material/Payments';
+
+
 import InventoryIcon from '@mui/icons-material/Inventory';
 import CoHopersLogo from '../assets/images/BoldTribe Logo-3.png';
 import { motion } from 'framer-motion';
@@ -194,11 +194,11 @@ const Sidebar = () => {
 
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-    { text: 'Users', icon: <PeopleIcon />, path: '/users' },
+    { text: 'Leads', icon: <PeopleIcon />, path: '/users' },
     { text: 'Active members', icon: <StarIcon />, path: '/active-members' },
     { text: 'Past members', icon: <HistoryIcon />, path: '/past-members' },
-    { text: 'KYC', icon: <VerifiedUserIcon />, path: '/kyc' },
-    { text: 'Payments', icon: <PaymentsIcon />, path: '/payments' },
+
+
     { text: 'Inventory', icon: <InventoryIcon />, path: '/inventory' },
   ];
 

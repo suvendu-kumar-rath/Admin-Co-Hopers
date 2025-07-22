@@ -61,8 +61,6 @@ const SearchField = styled(TextField)(({ theme }) => ({
   },
 }));
 
-
-
 const StyledTableContainer = styled(TableContainer)({
   backgroundColor: 'white',
   borderRadius: '12px',
@@ -78,53 +76,54 @@ const StyledTableCell = styled(TableCell)({
   },
 });
 
-const StatusChip = styled(Box)(({ status }) => ({
+const DateCell = styled(Box)({
   padding: '6px 12px',
-  borderRadius: '16px',
+  borderRadius: '8px',
   display: 'inline-block',
   fontSize: '14px',
   fontWeight: 500,
-  backgroundColor: 
-    status === 'Open' ? '#EEF2FF' :
-    status === 'Paid' ? '#ECFDF3' :
-    status === 'Due' ? '#FEF2F2' :
-    '#F3F4F6',
-  color:
-    status === 'Open' ? '#4F46E5' :
-    status === 'Paid' ? '#059669' :
-    status === 'Due' ? '#DC2626' :
-    '#6B7280',
-}));
+  backgroundColor: '#F8F9FA',
+  color: '#333',
+});
 
 const User = () => {
-  const [selectedUsers, setSelectedUsers] = useState([]);
+  const [selectedLeads, setSelectedLeads] = useState([]);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  const users = [
-    { id: 1, name: 'Ann Culhane', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', status: 'Open', mobile: '8567485158', email: 'sbdhbi@136gmail.com' },
-    { id: 2, name: 'Ahmad Rosser', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', status: 'Paid', mobile: '8567485158', email: 'sbdhbi@136gmail.com' },
-    { id: 3, name: 'Zain Calzoni', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', status: 'Open', mobile: '8567485158', email: 'sbdhbi@136gmail.com' },
-    { id: 4, name: 'Leo Stanton', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', status: 'Inactive', mobile: '8567485158', email: 'sbdhbi@136gmail.com' },
-    { id: 5, name: 'Kaiya Vetrovs', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', status: 'Open', mobile: '8567485158', email: 'sbdhbi@136gmail.com' },
-    { id: 6, name: 'Ryan Westervelt', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', status: 'Paid', mobile: '8567485158', email: 'sbdhbi@136gmail.com' },
-    { id: 7, name: 'Corey Stanton', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', status: 'Due', mobile: '8567485158', email: 'sbdhbi@136gmail.com' },
-    { id: 8, name: 'Adison Aminoff', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', status: 'Open', mobile: '8567485158', email: 'sbdhbi@136gmail.com' },
-    { id: 9, name: 'Alfredo Aminoff', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', status: 'Inactive', mobile: '8567485158', email: 'sbdhbi@136gmail.com' },
+  const leads = [
+    { id: 1, name: 'Ann Culhane', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-01-15', mobile: '8567485158', email: 'sbdhbi@136gmail.com' },
+    { id: 2, name: 'Ahmad Rosser', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-02-10', mobile: '8567485158', email: 'sbdhbi@136gmail.com' },
+    { id: 3, name: 'Zain Calzoni', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-03-05', mobile: '8567485158', email: 'sbdhbi@136gmail.com' },
+    { id: 4, name: 'Leo Stanton', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-01-28', mobile: '8567485158', email: 'sbdhbi@136gmail.com' },
+    { id: 5, name: 'Kaiya Vetrovs', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-04-12', mobile: '8567485158', email: 'sbdhbi@136gmail.com' },
+    { id: 6, name: 'Ryan Westervelt', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-02-20', mobile: '8567485158', email: 'sbdhbi@136gmail.com' },
+    { id: 7, name: 'Corey Stanton', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-03-18', mobile: '8567485158', email: 'sbdhbi@136gmail.com' },
+    { id: 8, name: 'Adison Aminoff', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-01-08', mobile: '8567485158', email: 'sbdhbi@136gmail.com' },
+    { id: 9, name: 'Alfredo Aminoff', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-04-02', mobile: '8567485158', email: 'sbdhbi@136gmail.com' },
   ];
 
   const handleSelectAll = (event) => {
     if (event.target.checked) {
-      setSelectedUsers(users.map(user => user.id));
+      setSelectedLeads(leads.map(lead => lead.id));
     } else {
-      setSelectedUsers([]);
+      setSelectedLeads([]);
     }
   };
 
-  const handleSelectUser = (id) => {
-    const newSelected = selectedUsers.includes(id)
-      ? selectedUsers.filter(userId => userId !== id)
-      : [...selectedUsers, id];
-    setSelectedUsers(newSelected);
+  const handleSelectLead = (id) => {
+    const newSelected = selectedLeads.includes(id)
+      ? selectedLeads.filter(leadId => leadId !== id)
+      : [...selectedLeads, id];
+    setSelectedLeads(newSelected);
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   };
 
   return (
@@ -158,46 +157,46 @@ const User = () => {
               <TableRow>
                 <StyledTableCell padding="checkbox">
                   <Checkbox
-                    indeterminate={selectedUsers.length > 0 && selectedUsers.length < users.length}
-                    checked={selectedUsers.length === users.length}
+                    indeterminate={selectedLeads.length > 0 && selectedLeads.length < leads.length}
+                    checked={selectedLeads.length === leads.length}
                     onChange={handleSelectAll}
                   />
                 </StyledTableCell>
                 <StyledTableCell>ID</StyledTableCell>
                 <StyledTableCell>NAME</StyledTableCell>
                 <StyledTableCell>ADDRESS</StyledTableCell>
-                <StyledTableCell>STATUS</StyledTableCell>
+                <StyledTableCell>DATE OF JOINING</StyledTableCell>
                 <StyledTableCell>MOBILE</StyledTableCell>
                 <StyledTableCell>MAIL</StyledTableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {users.map((user) => (
-                <TableRow
-                  key={user.id}
-                  hover
-                  selected={selectedUsers.includes(user.id)}
-                  component={motion.tr}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <StyledTableCell padding="checkbox">
-                    <Checkbox
-                      checked={selectedUsers.includes(user.id)}
-                      onChange={() => handleSelectUser(user.id)}
-                    />
-                  </StyledTableCell>
-                  <StyledTableCell>{user.id}</StyledTableCell>
-                  <StyledTableCell>{user.name}</StyledTableCell>
-                  <StyledTableCell>{user.address}</StyledTableCell>
-                  <StyledTableCell>
-                    <StatusChip status={user.status}>{user.status}</StatusChip>
-                  </StyledTableCell>
-                  <StyledTableCell>{user.mobile}</StyledTableCell>
-                  <StyledTableCell>{user.email}</StyledTableCell>
-                </TableRow>
-              ))}
+                          {leads.map((lead) => (
+              <TableRow
+                key={lead.id}
+                hover
+                selected={selectedLeads.includes(lead.id)}
+                component={motion.tr}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                <StyledTableCell padding="checkbox">
+                  <Checkbox
+                    checked={selectedLeads.includes(lead.id)}
+                    onChange={() => handleSelectLead(lead.id)}
+                  />
+                </StyledTableCell>
+                <StyledTableCell>{lead.id}</StyledTableCell>
+                <StyledTableCell>{lead.name}</StyledTableCell>
+                <StyledTableCell>{lead.address}</StyledTableCell>
+                <StyledTableCell>
+                  <DateCell>{formatDate(lead.dateOfJoining)}</DateCell>
+                </StyledTableCell>
+                <StyledTableCell>{lead.mobile}</StyledTableCell>
+                <StyledTableCell>{lead.email}</StyledTableCell>
+              </TableRow>
+            ))}
             </TableBody>
           </Table>
         </StyledTableContainer>

@@ -6,8 +6,8 @@ import Header from './components/Header.jsx';
 import Dashboard from './components/Dashboard.jsx';
 import User from './components/User.jsx';
 import ActiveMembers from './components/Active members.jsx';
-import Kyc from './components/Kyc.jsx';
-import Payments from './components/Payments.jsx';
+
+
 import PastMembers from './components/PastMembers.jsx';
 import Inventory from './components/Inventory.jsx';
 
@@ -91,18 +91,8 @@ function App() {
                   <PastMembers />
                 </>
               } />
-              <Route path="/kyc" element={
-                <>
-                  <Header />
-                  <Kyc />
-                </>
-              } />
-              <Route path="/payments" element={
-                <>
-                  <Header />
-                  <Payments />
-                </>
-              } />
+
+
               <Route path="/inventory" element={
                 <>
                   <Header />

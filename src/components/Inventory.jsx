@@ -28,6 +28,7 @@ import {
   InputLabel,
   useTheme,
   useMediaQuery,
+  Badge,
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -35,6 +36,9 @@ import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import EventAvailableIcon from '@mui/icons-material/EventAvailable';
+import EventBusyIcon from '@mui/icons-material/EventBusy';
 import { motion } from 'framer-motion';
 
 const MotionBox = motion(Box);
@@ -308,6 +312,88 @@ const SubmitButton = styled(Button)({
   },
 });
 
+const CalendarContainer = styled(Box)({
+  border: '1px solid #E5E7EB',
+  borderRadius: '8px',
+  padding: '16px',
+  backgroundColor: 'white',
+  marginTop: '8px',
+});
+
+const CalendarHeader = styled(Box)({
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: '16px',
+});
+
+const CalendarGrid = styled(Box)({
+  display: 'grid',
+  gridTemplateColumns: 'repeat(7, 1fr)',
+  gap: '4px',
+});
+
+const CalendarDay = styled(Box)(({ isbooked, isselected, istoday }) => {
+  let backgroundColor = 'transparent';
+  let color = '#374151';
+  let border = '1px solid transparent';
+  
+  if (istoday) {
+    border = '2px solid #3B82F6';
+  }
+  
+  if (isbooked) {
+    backgroundColor = '#FEE2E2';
+    color = '#DC2626';
+  }
+  
+  if (isselected) {
+    backgroundColor = '#10B981';
+    color = 'white';
+  }
+  
+  return {
+    padding: '8px',
+    textAlign: 'center',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: 500,
+    backgroundColor,
+    color,
+    border,
+    minHeight: '36px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    '&:hover': {
+      backgroundColor: isbooked ? '#FEE2E2' : (isselected ? '#047857' : '#F3F4F6'),
+    },
+  };
+});
+
+const DatePickerButton = styled(Button)(({ hasdate }) => ({
+  backgroundColor: hasdate ? '#EBF8FF' : '#F9FAFB',
+  color: hasdate ? '#2563EB' : '#6B7280',
+  border: '1px solid #E5E7EB',
+  borderRadius: '8px',
+  padding: '12px 16px',
+  textTransform: 'none',
+  fontWeight: 500,
+  justifyContent: 'flex-start',
+  '&:hover': {
+    backgroundColor: hasdate ? '#DBEAFE' : '#F3F4F6',
+  },
+}));
+
+// Sample booked dates (in real app, this would come from your backend)
+const bookedDates = [
+  '2024-12-25', '2024-12-26', '2024-12-31',
+  '2025-01-01', '2025-01-15', '2025-02-14',
+  '2025-03-10', '2025-03-15', '2025-04-01'
+];
+
 // Sample data to match the image
 const inventoryData = [
   {
@@ -358,8 +444,12 @@ const Inventory = () => {
     roomNumber: '',
     cabinNumber: '',
     price: '',
-    image: null,
+    images: [],
+    availableDates: [],
   });
+  
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
   // Responsive hooks
   const theme = useTheme();
@@ -381,12 +471,14 @@ const Inventory = () => {
 
   const handleCloseModal = () => {
     setOpenModal(false);
+    setShowCalendar(false);
     setFormData({
       availability: 'AVAILABLE',
       roomNumber: '',
       cabinNumber: '',
       price: '',
-      image: null,
+      images: [],
+      availableDates: [],
     });
   };
 
@@ -398,16 +490,123 @@ const Inventory = () => {
   };
 
   const handleFileUpload = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setFormData(prev => ({
-        ...prev,
-        image: file,
-      }));
+    const files = Array.from(event.target.files);
+    if (files.length > 0) {
+      const totalFiles = formData.images.length + files.length;
+      if (totalFiles <= 5) {
+        setFormData(prev => ({
+          ...prev,
+          images: [...prev.images, ...files],
+        }));
+      } else {
+        // Only add files up to the 5-file limit
+        const remainingSlots = 5 - formData.images.length;
+        if (remainingSlots > 0) {
+          setFormData(prev => ({
+            ...prev,
+            images: [...prev.images, ...files.slice(0, remainingSlots)],
+          }));
+        }
+      }
     }
   };
 
+  const handleRemoveImage = (indexToRemove) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, index) => index !== indexToRemove),
+    }));
+  };
+
+  // Calendar helper functions
+  const formatDate = (date) => {
+    return date.toISOString().split('T')[0];
+  };
+
+  const isDateBooked = (date) => {
+    return bookedDates.includes(formatDate(date));
+  };
+
+  const isDateSelected = (date) => {
+    return formData.availableDates.includes(formatDate(date));
+  };
+
+  const isToday = (date) => {
+    const today = new Date();
+    return formatDate(date) === formatDate(today);
+  };
+
+  const handleDateClick = (date) => {
+    const dateStr = formatDate(date);
+    
+    // Don't allow selection of booked dates
+    if (isDateBooked(date)) {
+      return;
+    }
+    
+    setFormData(prev => {
+      const isSelected = prev.availableDates.includes(dateStr);
+      if (isSelected) {
+        // Remove date if already selected
+        return {
+          ...prev,
+          availableDates: prev.availableDates.filter(d => d !== dateStr),
+        };
+      } else {
+        // Add date if not selected
+        return {
+          ...prev,
+          availableDates: [...prev.availableDates, dateStr],
+        };
+      }
+    });
+  };
+
+  const changeMonth = (increment) => {
+    setCurrentMonth(prev => {
+      const newDate = new Date(prev);
+      newDate.setMonth(prev.getMonth() + increment);
+      return newDate;
+    });
+  };
+
+  const getDaysInMonth = () => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+
+    const days = [];
+    
+    // Add empty cells for days before the first day of the month
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      days.push(null);
+    }
+    
+    // Add all days in the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      days.push(new Date(year, month, day));
+    }
+    
+    return days;
+  };
+
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
   const handleSubmit = () => {
+    // Validate minimum 1 photo requirement
+    if (formData.images.length === 0) {
+      alert('Please upload at least 1 photo');
+      return;
+    }
+    
     // Handle form submission here
     console.log('Form data:', formData);
     // You can add your API call here
@@ -646,10 +845,10 @@ const Inventory = () => {
           
           {/* Upload Section */}
           <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
-            Upload New Space Photo*
+            Upload New Space Photos* (Minimum 1, Maximum 5 photos)
           </Typography>
           <Typography variant="caption" sx={{ color: '#6B7280', mb: 2, display: 'block' }}>
-            Upload an image of the new space
+            Upload images of the new space (at least 1 photo required, maximum 5 photos)
           </Typography>
           
           <input
@@ -657,21 +856,80 @@ const Inventory = () => {
             style={{ display: 'none' }}
             id="file-upload"
             type="file"
+            multiple
             onChange={handleFileUpload}
+            disabled={formData.images.length >= 5}
           />
           <label htmlFor="file-upload">
-            <UploadArea component="span">
+            <UploadArea component="span" sx={{ 
+              opacity: formData.images.length >= 5 ? 0.5 : 1,
+              cursor: formData.images.length >= 5 ? 'not-allowed' : 'pointer'
+            }}>
               <CloudUploadIcon sx={{ fontSize: 24, color: '#6B7280', mb: 1 }} />
               <Typography variant="body2" sx={{ color: '#6B7280' }}>
-                Add File
+                {formData.images.length >= 5 ? 'Maximum 5 photos reached' : 'Add Files'}
               </Typography>
-              {formData.image && (
-                <Typography variant="caption" sx={{ color: '#059669', mt: 1, display: 'block' }}>
-                  {formData.image.name}
-                </Typography>
-              )}
+              <Typography variant="caption" sx={{ color: '#6B7280', display: 'block' }}>
+                {formData.images.length}/5 photos selected
+              </Typography>
             </UploadArea>
           </label>
+
+          {/* Display uploaded images */}
+          {formData.images.length > 0 && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+                Selected Photos:
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {formData.images.map((image, index) => (
+                  <Box
+                    key={index}
+                    sx={{
+                      position: 'relative',
+                      width: 80,
+                      height: 80,
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      border: '1px solid #E5E7EB',
+                      backgroundColor: '#F9FAFB',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <img
+                      src={URL.createObjectURL(image)}
+                      alt={`Preview ${index + 1}`}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                      }}
+                    />
+                    <IconButton
+                      size="small"
+                      onClick={() => handleRemoveImage(index)}
+                      sx={{
+                        position: 'absolute',
+                        top: 2,
+                        right: 2,
+                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                        color: 'white',
+                        width: 20,
+                        height: 20,
+                        '&:hover': {
+                          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        },
+                      }}
+                    >
+                      <CloseIcon sx={{ fontSize: 12 }} />
+                    </IconButton>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          )}
 
           {/* Availability Section */}
           <Typography variant="body2" sx={{ mb: 2, fontWeight: 500 }}>
@@ -734,11 +992,155 @@ const Inventory = () => {
                 }}
               />
             </Grid>
+            
+            {/* Available Dates Section */}
+            <Grid item xs={12}>
+              <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+                Available Dates*
+              </Typography>
+              <Typography variant="caption" sx={{ color: '#6B7280', mb: 2, display: 'block' }}>
+                Select the dates when this space will be available
+              </Typography>
+              
+              <DatePickerButton
+                fullWidth
+                hasdate={formData.availableDates.length > 0}
+                onClick={() => setShowCalendar(!showCalendar)}
+                startIcon={<CalendarTodayIcon />}
+              >
+                {formData.availableDates.length > 0 
+                  ? `${formData.availableDates.length} date(s) selected`
+                  : 'Select Available Dates'
+                }
+              </DatePickerButton>
+
+              {showCalendar && (
+                <CalendarContainer>
+                  <CalendarHeader>
+                    <IconButton onClick={() => changeMonth(-1)} size="small">
+                      <Typography>‹</Typography>
+                    </IconButton>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+                    </Typography>
+                    <IconButton onClick={() => changeMonth(1)} size="small">
+                      <Typography>›</Typography>
+                    </IconButton>
+                  </CalendarHeader>
+
+                  {/* Day names header */}
+                  <CalendarGrid>
+                    {dayNames.map(day => (
+                      <Box
+                        key={day}
+                        sx={{
+                          padding: '8px',
+                          textAlign: 'center',
+                          fontWeight: 600,
+                          fontSize: '12px',
+                          color: '#6B7280',
+                        }}
+                      >
+                        {day}
+                      </Box>
+                    ))}
+                  </CalendarGrid>
+
+                  {/* Calendar days */}
+                  <CalendarGrid>
+                    {getDaysInMonth().map((date, index) => (
+                      <CalendarDay
+                        key={index}
+                        isbooked={date ? isDateBooked(date) : false}
+                        isselected={date ? isDateSelected(date) : false}
+                        istoday={date ? isToday(date) : false}
+                        onClick={() => date && handleDateClick(date)}
+                        sx={{
+                          cursor: date ? (isDateBooked(date) ? 'not-allowed' : 'pointer') : 'default',
+                          opacity: date ? 1 : 0,
+                        }}
+                      >
+                        {date ? date.getDate() : ''}
+                        {date && isDateBooked(date) && (
+                          <EventBusyIcon 
+                            sx={{ 
+                              position: 'absolute', 
+                              top: 2, 
+                              right: 2, 
+                              fontSize: 12,
+                              color: '#DC2626'
+                            }} 
+                          />
+                        )}
+                      </CalendarDay>
+                    ))}
+                  </CalendarGrid>
+
+                  {/* Legend */}
+                  <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center', gap: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Box sx={{ width: 12, height: 12, backgroundColor: '#10B981', borderRadius: '50%' }} />
+                      <Typography variant="caption">Selected</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Box sx={{ width: 12, height: 12, backgroundColor: '#FEE2E2', borderRadius: '50%' }} />
+                      <Typography variant="caption">Booked</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Box sx={{ width: 12, height: 12, border: '2px solid #3B82F6', borderRadius: '50%' }} />
+                      <Typography variant="caption">Today</Typography>
+                    </Box>
+                  </Box>
+                </CalendarContainer>
+              )}
+
+              {/* Selected dates display */}
+              {formData.availableDates.length > 0 && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+                    Selected Available Dates:
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    {formData.availableDates.sort().map((dateStr, index) => (
+                      <Chip
+                        key={index}
+                        label={new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                        onDelete={() => {
+                          setFormData(prev => ({
+                            ...prev,
+                            availableDates: prev.availableDates.filter(d => d !== dateStr),
+                          }));
+                        }}
+                        size="small"
+                        sx={{
+                          backgroundColor: '#ECFDF5',
+                          color: '#059669',
+                          '& .MuiChip-deleteIcon': {
+                            color: '#059669',
+                          },
+                        }}
+                      />
+                    ))}
+                  </Box>
+                </Box>
+              )}
+            </Grid>
           </Grid>
         </DialogContent>
         
         <DialogActions sx={{ padding: '0 24px 24px', justifyContent: 'center' }}>
-          <SubmitButton onClick={handleSubmit}>
+          <SubmitButton 
+            onClick={handleSubmit}
+            disabled={formData.images.length === 0}
+            sx={{
+              opacity: formData.images.length === 0 ? 0.5 : 1,
+              cursor: formData.images.length === 0 ? 'not-allowed' : 'pointer',
+            }}
+          >
             Submit
           </SubmitButton>
         </DialogActions>
