@@ -6,7 +6,7 @@ import Header from './components/Header.jsx';
 import Dashboard from './components/Dashboard.jsx';
 import User from './components/User.jsx';
 import ActiveMembers from './components/Active members.jsx';
-
+import BookMeetingRoom from './components/BookMeetingRoom.jsx';
 
 import PastMembers from './components/PastMembers.jsx';
 import Inventory from './components/Inventory.jsx';
@@ -91,7 +91,13 @@ function App() {
                   <PastMembers />
                 </>
               } />
-
+              
+              <Route path="/book-meeting" element={
+                <>
+                  <Header />
+                  <BookMeetingRoom />
+                </>
+              } />
 
               <Route path="/inventory" element={
                 <>
