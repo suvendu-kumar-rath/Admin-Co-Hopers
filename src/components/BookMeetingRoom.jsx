@@ -12,10 +12,17 @@ import {
   TablePagination,
   Button,
   Chip,
+  TextField,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   styled
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
+import EditIcon from '@mui/icons-material/Edit';
 
 // Styled components
 const PageContainer = styled(Box)(({ theme }) => ({
@@ -114,6 +121,9 @@ const BookMeetingRoom = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [bookings, setBookings] = useState(sampleData);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [currentEditBooking, setCurrentEditBooking] = useState(null);
+  const [newSlotTiming, setNewSlotTiming] = useState('');
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -138,6 +148,30 @@ const BookMeetingRoom = () => {
         booking.id === id ? { ...booking, status: 'Rejected' } : booking
       )
     );
+  };
+
+  const openEditDialog = (booking) => {
+    setCurrentEditBooking(booking);
+    setNewSlotTiming(booking.slotTiming);
+    setEditDialogOpen(true);
+  };
+
+  const closeEditDialog = () => {
+    setEditDialogOpen(false);
+    setCurrentEditBooking(null);
+  };
+
+  const handleSaveSlotTiming = () => {
+    if (currentEditBooking && newSlotTiming) {
+      setBookings(prevBookings =>
+        prevBookings.map(booking =>
+          booking.id === currentEditBooking.id
+            ? { ...booking, slotTiming: newSlotTiming }
+            : booking
+        )
+      );
+      closeEditDialog();
+    }
   };
 
   return (
@@ -177,7 +211,19 @@ const BookMeetingRoom = () => {
                     <TableBodyCell>{row.memberType}</TableBodyCell>
                     <TableBodyCell>{row.date}</TableBodyCell>
                     <TableBodyCell>{row.seatType}</TableBodyCell>
-                    <TableBodyCell>{row.slotTiming}</TableBodyCell>
+                    <TableBodyCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        {row.slotTiming}
+                        <IconButton 
+                          size="small" 
+                          color="primary" 
+                          onClick={() => openEditDialog(row)}
+                          sx={{ ml: 1 }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    </TableBodyCell>
                     <TableBodyCell>
                       {row.status === 'Pending' ? (
                         <Box sx={{ display: 'flex', gap: 1 }}>
@@ -223,6 +269,32 @@ const BookMeetingRoom = () => {
           onRowsPerPageChange={handleChangeRowsPerPage}
         />
       </StyledPaper>
+
+      {/* Edit Slot Timing Dialog */}
+      <Dialog open={editDialogOpen} onClose={closeEditDialog}>
+        <DialogTitle>Edit Slot Timing</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Slot Timing"
+            fullWidth
+            variant="outlined"
+            value={newSlotTiming}
+            onChange={(e) => setNewSlotTiming(e.target.value)}
+            placeholder="e.g., 10:00 AM - 12:00 PM"
+            helperText="Enter the new slot timing"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeEditDialog} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleSaveSlotTiming} color="primary" variant="contained">
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
     </PageContainer>
   );
 };
