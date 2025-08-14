@@ -18,7 +18,13 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  styled
+  styled,
+  Grid,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Divider
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -123,7 +129,9 @@ const BookMeetingRoom = () => {
   const [bookings, setBookings] = useState(sampleData);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [currentEditBooking, setCurrentEditBooking] = useState(null);
-  const [newSlotTiming, setNewSlotTiming] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [timeFormat, setTimeFormat] = useState('12h'); // '12h' or '24h'
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -150,19 +158,74 @@ const BookMeetingRoom = () => {
     );
   };
 
+  const parseTimeString = (timeString) => {
+    // Parse a time string like "10:00 AM - 12:00 PM" into start and end time strings
+    try {
+      const [startStr, endStr] = timeString.split(' - ');
+      
+      // Convert to 24-hour format for the input fields
+      const convertTo24Hour = (timeStr) => {
+        const [time, period] = timeStr.split(' ');
+        let [hours, minutes] = time.split(':').map(num => parseInt(num, 10));
+        
+        if (period === 'PM' && hours < 12) hours += 12;
+        if (period === 'AM' && hours === 12) hours = 0;
+        
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+      };
+      
+      // Check if already in 24-hour format (no AM/PM)
+      const startTime = startStr.includes('AM') || startStr.includes('PM') 
+        ? convertTo24Hour(startStr) 
+        : startStr;
+        
+      const endTime = endStr.includes('AM') || endStr.includes('PM') 
+        ? convertTo24Hour(endStr) 
+        : endStr;
+      
+      return { startTime, endTime };
+    } catch (error) {
+      console.error("Error parsing time string:", error);
+      return { startTime: '', endTime: '' };
+    }
+  };
+
+  const formatTimeString = (timeString, format) => {
+    if (!timeString) return '';
+    
+    // Convert from 24-hour format to the desired format
+    const [hours, minutes] = timeString.split(':').map(num => parseInt(num, 10));
+    
+    if (format === '24h') {
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    } else {
+      const period = hours >= 12 ? 'PM' : 'AM';
+      const displayHours = hours % 12 || 12;
+      return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+    }
+  };
+
   const openEditDialog = (booking) => {
     setCurrentEditBooking(booking);
-    setNewSlotTiming(booking.slotTiming);
+    const { startTime: start, endTime: end } = parseTimeString(booking.slotTiming);
+    setStartTime(start);
+    setEndTime(end);
     setEditDialogOpen(true);
   };
 
   const closeEditDialog = () => {
     setEditDialogOpen(false);
     setCurrentEditBooking(null);
+    setStartTime('');
+    setEndTime('');
   };
 
   const handleSaveSlotTiming = () => {
-    if (currentEditBooking && newSlotTiming) {
+    if (currentEditBooking && startTime && endTime) {
+      const formattedStartTime = formatTimeString(startTime, timeFormat);
+      const formattedEndTime = formatTimeString(endTime, timeFormat);
+      const newSlotTiming = `${formattedStartTime} - ${formattedEndTime}`;
+      
       setBookings(prevBookings =>
         prevBookings.map(booking =>
           booking.id === currentEditBooking.id
@@ -172,6 +235,10 @@ const BookMeetingRoom = () => {
       );
       closeEditDialog();
     }
+  };
+  
+  const handleTimeFormatChange = (event) => {
+    setTimeFormat(event.target.value);
   };
 
   return (
@@ -271,27 +338,127 @@ const BookMeetingRoom = () => {
       </StyledPaper>
 
       {/* Edit Slot Timing Dialog */}
-      <Dialog open={editDialogOpen} onClose={closeEditDialog}>
-        <DialogTitle>Edit Slot Timing</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Slot Timing"
-            fullWidth
-            variant="outlined"
-            value={newSlotTiming}
-            onChange={(e) => setNewSlotTiming(e.target.value)}
-            placeholder="e.g., 10:00 AM - 12:00 PM"
-            helperText="Enter the new slot timing"
-          />
+      <Dialog 
+        open={editDialogOpen} 
+        onClose={closeEditDialog}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.15)'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          bgcolor: '#8EC8D4', 
+          color: 'white',
+          fontWeight: 600,
+          py: 2
+        }}>
+          Edit Time Slot
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3, pb: 4 }}>
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <Typography variant="subtitle1" fontWeight={500} gutterBottom>
+                {currentEditBooking?.userName} - {currentEditBooking?.bookingType}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                {currentEditBooking?.date} • {currentEditBooking?.seatType}
+              </Typography>
+              <Divider sx={{ my: 2 }} />
+            </Grid>
+            
+            <Grid item xs={12}>
+              <Typography variant="subtitle2" fontWeight={500} gutterBottom>
+                Time Format
+              </Typography>
+              <FormControl fullWidth variant="outlined" size="small">
+                <Select
+                  value={timeFormat}
+                  onChange={handleTimeFormatChange}
+                  displayEmpty
+                >
+                  <MenuItem value="12h">12-hour (AM/PM)</MenuItem>
+                  <MenuItem value="24h">24-hour</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            
+            <Grid item xs={12} sm={6}>
+              <Typography variant="subtitle2" fontWeight={500} gutterBottom>
+                Start Time
+              </Typography>
+              <TextField
+                type="time"
+                fullWidth
+                variant="outlined"
+                size="small"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                InputLabelProps={{
+                  shrink: true,
+                }}
+                inputProps={{
+                  step: 300, // 5 min
+                }}
+                sx={{
+                  '& input': {
+                    padding: '10px 14px',
+                  }
+                }}
+              />
+            </Grid>
+            
+            <Grid item xs={12} sm={6}>
+              <Typography variant="subtitle2" fontWeight={500} gutterBottom>
+                End Time
+              </Typography>
+              <TextField
+                type="time"
+                fullWidth
+                variant="outlined"
+                size="small"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                InputLabelProps={{
+                  shrink: true,
+                }}
+                inputProps={{
+                  step: 300, // 5 min
+                }}
+                sx={{
+                  '& input': {
+                    padding: '10px 14px',
+                  }
+                }}
+              />
+            </Grid>
+          </Grid>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={closeEditDialog} color="primary">
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button 
+            onClick={closeEditDialog} 
+            color="inherit"
+            variant="outlined"
+            sx={{ borderRadius: 2 }}
+          >
             Cancel
           </Button>
-          <Button onClick={handleSaveSlotTiming} color="primary" variant="contained">
-            Save
+          <Button 
+            onClick={handleSaveSlotTiming} 
+            color="primary" 
+            variant="contained"
+            sx={{ 
+              borderRadius: 2,
+              bgcolor: '#8EC8D4',
+              '&:hover': {
+                bgcolor: '#7ab8c4'
+              }
+            }}
+          >
+            Save Changes
           </Button>
         </DialogActions>
       </Dialog>
