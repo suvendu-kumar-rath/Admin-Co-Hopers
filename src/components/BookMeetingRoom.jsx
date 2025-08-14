@@ -24,11 +24,15 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Divider
+  Divider,
+  Snackbar,
+  Alert,
+  Tooltip
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import EditIcon from '@mui/icons-material/Edit';
+import EmailIcon from '@mui/icons-material/Email';
 
 // Styled components
 const PageContainer = styled(Box)(({ theme }) => ({
@@ -75,6 +79,7 @@ const sampleData = [
     date: '2023-06-15',
     seatType: 'Conference Room',
     slotTiming: '10:00 AM - 12:00 PM',
+    paymentEmail: 'john.doe@example.com',
     status: 'Pending'
   },
   {
@@ -86,6 +91,7 @@ const sampleData = [
     date: '2023-06-15',
     seatType: 'Desk',
     slotTiming: '01:00 PM - 05:00 PM',
+    paymentEmail: 'jane.smith@example.com',
     status: 'Confirmed'
   },
   {
@@ -97,6 +103,7 @@ const sampleData = [
     date: '2023-06-16',
     seatType: 'Auditorium',
     slotTiming: '09:00 AM - 11:00 AM',
+    paymentEmail: 'robert.johnson@example.com',
     status: 'Pending'
   },
   {
@@ -108,6 +115,7 @@ const sampleData = [
     date: '2023-06-16',
     seatType: 'Small Meeting Room',
     slotTiming: '03:00 PM - 04:00 PM',
+    paymentEmail: 'emily.davis@example.com',
     status: 'Rejected'
   },
   {
@@ -119,6 +127,7 @@ const sampleData = [
     date: '2023-06-17',
     seatType: 'Desk',
     slotTiming: '10:00 AM - 06:00 PM',
+    paymentEmail: 'michael.wilson@example.com',
     status: 'Pending'
   }
 ];
@@ -132,6 +141,11 @@ const BookMeetingRoom = () => {
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [timeFormat, setTimeFormat] = useState('12h'); // '12h' or '24h'
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [emailRecipient, setEmailRecipient] = useState(null);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState('success');
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -240,6 +254,47 @@ const BookMeetingRoom = () => {
   const handleTimeFormatChange = (event) => {
     setTimeFormat(event.target.value);
   };
+  
+  const openEmailDialog = (booking) => {
+    setEmailRecipient(booking);
+    setEmailDialogOpen(true);
+  };
+  
+  const closeEmailDialog = () => {
+    setEmailDialogOpen(false);
+    setEmailRecipient(null);
+  };
+  
+  const handleSendPaymentEmail = () => {
+    // In a real application, this would connect to an email API
+    // For demo purposes, we'll just show a success message
+    
+    if (emailRecipient) {
+      // Simulate sending email
+      setTimeout(() => {
+        setSnackbarMessage(`Payment reminder email sent to ${emailRecipient.userName} at ${emailRecipient.paymentEmail}`);
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
+        closeEmailDialog();
+        
+        // Mark as notified in the bookings data (optional)
+        setBookings(prevBookings =>
+          prevBookings.map(booking =>
+            booking.id === emailRecipient.id
+              ? { ...booking, paymentNotified: true }
+              : booking
+          )
+        );
+      }, 1000);
+    }
+  };
+  
+  const handleCloseSnackbar = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setSnackbarOpen(false);
+  };
 
   return (
     <PageContainer>
@@ -260,6 +315,8 @@ const BookMeetingRoom = () => {
                 <TableHeaderCell>Date</TableHeaderCell>
                 <TableHeaderCell>Seat Type</TableHeaderCell>
                 <TableHeaderCell>Slot Timing</TableHeaderCell>
+                <TableHeaderCell>Payment Email</TableHeaderCell>
+                <TableHeaderCell>Send Payment Reminder</TableHeaderCell>
                 <TableHeaderCell>Confirmation</TableHeaderCell>
               </TableRow>
             </TableHead>
@@ -290,6 +347,24 @@ const BookMeetingRoom = () => {
                           <EditIcon fontSize="small" />
                         </IconButton>
                       </Box>
+                    </TableBodyCell>
+                    <TableBodyCell>{row.paymentEmail}</TableBodyCell>
+                    <TableBodyCell align="center">
+                      <Tooltip title="Send payment reminder email">
+                        <IconButton
+                          color="primary"
+                          onClick={() => openEmailDialog(row)}
+                          size="small"
+                          sx={{
+                            bgcolor: row.paymentNotified ? 'rgba(25, 118, 210, 0.08)' : 'transparent',
+                            '&:hover': {
+                              bgcolor: 'rgba(25, 118, 210, 0.12)',
+                            }
+                          }}
+                        >
+                          <EmailIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                     </TableBodyCell>
                     <TableBodyCell>
                       {row.status === 'Pending' ? (
@@ -366,6 +441,9 @@ const BookMeetingRoom = () => {
               </Typography>
               <Typography variant="body2" color="text.secondary" gutterBottom>
                 {currentEditBooking?.date} • {currentEditBooking?.seatType}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Payment Email: {currentEditBooking?.paymentEmail}
               </Typography>
               <Divider sx={{ my: 2 }} />
             </Grid>
@@ -462,6 +540,89 @@ const BookMeetingRoom = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Payment Email Dialog */}
+      <Dialog
+        open={emailDialogOpen}
+        onClose={closeEmailDialog}
+        maxWidth="sm"
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.15)'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          bgcolor: '#8EC8D4', 
+          color: 'white',
+          fontWeight: 600,
+          py: 2
+        }}>
+          Send Payment Reminder
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3, pb: 2, px: 3 }}>
+          <Typography variant="subtitle1" gutterBottom>
+            Are you sure you want to send a payment reminder to:
+          </Typography>
+          <Box sx={{ mt: 2, mb: 1, p: 2, bgcolor: 'rgba(0,0,0,0.03)', borderRadius: 1 }}>
+            <Typography variant="body1" fontWeight={500}>
+              {emailRecipient?.userName}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Email: {emailRecipient?.paymentEmail}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Booking: {emailRecipient?.bookingType} ({emailRecipient?.date})
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Seat: {emailRecipient?.seatType}
+            </Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button 
+            onClick={closeEmailDialog}
+            color="inherit"
+            variant="outlined"
+            sx={{ borderRadius: 2 }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSendPaymentEmail}
+            color="primary"
+            variant="contained"
+            startIcon={<EmailIcon />}
+            sx={{ 
+              borderRadius: 2,
+              bgcolor: '#8EC8D4',
+              '&:hover': {
+                bgcolor: '#7ab8c4'
+              }
+            }}
+          >
+            Send Email
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Notification Snackbar */}
+      <Snackbar 
+        open={snackbarOpen} 
+        autoHideDuration={6000} 
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={snackbarSeverity} 
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </PageContainer>
   );
 };
