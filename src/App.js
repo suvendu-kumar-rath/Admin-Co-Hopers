@@ -1,12 +1,15 @@
 import React from 'react';
 import { Box, CssBaseline, ThemeProvider, createTheme, useTheme, useMediaQuery } from '@mui/material';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar, { SidebarProvider } from './components/Sidebar.jsx';
 import Header from './components/Header.jsx';
 import Dashboard from './components/Dashboard.jsx';
 import User from './components/User.jsx';
 import ActiveMembers from './components/Active members.jsx';
 import BookMeetingRoom from './components/BookMeetingRoom.jsx';
+import Login from './components/Login.jsx';
+import ProtectedRoute from './components/ProtectedRoute.jsx';
+// import { AuthProvider } from './context/AuthContext.jsx';
 
 import PastMembers from './components/PastMembers.jsx';
 import Inventory from './components/Inventory.jsx';
@@ -68,46 +71,77 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
-        <SidebarProvider>
-          <Sidebar />
-          <ResponsiveLayout>
-            <Routes>
-              <Route path="/" element={
-                <>
-                  <Header />
-                  <Dashboard />
-                </>
-              } />
-              <Route path="/users" element={<User />} />
-              <Route path="/active-members" element={
-                <>
-                  <Header />
-                  <ActiveMembers />
-                </>
-              } />
-              <Route path="/past-members" element={
-                <>
-                  <Header />
-                  <PastMembers />
-                </>
-              } />
+        {/* <AuthProvider> */}
+          <Routes>
+            {/* Public Route */}
+            <Route path="/login" element={<Login />} />
+            
+            {/* Protected Routes */}
+            <Route element={<ProtectedRoute />}>
+              <Route element={
+                <SidebarProvider>
+                  <Sidebar />
+                  <ResponsiveLayout>
+                    <Header />
+                    <Dashboard />
+                  </ResponsiveLayout>
+                </SidebarProvider>
+              } path="/" />
               
-              <Route path="/book-meeting" element={
-                <>
-                  <Header />
-                  <BookMeetingRoom />
-                </>
-              } />
-
-              <Route path="/inventory" element={
-                <>
-                  <Header />
-                  <Inventory />
-                </>
-              } />
-            </Routes>
-          </ResponsiveLayout>
-        </SidebarProvider>
+              <Route element={
+                <SidebarProvider>
+                  <Sidebar />
+                  <ResponsiveLayout>
+                    <User />
+                  </ResponsiveLayout>
+                </SidebarProvider>
+              } path="/users" />
+              
+              <Route element={
+                <SidebarProvider>
+                  <Sidebar />
+                  <ResponsiveLayout>
+                    <Header />
+                    <ActiveMembers />
+                  </ResponsiveLayout>
+                </SidebarProvider>
+              } path="/active-members" />
+              
+              <Route element={
+                <SidebarProvider>
+                  <Sidebar />
+                  <ResponsiveLayout>
+                    <Header />
+                    <PastMembers />
+                  </ResponsiveLayout>
+                </SidebarProvider>
+              } path="/past-members" />
+              
+              <Route element={
+                <SidebarProvider>
+                  <Sidebar />
+                  <ResponsiveLayout>
+                    <Header />
+                    <BookMeetingRoom />
+                  </ResponsiveLayout>
+                </SidebarProvider>
+              } path="/book-meeting" />
+              
+              <Route element={
+                <SidebarProvider>
+                  <Sidebar />
+                  <ResponsiveLayout>
+                    <Header />
+                    <Inventory />
+                  </ResponsiveLayout>
+                </SidebarProvider>
+              } path="/inventory" />
+            </Route>
+            
+            {/* Redirect any unknown routes to login */}
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        {/* </AuthProvider> */}
       </Router>
     </ThemeProvider>
   );

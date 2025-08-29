@@ -21,6 +21,8 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+// import { useAuth } from '../context/AuthContext.jsx';  
 
 const MotionAppBar = motion(AppBar);
 const MotionBox = motion(Box);
@@ -107,6 +109,7 @@ const Header = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
+  // const { logout } = useAuth();
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -114,6 +117,15 @@ const Header = () => {
 
   const handleClose = () => {
     setAnchorEl(null);
+  };
+  
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    // Clear authentication from localStorage
+    localStorage.removeItem('isAuthenticated');
+    // Redirect to login page using React Router
+    navigate('/login');
   };
 
   return (
@@ -251,6 +263,7 @@ const Header = () => {
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ delay: 0.2 }}
                 whileHover={{ scale: 1.02, x: 5 }}
+                onClick={handleLogout}
               >
                 <ListItemIcon>
                   <LogoutIcon fontSize="small" />
@@ -265,4 +278,4 @@ const Header = () => {
   );
 };
 
-export default Header; 
+export default Header;
