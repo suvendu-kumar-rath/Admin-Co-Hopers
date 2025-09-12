@@ -822,7 +822,18 @@ const Inventory = () => {
       </MotionPaper>
 
       {/* Add New Space Modal */}
-      <StyledDialog open={openModal} onClose={handleCloseModal} maxWidth="sm" fullWidth>
+      <StyledDialog 
+        open={openModal} 
+        onClose={handleCloseModal} 
+        maxWidth="sm" 
+        fullWidth
+        BackdropProps={{
+          sx: {
+            backdropFilter: 'blur(6px)',
+            backgroundColor: 'rgba(0, 0, 0, 0.25)'
+          }
+        }}
+      >
         <StyledDialogTitle>
           Add New Space
           <IconButton

@@ -8,19 +8,22 @@ import {
   Container, 
   InputAdornment, 
   IconButton,
-  Alert
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { authApi } from '../api';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     // Basic validation
@@ -29,14 +32,44 @@ const Login = () => {
       return;
     }
 
-    // For demo purposes - replace with actual authentication logic
-    if (email === 'admin@cohopers.com' && password === 'admin123') {
-      // Store authentication token/state
-      localStorage.setItem('isAuthenticated', 'true');
-      // Redirect to dashboard
-      navigate('/');
-    } else {
-      setError('Invalid email or password');
+    setLoading(true);
+    setError('');
+
+    try {
+      // Call the API for authentication
+      const data = await authApi.login({ email, password });
+
+      // Normalize token from possible response shapes
+      const token = data?.token || data?.access_token || data?.authToken;
+
+      // If API uses token-based auth or sets httpOnly cookies, consider both
+      if (token || data?.success === true) {
+        localStorage.setItem('isAuthenticated', 'true');
+        if (token) {
+          localStorage.setItem('authToken', token);
+        }
+        navigate('/');
+      } else {
+        const serverMessage = data?.message || 'Invalid response from server';
+        setError(serverMessage);
+      }
+    } catch (err) {
+      // Axios error shape normalization
+      const status = err?.response?.status ?? err?.status;
+      const serverMessage = err?.response?.data?.message || err?.message;
+      console.error('Login error:', { status, serverMessage, err });
+
+      if (status === 401) {
+        setError('Invalid email or password');
+      } else if (status === 0 || (typeof status === 'number' && status >= 500)) {
+        setError('Server error. Please try again later.');
+      } else if (serverMessage) {
+        setError(serverMessage);
+      } else {
+        setError('Login failed. Please try again.');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -125,8 +158,9 @@ const Login = () => {
               fullWidth
               variant="contained"
               sx={{ mt: 3, mb: 2, py: 1.5, borderRadius: 1 }}
+              disabled={loading}
             >
-              Sign In
+              {loading ? <CircularProgress size={24} color="inherit" /> : 'Sign In'}
             </Button>
           </Box>
         </Paper>
