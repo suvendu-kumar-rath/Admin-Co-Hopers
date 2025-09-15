@@ -19,9 +19,9 @@ import SearchIcon from '@mui/icons-material/Search';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
-import LogoutIcon from '@mui/icons-material/Logout';
+// import LogoutIcon from '@mui/icons-material/Logout';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+// import { useNavigate } from 'react-router-dom';
 // import { useAuth } from '../context/AuthContext.jsx';  
 
 const MotionAppBar = motion(AppBar);
@@ -119,14 +119,9 @@ const Header = () => {
     setAnchorEl(null);
   };
   
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
 
-  const handleLogout = () => {
-    // Clear authentication from localStorage
-    localStorage.removeItem('isAuthenticated');
-    // Redirect to login page using React Router
-    navigate('/login');
-  };
+  // Logout functionality removed - direct access to dashboard
 
   return (
     <StyledAppBar 
@@ -257,19 +252,7 @@ const Header = () => {
                 </ListItemIcon>
                 Profile
               </MotionMenuItem>
-              <MotionMenuItem
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ delay: 0.2 }}
-                whileHover={{ scale: 1.02, x: 5 }}
-                onClick={handleLogout}
-              >
-                <ListItemIcon>
-                  <LogoutIcon fontSize="small" />
-                </ListItemIcon>
-                Logout
-              </MotionMenuItem>
+              {/* Logout menu item removed */}
             </StyledMenu>
           )}
         </AnimatePresence>
