@@ -6,7 +6,8 @@ import { Box, CircularProgress } from '@mui/material';
 const ProtectedRoute = () => {
   // Since AuthContext is commented out, we'll use localStorage directly
   // This is a simple implementation - in a real app, use a proper auth system
-  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+
+  const isAuthenticated = localStorage.getItem('isAuthenticated');
   const isLoading = false; // Simplified for now
 
   if (isLoading) {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Table,
@@ -29,6 +29,11 @@ import {
   useTheme,
   useMediaQuery,
   Badge,
+  Alert,
+  Snackbar,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -39,7 +44,10 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { motion } from 'framer-motion';
+import { spacesApi } from '../api';
+import APITester from './APITester';
 
 const MotionBox = motion(Box);
 const MotionPaper = motion(Paper);
@@ -440,13 +448,24 @@ const Inventory = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [openModal, setOpenModal] = useState(false);
   const [formData, setFormData] = useState({
+    space_name: '',
+    seater: '',
     availability: 'AVAILABLE',
     roomNumber: '',
     cabinNumber: '',
     price: '',
-    images: [],
+    spaceImages: [],
     availableDates: [],
   });
+  const [inventoryItems, setInventoryItems] = useState([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+  const [loading, setLoading] = useState(true);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
   
   const [showCalendar, setShowCalendar] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -455,6 +474,46 @@ const Inventory = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
+
+  // Fetch inventory data from API
+  useEffect(() => {
+    const fetchInventoryData = async () => {
+      try {
+        setLoading(true);
+        const response = await spacesApi.fetchSpaces();
+        
+        // Transform API response to match expected format
+        const transformedData = response.data?.map(space => ({
+          id: space.id,
+          roomNumber: space.room_number || space.roomNumber || 'N/A',
+          cabinNumber: space.cabin_number || space.cabinNumber || 'N/A',
+          date: space.date || new Date().toISOString().split('T')[0],
+          availability: space.availability || 'AVAILABLE',
+          price: space.price || '0',
+          space_name: space.space_name || space.space_name || 'Unknown',
+          seater: space.seater || 1,
+          spaceImages: space.spaceImages || [],
+          availableDates: space.availableDates || []
+        })) || [];
+        
+        setInventoryItems(transformedData);
+        setSnackbarMessage('Inventory data loaded successfully');
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
+      } catch (error) {
+        console.error('Error fetching inventory data:', error);
+        setSnackbarMessage('Failed to load inventory data');
+        setSnackbarSeverity('error');
+        setSnackbarOpen(true);
+        // Keep empty array if API fails
+        setInventoryItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInventoryData();
+  }, []);
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -466,18 +525,41 @@ const Inventory = () => {
   };
 
   const handleOpenModal = () => {
+    setIsEditMode(false);
+    setEditingItem(null);
+    setOpenModal(true);
+  };
+
+  const handleEditModal = (item) => {
+    console.log("inside edit modal", item)
+    setIsEditMode(true);
+    setEditingItem(item);
+    setFormData({
+      space_name: item.space_name,
+      availability: item.availability,
+      roomNumber: item.roomNumber,
+      cabinNumber: item.cabinNumber,
+      price: item.price,
+      seater: item.seater,                
+      spaceImages: [], // Reset spaceImages for edit mode
+      availableDates: [], // Reset dates for edit mode
+    });
     setOpenModal(true);
   };
 
   const handleCloseModal = () => {
     setOpenModal(false);
     setShowCalendar(false);
+    setIsEditMode(false);
+    setEditingItem(null);
     setFormData({
+      space_name: '',
+      seater: '',
       availability: 'AVAILABLE',
       roomNumber: '',
       cabinNumber: '',
       price: '',
-      images: [],
+      spaceImages: [],
       availableDates: [],
     });
   };
@@ -492,19 +574,19 @@ const Inventory = () => {
   const handleFileUpload = (event) => {
     const files = Array.from(event.target.files);
     if (files.length > 0) {
-      const totalFiles = formData.images.length + files.length;
+      const totalFiles = formData.spaceImages.length + files.length;
       if (totalFiles <= 5) {
         setFormData(prev => ({
           ...prev,
-          images: [...prev.images, ...files],
+          spaceImages: [...prev.spaceImages, ...files],
         }));
       } else {
         // Only add files up to the 5-file limit
-        const remainingSlots = 5 - formData.images.length;
+        const remainingSlots = 5 - formData.spaceImages.length;
         if (remainingSlots > 0) {
           setFormData(prev => ({
             ...prev,
-            images: [...prev.images, ...files.slice(0, remainingSlots)],
+            spaceImages: [...prev.spaceImages, ...files.slice(0, remainingSlots)],
           }));
         }
       }
@@ -514,8 +596,53 @@ const Inventory = () => {
   const handleRemoveImage = (indexToRemove) => {
     setFormData(prev => ({
       ...prev,
-      images: prev.images.filter((_, index) => index !== indexToRemove),
+      spaceImages: prev.spaceImages.filter((_, index) => index !== indexToRemove),
     }));
+  };
+
+  // Delete functionality
+  const handleDeleteClick = (item) => {
+    setItemToDelete(item);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!itemToDelete) return;
+
+    setLoading(true);
+    try {
+      // Call the API to delete the item
+      await spacesApi.deleteSpace(itemToDelete.id);
+      
+      // Remove item from local state
+      setInventoryItems(prevItems => 
+        prevItems.filter(item => item.id !== itemToDelete.id)
+      );
+      
+      // Show success message
+      setSnackbarMessage(`${itemToDelete.name} has been successfully deleted.`);
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+      
+    } catch (error) {
+      console.error('Delete error:', error);
+      setSnackbarMessage('Failed to delete item. Please try again.');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    } finally {
+      setLoading(false);
+      setDeleteDialogOpen(false);
+      setItemToDelete(null);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setItemToDelete(null);
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
   };
 
   // Calendar helper functions
@@ -600,20 +727,131 @@ const Inventory = () => {
 
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-  const handleSubmit = () => {
-    // Validate minimum 1 photo requirement
-    if (formData.images.length === 0) {
-      alert('Please upload at least 1 photo');
+  const handleSubmit = async () => {
+    // Validate required fields first
+    if (!formData.space_name || !formData.seater || !formData.roomNumber || !formData.cabinNumber || !formData.price) {
+      setSnackbarMessage('Please fill in all required fields (Space Name, Seater Size, Room Number, Cabin Number, and Price)');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
       return;
     }
+
+    // Validate minimum 1 photo requirement (required by backend)
+    if (formData.spaceImages.length === 0) {
+      setSnackbarMessage('At least one image is required. Please upload at least 1 photo.');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+      return;
+    }
+
+    // Validate image files
+    const validImages = formData.spaceImages.filter(img => img instanceof File);
+    if (validImages.length === 0) {
+      setSnackbarMessage('Please upload valid image files.');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+      return;
+    }
+
+    setLoading(true);
     
-    // Handle form submission here
-    console.log('Form data:', formData);
-    // You can add your API call here
-    handleCloseModal();
+    // Define submitData outside try block so it's accessible in catch block
+    const submitData = {
+      space_name: formData.space_name,
+      seater: formData.seater,
+      price: formData.price,
+      availability: formData.availability,
+      spaceImages: formData.spaceImages,
+      availableDates: formData.availableDates,
+      roomNumber: formData.roomNumber,
+      cabinNumber: formData.cabinNumber,
+    };
+    
+    try {
+
+      if (isEditMode && editingItem) {
+        // Update existing item
+        await spacesApi.updateSpace(editingItem.id, submitData);
+        setSnackbarMessage(`${formData.space_name} has been successfully updated.`);
+      } else {
+        // Create new item - try with full data first
+        try {
+          await spacesApi.create(submitData);
+          setSnackbarMessage(`${formData.space_name} has been successfully added.`);
+        } catch (fullDataError) {
+          console.warn('Full data create failed, trying minimal data:', fullDataError);
+          
+          // Fallback: try with minimal required data only
+          const minimalData = {
+            space_name: formData.space_name,
+            seater: formData.seater,
+            price: formData.price,
+            availability: formData.availability,
+            spaceImages: [], // Empty spaceImages array
+            availableDates: [] // Empty dates array
+          };
+          
+          await spacesApi.create(minimalData);
+          setSnackbarMessage(`${formData.space_name} has been added (with minimal data).`);
+        }
+      }
+      
+      // Refresh inventory data from API
+      try {
+        const response = await spacesApi.fetchSpaces();
+        const transformedData = response.data?.map(space => ({
+          id: space.id,
+          roomNumber: space.room_number || space.roomNumber || 'N/A',
+          cabinNumber: space.cabin_number || space.cabinNumber || 'N/A',
+          date: space.date || new Date().toISOString().split('T')[0],
+          availability: space.availability || 'AVAILABLE',
+          price: space.price || '0',
+          space_name: space.space_name || space.space_name || 'Unknown',
+          seater: space.seater || 1,
+          spaceImages: space.spaceImages || [],
+          availableDates: space.availableDates || []
+        })) || [];
+        setInventoryItems(transformedData);
+      } catch (refreshError) {
+        console.error('Error refreshing data:', refreshError);
+      }
+      
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+      handleCloseModal();
+      
+    } catch (error) {
+      console.error('Submit error:', error);
+      console.error('Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
+      console.error('Submitted data was:', submitData);
+      
+      let errorMessage = isEditMode 
+        ? 'Failed to update space. Please try again.' 
+        : 'Failed to add space. Please try again.';
+        
+      // More specific error messages based on status
+      if (error.response?.status === 500) {
+        errorMessage = 'Server error occurred. Please check the data format and try again.';
+      } else if (error.response?.status === 400) {
+        errorMessage = error.response?.data?.message || 'Invalid data provided. Please check all fields.';
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Authentication failed. Please login again.';
+      }
+      
+      setSnackbarMessage(errorMessage);
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const paginatedData = inventoryData.slice(
+  const paginatedData = inventoryItems.slice(
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
   );
@@ -664,6 +902,18 @@ const Inventory = () => {
         </Button>
       </Box>
 
+      {/* Debug Section - Remove this after fixing the 500 error */}
+      <Accordion sx={{ mb: 2, border: '2px solid #ff9800' }}>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ bgcolor: '#fff3e0' }}>
+          <Typography variant="h6" color="warning.main">
+            🔧 Debug 500 Error - API Tester
+          </Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <APITester />
+        </AccordionDetails>
+      </Accordion>
+
       {/* Table Section */}
       <MotionPaper
         initial={{ opacity: 0, scale: 0.95 }}
@@ -674,9 +924,10 @@ const Inventory = () => {
           <Table sx={{ minWidth: isMobile ? '700px' : 'auto' }}>
             <TableHead>
               <TableRow>
-                <StyledTableCell>SL</StyledTableCell>
+                <StyledTableCell>SPACE NAME</StyledTableCell>
                 <StyledTableCell>ROOM NO.</StyledTableCell>
                 <StyledTableCell>CABIN NO.</StyledTableCell>
+                <StyledTableCell>SEATER</StyledTableCell>
                 <StyledTableCell>DATE</StyledTableCell>
                 <StyledTableCell>AVAILABILITY</StyledTableCell>
                 <StyledTableCell>PRICE</StyledTableCell>
@@ -684,65 +935,114 @@ const Inventory = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {paginatedData.map((row, index) => (
-                <StyledTableRow key={row.id}>
-                  <StyledTableBodyCell>
-                    <Box display="flex" alignItems="center">
-                      <Typography variant="body2" sx={{ minWidth: '20px' }}>
-                        {page * rowsPerPage + index + 1}
+              {loading ? (
+                // Loading skeleton rows
+                Array.from({ length: rowsPerPage }).map((_, index) => (
+                  <StyledTableRow key={`skeleton-${index}`}>
+                    <StyledTableBodyCell>
+                      <Box display="flex" alignItems="center">
+                        <Typography variant="body2" sx={{ minWidth: '20px' }}>
+                          {index + 1}
+                        </Typography>
+                        <Box sx={{ ml: 1, backgroundColor: '#f0f0f0', borderRadius: 1, width: 40, height: 40 }} />
+                        <Typography variant="body2" sx={{ ml: 1, fontWeight: 500 }}>
+                          Loading...
+                        </Typography>
+                      </Box>
+                    </StyledTableBodyCell>
+                    <StyledTableBodyCell>Loading...</StyledTableBodyCell>
+                    <StyledTableBodyCell>Loading...</StyledTableBodyCell>
+                    <StyledTableBodyCell>Loading...</StyledTableBodyCell>
+                    <StyledTableBodyCell>Loading...</StyledTableBodyCell>
+                    <StyledTableBodyCell>Loading...</StyledTableBodyCell>
+                    <StyledTableBodyCell>Loading...</StyledTableBodyCell>
+                    <StyledTableBodyCell>Loading...</StyledTableBodyCell>
+                  </StyledTableRow>
+                ))
+              ) : paginatedData.length === 0 ? (
+                // No data message
+                <StyledTableRow>
+                  <StyledTableBodyCell colSpan={8} align="center">
+                    <Typography variant="body2" color="textSecondary">
+                      No inventory data available
+                    </Typography>
+                  </StyledTableBodyCell>
+                </StyledTableRow>
+              ) : (
+                // Actual data rows
+                paginatedData.map((row, index) => (
+                  <StyledTableRow key={row.id}>
+                    <StyledTableBodyCell>
+                      <Box display="flex" alignItems="center">
+                        <Typography variant="body2" sx={{ minWidth: '20px' }}>
+                          {page * rowsPerPage + index + 1}
+                        </Typography>
+                        <RoomImage 
+                          src={row.spaceImages?.[0] || '/default-room.jpg'} 
+                          alt={`Room ${row.roomNumber}`}
+                          sx={{ ml: 1 }}
+                        />
+                        <Typography variant="body2" sx={{ ml: 1, fontWeight: 500 }}>
+                          {row.space_name || `Room ${row.roomNumber}`}
+                        </Typography>
+                      </Box>
+                    </StyledTableBodyCell>
+                    <StyledTableBodyCell>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        {row.roomNumber}
                       </Typography>
-                      <RoomImage 
-                        src={row.image} 
-                        alt={`Room ${row.roomNo}`}
-                        sx={{ ml: 1 }}
+                    </StyledTableBodyCell>
+                    <StyledTableBodyCell>
+                      <Typography variant="body2">
+                        {row.cabinNumber}
+                      </Typography>
+                    </StyledTableBodyCell>
+                    <StyledTableBodyCell>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        {row.seater} seats
+                      </Typography>
+                    </StyledTableBodyCell>
+                    <StyledTableBodyCell>
+                      <Typography variant="body2">
+                        {row.date}
+                      </Typography>
+                    </StyledTableBodyCell>
+                    <StyledTableBodyCell>
+                      <StatusChip 
+                        label={isSmall ? row.availability.split(' ')[0] : row.availability}
+                        status={row.availability}
+                        size="small"
                       />
-                      <Typography variant="body2" sx={{ ml: 1, fontWeight: 500 }}>
-                        {row.roomNo}
+                    </StyledTableBodyCell>
+                    <StyledTableBodyCell>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        ₹{row.price}
                       </Typography>
-                    </Box>
-                  </StyledTableBodyCell>
-                  <StyledTableBodyCell>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {row.roomNo}
-                    </Typography>
-                  </StyledTableBodyCell>
-                  <StyledTableBodyCell>
-                    <Typography variant="body2">
-                      {row.cabinNo}
-                    </Typography>
-                  </StyledTableBodyCell>
-                  <StyledTableBodyCell>
-                    <Typography variant="body2">
-                      {row.date}
-                    </Typography>
-                  </StyledTableBodyCell>
-                  <StyledTableBodyCell>
-                    <StatusChip 
-                      label={isSmall ? row.availability.split(' ')[0] : row.availability}
-                      status={row.availability}
-                      size="small"
-                    />
-                  </StyledTableBodyCell>
-                  <StyledTableBodyCell>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {row.price}
-                    </Typography>
-                  </StyledTableBodyCell>
+                    </StyledTableBodyCell>
                   <StyledTableBodyCell>
                     <Box display="flex" alignItems="center" gap={isSmall ? 0.5 : 1}>
                       <ActionButton actiontype="view">
                         <VisibilityIcon fontSize={isSmall ? "small" : "small"} />
                       </ActionButton>
-                      <ActionButton actiontype="delete">
+                      <ActionButton 
+                        actiontype="delete"
+                        onClick={() => handleDeleteClick(row)}
+                        disabled={loading}
+                      >
                         <DeleteIcon fontSize={isSmall ? "small" : "small"} />
                       </ActionButton>
-                      <ActionButton actiontype="edit">
+                      <ActionButton 
+                        actiontype="edit"
+                        onClick={() => handleEditModal(row)}
+                        disabled={loading}
+                      >
                         <EditIcon fontSize={isSmall ? "small" : "small"} />
                       </ActionButton>
                     </Box>
                   </StyledTableBodyCell>
                 </StyledTableRow>
-              ))}
+                ))
+              )}
             </TableBody>
           </Table>
         </TableContainer_Styled>
@@ -798,7 +1098,7 @@ const Inventory = () => {
             
             <TablePagination
               component="div"
-              count={inventoryData.length}
+              count={inventoryItems.length}
               page={page}
               onPageChange={handleChangePage}
               rowsPerPage={rowsPerPage}
@@ -835,7 +1135,7 @@ const Inventory = () => {
         }}
       >
         <StyledDialogTitle>
-          Add New Space
+          {isEditMode ? `Edit ${editingItem?.roomNo}` : 'Add New Space'}
           <IconButton
             onClick={handleCloseModal}
             sx={{
@@ -859,7 +1159,7 @@ const Inventory = () => {
             Upload New Space Photos* (Minimum 1, Maximum 5 photos)
           </Typography>
           <Typography variant="caption" sx={{ color: '#6B7280', mb: 2, display: 'block' }}>
-            Upload images of the new space (at least 1 photo required, maximum 5 photos)
+            Upload spaceImages of the new space (at least 1 photo required, maximum 5 photos)
           </Typography>
           
           <input
@@ -869,31 +1169,31 @@ const Inventory = () => {
             type="file"
             multiple
             onChange={handleFileUpload}
-            disabled={formData.images.length >= 5}
+            disabled={formData.spaceImages.length >= 5}
           />
           <label htmlFor="file-upload">
             <UploadArea component="span" sx={{ 
-              opacity: formData.images.length >= 5 ? 0.5 : 1,
-              cursor: formData.images.length >= 5 ? 'not-allowed' : 'pointer'
+              opacity: formData.spaceImages.length >= 5 ? 0.5 : 1,
+              cursor: formData.spaceImages.length >= 5 ? 'not-allowed' : 'pointer'
             }}>
               <CloudUploadIcon sx={{ fontSize: 24, color: '#6B7280', mb: 1 }} />
               <Typography variant="body2" sx={{ color: '#6B7280' }}>
-                {formData.images.length >= 5 ? 'Maximum 5 photos reached' : 'Add Files'}
+                {formData.spaceImages.length >= 5 ? 'Maximum 5 photos reached' : 'Add Files'}
               </Typography>
               <Typography variant="caption" sx={{ color: '#6B7280', display: 'block' }}>
-                {formData.images.length}/5 photos selected
+                {formData.spaceImages.length}/5 photos selected
               </Typography>
             </UploadArea>
           </label>
 
-          {/* Display uploaded images */}
-          {formData.images.length > 0 && (
+          {/* Display uploaded spaceImages */}
+          {formData.spaceImages.length > 0 && (
             <Box sx={{ mt: 2 }}>
               <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                 Selected Photos:
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {formData.images.map((image, index) => (
+                {formData.spaceImages.map((image, index) => (
                   <Box
                     key={index}
                     sx={{
@@ -961,6 +1261,55 @@ const Inventory = () => {
 
           {/* Form Fields */}
           <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Space Name*"
+                variant="outlined"
+                value={formData.space_name}
+                onChange={(e) => handleInputChange('space_name', e.target.value)}
+                placeholder="Enter space name (e.g., Meeting Room A, Conference Hall)"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '8px',
+                  },
+                }}
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                label="Seater Size*"
+                variant="outlined"
+                type="number"
+                value={formData.seater}
+                onChange={(e) => handleInputChange('seater', e.target.value)}
+                placeholder="Number of seats"
+                inputProps={{ min: 1, max: 100 }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '8px',
+                  },
+                }}
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                label="Price*"
+                variant="outlined"
+                type="number"
+                value={formData.price}
+                onChange={(e) => handleInputChange('price', e.target.value)}
+                placeholder="Price per hour/day"
+                inputProps={{ min: 0 }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '8px',
+                  },
+                }}
+              />
+            </Grid>
             <Grid item xs={6}>
               <TextField
                 fullWidth
@@ -968,6 +1317,7 @@ const Inventory = () => {
                 variant="outlined"
                 value={formData.roomNumber}
                 onChange={(e) => handleInputChange('roomNumber', e.target.value)}
+                placeholder="e.g., R101, A-205"
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: '8px',
@@ -982,20 +1332,7 @@ const Inventory = () => {
                 variant="outlined"
                 value={formData.cabinNumber}
                 onChange={(e) => handleInputChange('cabinNumber', e.target.value)}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: '8px',
-                  },
-                }}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Price*"
-                variant="outlined"
-                value={formData.price}
-                onChange={(e) => handleInputChange('price', e.target.value)}
+                placeholder="e.g., C001, CAB-12"
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: '8px',
@@ -1146,16 +1483,77 @@ const Inventory = () => {
         <DialogActions sx={{ padding: '0 24px 24px', justifyContent: 'center' }}>
           <SubmitButton 
             onClick={handleSubmit}
-            disabled={formData.images.length === 0}
+            disabled={(!isEditMode && formData.spaceImages.length === 0) || loading}
             sx={{
-              opacity: formData.images.length === 0 ? 0.5 : 1,
-              cursor: formData.images.length === 0 ? 'not-allowed' : 'pointer',
+              opacity: ((!isEditMode && formData.spaceImages.length === 0) || loading) ? 0.5 : 1,
+              cursor: ((!isEditMode && formData.spaceImages.length === 0) || loading) ? 'not-allowed' : 'pointer',
             }}
           >
-            Submit
+            {loading 
+              ? (isEditMode ? 'Updating...' : 'Adding...') 
+              : (isEditMode ? 'Update Space' : 'Submit')
+            }
           </SubmitButton>
         </DialogActions>
       </StyledDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
+            Confirm Delete
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            Are you sure you want to delete <strong>{itemToDelete?.roomNo}</strong>?
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            This action cannot be undone. The space will be permanently removed from the inventory.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button 
+            onClick={handleDeleteCancel}
+            variant="outlined"
+            sx={{ textTransform: 'none' }}
+            disabled={loading}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleDeleteConfirm}
+            variant="contained"
+            color="error"
+            sx={{ textTransform: 'none' }}
+            disabled={loading}
+          >
+            {loading ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Success/Error Snackbar */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={4000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={handleSnackbarClose}
+          severity={snackbarSeverity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </MainContainer>
   );
 };

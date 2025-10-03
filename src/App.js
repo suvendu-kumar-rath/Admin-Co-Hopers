@@ -7,12 +7,12 @@ import Dashboard from './components/Dashboard.jsx';
 import User from './components/User.jsx';
 import ActiveMembers from './components/Active members.jsx';
 import BookMeetingRoom from './components/BookMeetingRoom.jsx';
-// import Login from './components/Login.jsx';
-// import ProtectedRoute from './components/ProtectedRoute.jsx';
-// import { AuthProvider } from './context/AuthContext.jsx';
-
+import Login from './components/Login.jsx';
+import ProtectedRoute from './components/ProtectedRoute.jsx';
 import PastMembers from './components/PastMembers.jsx';
 import Inventory from './components/Inventory.jsx';
+import Refreshment from './components/Refreshment.jsx';
+import BookedSpaceDetails from './components/BookedSpaceDetails.jsx';
 
 const theme = createTheme({
   typography: {
@@ -72,65 +72,92 @@ function App() {
       <CssBaseline />
       <Router>
           <Routes>
-            {/* Default Route - Dashboard */}
-            <Route element={
-              <SidebarProvider>
-                <Sidebar />
-                <ResponsiveLayout>
-                  <Header />
-                  <Dashboard />
-                </ResponsiveLayout>
-              </SidebarProvider>
-            } path="/" />
+            {/* Public Login Route */}
+            <Route path="/login" element={<Login />} />
             
-            <Route element={
-              <SidebarProvider>
-                <Sidebar />
-                <ResponsiveLayout>
-                  <User />
-                </ResponsiveLayout>
-              </SidebarProvider>
-            } path="/users" />
-            
-            <Route element={
-              <SidebarProvider>
-                <Sidebar />
-                <ResponsiveLayout>
-                  <Header />
-                  <ActiveMembers />
-                </ResponsiveLayout>
-              </SidebarProvider>
-            } path="/active-members" />
-            
-            <Route element={
-              <SidebarProvider>
-                <Sidebar />
-                <ResponsiveLayout>
-                  <Header />
-                  <PastMembers />
-                </ResponsiveLayout>
-              </SidebarProvider>
-            } path="/past-members" />
-            
-            <Route element={
-              <SidebarProvider>
-                <Sidebar />
-                <ResponsiveLayout>
-                  <Header />
-                  <BookMeetingRoom />
-                </ResponsiveLayout>
-              </SidebarProvider>
-            } path="/book-meeting" />
-            
-            <Route element={
-              <SidebarProvider>
-                <Sidebar />
-                <ResponsiveLayout>
-                  <Header />
-                  <Inventory />
-                </ResponsiveLayout>
-              </SidebarProvider>
-            } path="/inventory" />
+            {/* Protected Admin Routes */}
+            <Route element={<ProtectedRoute />}>
+              {/* Default Route - Dashboard */}
+              <Route path="/" element={
+                <SidebarProvider>
+                  <Sidebar />
+                  <ResponsiveLayout>
+                    <Header />
+                    <Dashboard />
+                  </ResponsiveLayout>
+                </SidebarProvider>
+              } />
+              
+              <Route path="/users" element={
+                <SidebarProvider>
+                  <Sidebar />
+                  <ResponsiveLayout>
+                    <Header />
+                    <User />
+                  </ResponsiveLayout>
+                </SidebarProvider>
+              } />
+              
+              <Route path="/active-members" element={
+                <SidebarProvider>
+                  <Sidebar />
+                  <ResponsiveLayout>
+                    <Header />
+                    <ActiveMembers />
+                  </ResponsiveLayout>
+                </SidebarProvider>
+              } />
+              
+              <Route path="/past-members" element={
+                <SidebarProvider>
+                  <Sidebar />
+                  <ResponsiveLayout>
+                    <Header />
+                    <PastMembers />
+                  </ResponsiveLayout>
+                </SidebarProvider>
+              } />
+              
+              <Route path="/book-meeting" element={
+                <SidebarProvider>
+                  <Sidebar />
+                  <ResponsiveLayout>
+                    <Header />
+                    <BookMeetingRoom />
+                  </ResponsiveLayout>
+                </SidebarProvider>
+              } />
+              
+              <Route path="/inventory" element={
+                <SidebarProvider>
+                  <Sidebar />
+                  <ResponsiveLayout>
+                    <Header />
+                    <Inventory />
+                  </ResponsiveLayout>
+                </SidebarProvider>
+              } />
+              
+              <Route path="/refreshment" element={
+                <SidebarProvider>
+                  <Sidebar />
+                  <ResponsiveLayout>
+                    <Header />
+                    <Refreshment />
+                  </ResponsiveLayout>
+                </SidebarProvider>
+              } />
+              
+              <Route path="/booked-spaces" element={
+                <SidebarProvider>
+                  <Sidebar />
+                  <ResponsiveLayout>
+                    <Header />
+                    <BookedSpaceDetails />
+                  </ResponsiveLayout>
+                </SidebarProvider>
+              } />
+            </Route>
             
             {/* Redirect any unknown routes to dashboard */}
             <Route path="*" element={<Navigate to="/" replace />} />

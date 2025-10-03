@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -27,8 +27,11 @@ import {
   Divider,
   Snackbar,
   Alert,
-  Tooltip
+  Tooltip,
+  CircularProgress,
+  Backdrop
 } from '@mui/material';
+import meetingRoomApi from '../api/meetingroom';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import EditIcon from '@mui/icons-material/Edit';
@@ -135,7 +138,8 @@ const sampleData = [
 const BookMeetingRoom = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [bookings, setBookings] = useState(sampleData);
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [currentEditBooking, setCurrentEditBooking] = useState(null);
   const [startTime, setStartTime] = useState('');
@@ -146,6 +150,36 @@ const BookMeetingRoom = () => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+  const [processingBookingId, setProcessingBookingId] = useState(null);
+
+  // Fetch bookings on component mount
+  useEffect(() => {
+    fetchBookings();
+  }, []);
+
+  const fetchBookings = async () => {
+    try {
+      setLoading(true);
+      const response = await meetingRoomApi.fetchBookings();
+      
+      // Handle different response structures
+      const bookingsData = response.data || response.bookings || response || [];
+      
+      console.log('Fetched bookings:', bookingsData);
+      setBookings(Array.isArray(bookingsData) ? bookingsData : []);
+      
+    } catch (error) {
+      console.error('Failed to fetch bookings:', error);
+      setSnackbarMessage('Failed to load bookings. Please try again.');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+      
+      // Fallback to sample data for development
+      setBookings(sampleData);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -156,20 +190,56 @@ const BookMeetingRoom = () => {
     setPage(0);
   };
   
-  const handleConfirm = (id) => {
-    setBookings(prevBookings => 
-      prevBookings.map(booking => 
-        booking.id === id ? { ...booking, status: 'Confirmed' } : booking
-      )
-    );
+  const handleConfirm = async (id) => {
+    try {
+      setProcessingBookingId(id);
+      await meetingRoomApi.confirmBooking(id);
+      
+      // Update local state
+      setBookings(prevBookings => 
+        prevBookings.map(booking => 
+          booking.id === id ? { ...booking, status: 'Confirmed' } : booking
+        )
+      );
+      
+      setSnackbarMessage('Booking confirmed successfully!');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+      
+    } catch (error) {
+      console.error('Failed to confirm booking:', error);
+      setSnackbarMessage('Failed to confirm booking. Please try again.');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    } finally {
+      setProcessingBookingId(null);
+    }
   };
   
-  const handleReject = (id) => {
-    setBookings(prevBookings => 
-      prevBookings.map(booking => 
-        booking.id === id ? { ...booking, status: 'Rejected' } : booking
-      )
-    );
+  const handleReject = async (id) => {
+    try {
+      setProcessingBookingId(id);
+      await meetingRoomApi.rejectBooking(id);
+      
+      // Update local state
+      setBookings(prevBookings => 
+        prevBookings.map(booking => 
+          booking.id === id ? { ...booking, status: 'Rejected' } : booking
+        )
+      );
+      
+      setSnackbarMessage('Booking rejected successfully!');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+      
+    } catch (error) {
+      console.error('Failed to reject booking:', error);
+      setSnackbarMessage('Failed to reject booking. Please try again.');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    } finally {
+      setProcessingBookingId(null);
+    }
   };
 
   const parseTimeString = (timeString) => {
@@ -328,16 +398,16 @@ const BookMeetingRoom = () => {
                     key={row.id}
                     sx={{ '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)' } }}
                   >
-                    <TableBodyCell>{row.id}</TableBodyCell>
-                    <TableBodyCell>{row.userId}</TableBodyCell>
-                    <TableBodyCell>{row.userName}</TableBodyCell>
-                    <TableBodyCell>{row.bookingType}</TableBodyCell>
-                    <TableBodyCell>{row.memberType}</TableBodyCell>
-                    <TableBodyCell>{row.date}</TableBodyCell>
-                    <TableBodyCell>{row.seatType}</TableBodyCell>
+                    <TableBodyCell>{row.id || row._id || row.bookingId || 'N/A'}</TableBodyCell>
+                    <TableBodyCell>{row.userId || row.user_id || row.customerId || 'N/A'}</TableBodyCell>
+                    <TableBodyCell>{row.userName || row.user_name || row.customerName || row.name || 'N/A'}</TableBodyCell>
+                    <TableBodyCell>{row.bookingType || row.booking_type || row.type || 'Meeting'}</TableBodyCell>
+                    <TableBodyCell>{row.memberType || row.member_type || row.membership || 'Standard'}</TableBodyCell>
+                    <TableBodyCell>{row.date || row.booking_date || row.bookingDate || 'N/A'}</TableBodyCell>
+                    <TableBodyCell>{row.seatType || row.seat_type || row.roomType || row.spaceType || 'N/A'}</TableBodyCell>
                     <TableBodyCell>
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        {row.slotTiming}
+                        {row.slotTiming || row.slot_timing || row.timeSlot || row.timing || 'N/A'}
                         <IconButton 
                           size="small" 
                           color="primary" 
@@ -348,7 +418,7 @@ const BookMeetingRoom = () => {
                         </IconButton>
                       </Box>
                     </TableBodyCell>
-                    <TableBodyCell>{row.paymentEmail}</TableBodyCell>
+                    <TableBodyCell>{row.paymentEmail || row.payment_email || row.email || 'N/A'}</TableBodyCell>
                     <TableBodyCell align="center">
                       <Tooltip title="Send payment reminder email">
                         <IconButton
@@ -373,19 +443,21 @@ const BookMeetingRoom = () => {
                             variant="contained" 
                             size="small" 
                             color="success" 
-                            startIcon={<CheckCircleIcon />}
+                            startIcon={processingBookingId === row.id ? <CircularProgress size={16} color="inherit" /> : <CheckCircleIcon />}
                             onClick={() => handleConfirm(row.id)}
+                            disabled={processingBookingId === row.id}
                           >
-                            Confirm
+                            {processingBookingId === row.id ? 'Confirming...' : 'Confirm'}
                           </Button>
                           <Button 
                             variant="contained" 
                             size="small" 
                             color="error" 
-                            startIcon={<CancelIcon />}
+                            startIcon={processingBookingId === row.id ? <CircularProgress size={16} color="inherit" /> : <CancelIcon />}
                             onClick={() => handleReject(row.id)}
+                            disabled={processingBookingId === row.id}
                           >
-                            Reject
+                            {processingBookingId === row.id ? 'Rejecting...' : 'Reject'}
                           </Button>
                         </Box>
                       ) : (
@@ -606,6 +678,17 @@ const BookMeetingRoom = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Loading Backdrop */}
+      <Backdrop
+        sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={loading}
+      >
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <CircularProgress color="inherit" />
+          <Typography sx={{ mt: 2 }}>Loading meeting room bookings...</Typography>
+        </Box>
+      </Backdrop>
 
       {/* Notification Snackbar */}
       <Snackbar 

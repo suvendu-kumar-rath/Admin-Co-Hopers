@@ -19,10 +19,10 @@ import SearchIcon from '@mui/icons-material/Search';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
-// import LogoutIcon from '@mui/icons-material/Logout';
+import LogoutIcon from '@mui/icons-material/Logout';
 import { motion, AnimatePresence } from 'framer-motion';
-// import { useNavigate } from 'react-router-dom';
-// import { useAuth } from '../context/AuthContext.jsx';  
+import { useNavigate } from 'react-router-dom';
+import { authApi } from '../api/auth';  
 
 const MotionAppBar = motion(AppBar);
 const MotionBox = motion(Box);
@@ -109,7 +109,7 @@ const Header = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
-  // const { logout } = useAuth();
+  const navigate = useNavigate();
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -117,6 +117,12 @@ const Header = () => {
 
   const handleClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleLogout = () => {
+    authApi.logout();
+    navigate('/login');
+    handleClose();
   };
   
   // const navigate = useNavigate();
@@ -252,7 +258,19 @@ const Header = () => {
                 </ListItemIcon>
                 Profile
               </MotionMenuItem>
-              {/* Logout menu item removed */}
+              <MotionMenuItem
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ delay: 0.2 }}
+                whileHover={{ scale: 1.02, x: 5 }}
+                onClick={handleLogout}
+              >
+                <ListItemIcon>
+                  <LogoutIcon fontSize="small" />
+                </ListItemIcon>
+                Logout
+              </MotionMenuItem>
             </StyledMenu>
           )}
         </AnimatePresence>

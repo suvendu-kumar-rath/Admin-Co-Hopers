@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Table,
@@ -267,6 +267,39 @@ const ActiveMembers = () => {
   const [selected, setSelected] = useState([]);
   const [selectedMember, setSelectedMember] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [allMembers, setAllMembers] = useState([]);
+
+  // Load members data from localStorage and combine with static data
+  useEffect(() => {
+    const confirmedLeads = JSON.parse(localStorage.getItem('activeMembers') || '[]');
+    
+    // Transform confirmed leads to match Active Members format
+    const transformedConfirmedLeads = confirmedLeads.map((lead, index) => ({
+      id: rows.length + index + 1, // Unique ID
+      name: lead.name,
+      phone: lead.mobile,
+      address: lead.address,
+      spaceType: 'Hot Desk', // Default space type for confirmed leads
+      start: new Date(lead.confirmationDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase(),
+      end: 'Ongoing', // Default end date
+      unit: 'TBD', // To be determined
+      amount: 'TBD', // To be determined
+      mail: lead.email,
+      kyc: {
+        status: 'Pending',
+        idType: 'TBD',
+        idNumber: 'TBD',
+        dateOfBirth: 'TBD',
+        nationality: 'TBD',
+        occupation: 'TBD',
+        verificationDate: 'Pending'
+      },
+      isConfirmedLead: true // Flag to identify confirmed leads
+    }));
+
+    // Combine static rows with confirmed leads
+    setAllMembers([...rows, ...transformedConfirmedLeads]);
+  }, []);
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -306,7 +339,7 @@ const ActiveMembers = () => {
 
   const isSelected = (id) => selected.indexOf(id) !== -1;
 
-  const filteredRows = rows.filter(row =>
+  const filteredRows = allMembers.filter(row =>
     row.name.toLowerCase().includes(search.toLowerCase()) ||
     row.mail.toLowerCase().includes(search.toLowerCase())
   );
@@ -399,9 +432,27 @@ const ActiveMembers = () => {
                     </TableCell>
                     <TableCell sx={{ padding: '16px' }}>{row.id}</TableCell>
                     <TableCell sx={{ padding: '16px' }}>
-                      <Box>
-                        <Typography sx={{ fontWeight: 600 }}>{row.name}</Typography>
-                        <Typography sx={{ fontSize: 12, color: '#A0AEC0' }}>{row.phone}</Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box>
+                          <Typography sx={{ fontWeight: 600 }}>{row.name}</Typography>
+                          <Typography sx={{ fontSize: 12, color: '#A0AEC0' }}>{row.phone}</Typography>
+                        </Box>
+                        {row.isConfirmedLead && (
+                          <Box
+                            sx={{
+                              backgroundColor: '#4CAF50',
+                              color: 'white',
+                              fontSize: '10px',
+                              px: 1,
+                              py: 0.5,
+                              borderRadius: '12px',
+                              fontWeight: 600,
+                              textTransform: 'uppercase'
+                            }}
+                          >
+                            New
+                          </Box>
+                        )}
                       </Box>
                     </TableCell>
                     <TableCell sx={{ padding: '16px' }}>{row.address}</TableCell>

@@ -26,6 +26,8 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    console.log("nnnnnnnnnnnn");
+    
     // Basic validation
     if (!email || !password) {
       setError('Please enter both email and password');
@@ -39,8 +41,12 @@ const Login = () => {
       // Call the API for authentication
       const data = await authApi.login({ email, password });
 
+      console.log("Login API response:", data);
+
       // Normalize token from possible response shapes
-      const token = data?.token || data?.access_token || data?.authToken;
+      const token = data?.data?.token || data?.access_token || data?.authToken;
+      console.log("Normalized token:", token);
+
 
       // If API uses token-based auth or sets httpOnly cookies, consider both
       if (token || data?.success === true) {

@@ -17,9 +17,16 @@ import {
   Select,
   styled,
   Paper,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Alert,
+  Snackbar,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { motion } from 'framer-motion';
 
 const MotionBox = motion(Box);
@@ -89,18 +96,59 @@ const DateCell = styled(Box)({
 const User = () => {
   const [selectedLeads, setSelectedLeads] = useState([]);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [leadToConfirm, setLeadToConfirm] = useState(null);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [leads, setLeads] = useState([
+    { id: 1, name: 'Corey Stanton', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-01-15', mobile: '8567485158', email: 'corey@example.com', status: 'lead' },
+    { id: 2, name: 'Adison Aminoff', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-02-20', mobile: '8567485159', email: 'adison@example.com', status: 'lead' },
+    { id: 3, name: 'Alfredo Aminoff', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-03-10', mobile: '8567485160', email: 'alfredo@example.com', status: 'lead' },
+    { id: 4, name: 'John Smith', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-02-28', mobile: '8567485161', email: 'john@example.com', status: 'lead' },
+    { id: 5, name: 'Sarah Johnson', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-03-05', mobile: '8567485162', email: 'sarah@example.com', status: 'lead' },
+    { id: 6, name: 'Mike Wilson', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-03-12', mobile: '8567485163', email: 'mike@example.com', status: 'lead' },
+    { id: 7, name: 'Emma Davis', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-03-18', mobile: '8567485164', email: 'emma@example.com', status: 'lead' },
+    { id: 8, name: 'Chris Brown', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-01-08', mobile: '8567485165', email: 'chris@example.com', status: 'lead' },
+    { id: 9, name: 'Lisa Anderson', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-04-02', mobile: '8567485166', email: 'lisa@example.com', status: 'lead' },
+  ]);
 
-  const leads = [
-    { id: 1, name: 'Ann Culhane', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-01-15', mobile: '8567485158', email: 'sbdhbi@136gmail.com' },
-    { id: 2, name: 'Ahmad Rosser', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-02-10', mobile: '8567485158', email: 'sbdhbi@136gmail.com' },
-    { id: 3, name: 'Zain Calzoni', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-03-05', mobile: '8567485158', email: 'sbdhbi@136gmail.com' },
-    { id: 4, name: 'Leo Stanton', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-01-28', mobile: '8567485158', email: 'sbdhbi@136gmail.com' },
-    { id: 5, name: 'Kaiya Vetrovs', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-04-12', mobile: '8567485158', email: 'sbdhbi@136gmail.com' },
-    { id: 6, name: 'Ryan Westervelt', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-02-20', mobile: '8567485158', email: 'sbdhbi@136gmail.com' },
-    { id: 7, name: 'Corey Stanton', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-03-18', mobile: '8567485158', email: 'sbdhbi@136gmail.com' },
-    { id: 8, name: 'Adison Aminoff', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-01-08', mobile: '8567485158', email: 'sbdhbi@136gmail.com' },
-    { id: 9, name: 'Alfredo Aminoff', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-04-02', mobile: '8567485158', email: 'sbdhbi@136gmail.com' },
-  ];
+  // Leads data is now managed in state above
+
+  const handleConfirmLead = (lead) => {
+    setLeadToConfirm(lead);
+    setConfirmDialogOpen(true);
+  };
+
+  const confirmLeadToActiveMember = () => {
+    if (!leadToConfirm) return;
+
+    // Get existing active members from localStorage
+    const existingActiveMembers = JSON.parse(localStorage.getItem('activeMembers') || '[]');
+    
+    // Add the confirmed lead to active members with updated status and confirmation date
+    const newActiveMember = {
+      ...leadToConfirm,
+      status: 'active',
+      confirmationDate: new Date().toISOString(),
+      membershipStartDate: new Date().toISOString()
+    };
+    
+    const updatedActiveMembers = [...existingActiveMembers, newActiveMember];
+    localStorage.setItem('activeMembers', JSON.stringify(updatedActiveMembers));
+
+    // Remove the lead from the leads list
+    setLeads(leads.filter(lead => lead.id !== leadToConfirm.id));
+
+    // Close dialog and show success message
+    setConfirmDialogOpen(false);
+    setLeadToConfirm(null);
+    setSuccessMessage(`${leadToConfirm.name} has been confirmed and moved to Active Members!`);
+    setSnackbarOpen(true);
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbarOpen(false);
+  };
 
   const handleSelectAll = (event) => {
     if (event.target.checked) {
@@ -168,6 +216,7 @@ const User = () => {
                 <StyledTableCell>DATE OF JOINING</StyledTableCell>
                 <StyledTableCell>MOBILE</StyledTableCell>
                 <StyledTableCell>MAIL</StyledTableCell>
+                <StyledTableCell>ACTION</StyledTableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -195,6 +244,26 @@ const User = () => {
                 </StyledTableCell>
                 <StyledTableCell>{lead.mobile}</StyledTableCell>
                 <StyledTableCell>{lead.email}</StyledTableCell>
+                <StyledTableCell>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    size="small"
+                    startIcon={<CheckCircleIcon />}
+                    onClick={() => handleConfirmLead(lead)}
+                    sx={{
+                      borderRadius: '8px',
+                      textTransform: 'none',
+                      fontWeight: 500,
+                      boxShadow: 'none',
+                      '&:hover': {
+                        boxShadow: '0 2px 8px rgba(68, 97, 242, 0.3)',
+                      }
+                    }}
+                  >
+                    Confirm
+                  </Button>
+                </StyledTableCell>
               </TableRow>
             ))}
             </TableBody>
@@ -221,6 +290,62 @@ const User = () => {
             </Select>
           </Box>
         </Box>
+
+        {/* Confirmation Dialog */}
+        <Dialog
+          open={confirmDialogOpen}
+          onClose={() => setConfirmDialogOpen(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>
+            <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
+              Confirm Lead to Active Member
+            </Typography>
+          </DialogTitle>
+          <DialogContent>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              Are you sure you want to confirm <strong>{leadToConfirm?.name}</strong> as an active member?
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              This action will move the lead to the Active Members section and cannot be undone.
+            </Typography>
+          </DialogContent>
+          <DialogActions sx={{ p: 2, gap: 1 }}>
+            <Button 
+              onClick={() => setConfirmDialogOpen(false)}
+              variant="outlined"
+              sx={{ textTransform: 'none' }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={confirmLeadToActiveMember}
+              variant="contained"
+              color="primary"
+              sx={{ textTransform: 'none' }}
+            >
+              Confirm
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Success Snackbar */}
+        <Snackbar
+          open={snackbarOpen}
+          autoHideDuration={4000}
+          onClose={handleCloseSnackbar}
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        >
+          <Alert
+            onClose={handleCloseSnackbar}
+            severity="success"
+            variant="filled"
+            sx={{ width: '100%' }}
+          >
+            {successMessage}
+          </Alert>
+        </Snackbar>
       </MotionBox>
     </Container>
   );
