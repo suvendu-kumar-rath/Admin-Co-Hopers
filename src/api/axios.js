@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
+const baseURL = process.env.REACT_APP_API_URL;
 const environment = process.env.REACT_APP_ENVIRONMENT || 'development';
 console.log("API Base URL:", baseURL);
 console.log("Environment:", environment);
