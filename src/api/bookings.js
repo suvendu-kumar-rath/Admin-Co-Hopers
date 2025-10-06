@@ -1,4 +1,4 @@
-import axios from './axios';
+import axios, { baseURL } from './axios';
 
 export const bookingsApi = {
   // Fetch all space bookings
@@ -8,7 +8,7 @@ export const bookingsApi = {
     const token = localStorage.getItem('authToken');
     
     try {
-      const response = await axios.get('/admin/space-bookings', {
+      const response = await axios.get(`${baseURL}/admin/space-bookings`, {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
@@ -31,18 +31,18 @@ export const bookingsApi = {
     const token = localStorage.getItem('authToken');
     
     try {
-      const response = await axios.get(`/bookings/${bookingId}`, {
+      const response = await axios.get(`${baseURL}/bookings/${bookingId}`, {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         withCredentials: false,
       });
       
-      console.log('✅ Booking fetched successfully:', response.data);
+      console.log(' Booking fetched successfully:', response.data);
       return response.data;
       
     } catch (error) {
-      console.error('❌ Failed to fetch booking:', error.response?.data || error.message);
+      console.error(' Failed to fetch booking:', error.response?.data || error.message);
       throw error;
     }
   },
@@ -60,7 +60,7 @@ export const bookingsApi = {
     }
     
     try {
-      const response = await axios.put(`/admin/space-bookings/${bookingId}/verify`, {
+      const response = await axios.put(`${baseURL}/admin/space-bookings/${bookingId}/verify`, {
         status: status,
         verified: status === 'CONFIRMED' ? true : false
       }, {
@@ -108,7 +108,7 @@ export const bookingsApi = {
     if (filters.limit) params.append('limit', filters.limit);
     
     try {
-      const response = await axios.get(`/bookings?${params.toString()}`, {
+      const response = await axios.get(`${baseURL}/bookings?${params.toString()}`, {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
@@ -131,7 +131,7 @@ export const bookingsApi = {
     const token = localStorage.getItem('authToken');
     
     try {
-      const response = await axios.get('/bookings/stats', {
+      const response = await axios.get(`${baseURL}/bookings/stats`, {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
@@ -154,7 +154,7 @@ export const bookingsApi = {
     const token = localStorage.getItem('authToken');
     
     try {
-      const response = await axios.put(`/bookings/${bookingId}`, updateData, {
+      const response = await axios.put(`${baseURL}/bookings/${bookingId}`, updateData, {
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -178,7 +178,7 @@ export const bookingsApi = {
     const token = localStorage.getItem('authToken');
     
     try {
-      const response = await axios.delete(`/bookings/${bookingId}`, {
+      const response = await axios.delete(`${baseURL}/bookings/${bookingId}`, {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
@@ -207,7 +207,7 @@ export const bookingsApi = {
     });
     
     try {
-      const response = await axios.get(`/bookings/export?${params.toString()}`, {
+      const response = await axios.get(`${baseURL}/bookings/export?${params.toString()}`, {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
@@ -241,7 +241,7 @@ export const bookingsApi = {
     const token = localStorage.getItem('authToken');
     
     try {
-      const response = await axios.post(`/bookings/${bookingId}/notify`, {
+      const response = await axios.post(`${baseURL}/bookings/${bookingId}/notify`, {
         message
       }, {
         headers: {

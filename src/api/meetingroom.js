@@ -1,4 +1,4 @@
-import axios from './axios';
+import axios, { baseURL } from './axios';
 
 export const meetingRoomApi = {
   // Fetch all meeting room bookings
@@ -7,7 +7,7 @@ export const meetingRoomApi = {
       const token = localStorage.getItem('authToken');
       console.log('Fetching meeting room bookings...');
       
-      const response = await axios.get('/admin/meeting-room-bookings', {
+      const response = await axios.get(`${baseURL}/admin/meeting-room-bookings`, {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
@@ -29,7 +29,7 @@ export const meetingRoomApi = {
       const token = localStorage.getItem('authToken');
       console.log(`${action === 'confirm' ? 'Confirming' : 'Rejecting'} booking with ID: ${bookingId}`);
       
-      const response = await axios.post(`/meetingrooms/verify-booking/${bookingId}`, 
+      const response = await axios.post(`${baseURL}/meetingrooms/verify-booking/${bookingId}`, 
         { 
           action: action, // 'confirm' or 'reject'
           status: action === 'confirm' ? 'confirmed' : 'rejected'
@@ -68,7 +68,7 @@ export const meetingRoomApi = {
       const token = localStorage.getItem('authToken');
       console.log(`Updating booking timing for ID: ${bookingId}`);
       
-      const response = await axios.put(`/meetingrooms/booking/${bookingId}/timing`, 
+      const response = await axios.put(`${baseURL}/meetingrooms/booking/${bookingId}/timing`, 
         { 
           startTime: startTime,
           endTime: endTime

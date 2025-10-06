@@ -1,8 +1,9 @@
 import axios from 'axios';
 
-const baseURL = process.env.REACT_APP_API_URL;
-const environment = process.env.REACT_APP_ENVIRONMENT;
-console.log("kk",environment);
+const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+const environment = process.env.REACT_APP_ENVIRONMENT || 'development';
+console.log("API Base URL:", baseURL);
+console.log("Environment:", environment);
 const axiosInstance = axios.create({
   baseURL,
   headers: {
@@ -49,5 +50,6 @@ axiosInstance.interceptors.response.use(
 );
 
 export default axiosInstance;
+export { baseURL };
 
 

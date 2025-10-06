@@ -1,4 +1,4 @@
-import axios from './axios';
+import axios, { baseURL } from './axios';
 
 export const spacesApi = {
   create: async ({ space_name, seater, price, availability, spaceImages, availableDates, roomNumber, cabinNumber }) => {
@@ -48,7 +48,7 @@ export const spacesApi = {
     }
 
     try {
-      const response = await axios.post('/spaces/spaces', formData, {
+      const response = await axios.post(`${baseURL}/spaces/spaces`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -68,7 +68,7 @@ export const spacesApi = {
   // Delete space function
   deleteSpace: async (spaceId) => {
     const token = localStorage.getItem('authToken');
-    const response = await axios.delete(`/spaces/spaces/${spaceId}`, {
+    const response = await axios.delete(`${baseURL}/spaces/spaces/${spaceId}`, {
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
@@ -96,7 +96,7 @@ export const spacesApi = {
     }
 
     const token = localStorage.getItem('authToken');
-    const response = await axios.put(`/spaces/spaces/${spaceId}`, formData, {
+    const response = await axios.put(`${baseURL}/spaces/spaces/${spaceId}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -109,7 +109,7 @@ export const spacesApi = {
   // Fetch all spaces function
   fetchSpaces: async () => {
     const token = localStorage.getItem('authToken');
-    const response = await axios.get('/spaces/spaces', {
+    const response = await axios.get(`${baseURL}/spaces/spaces`, {
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
@@ -133,7 +133,7 @@ export const spacesApi = {
         availability: 'AVAILABLE'
       };
       
-      const jsonResponse = await axios.post('/spaces/spaces', jsonData, {
+      const jsonResponse = await axios.post(`${baseURL}/spaces/spaces`, jsonData, {
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -155,7 +155,7 @@ export const spacesApi = {
         formData.append('price', '500');
         formData.append('availability', 'AVAILABLE');
 
-        const response = await axios.post('/spaces/spaces', formData, {
+        const response = await axios.post(`${baseURL}/spaces/spaces`, formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -180,7 +180,7 @@ export const spacesApi = {
     
     try {
       // Try OPTIONS request to see what's allowed
-      const optionsResponse = await axios.options('/spaces/spaces', {
+      const optionsResponse = await axios.options(`${baseURL}/spaces/spaces`, {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
@@ -192,7 +192,7 @@ export const spacesApi = {
     
     try {
       // Try GET request to see if endpoint exists
-      const getResponse = await axios.get('/spaces/spaces', {
+      const getResponse = await axios.get(`${baseURL}/spaces/spaces`, {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },

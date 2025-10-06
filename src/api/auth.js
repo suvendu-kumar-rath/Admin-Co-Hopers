@@ -1,10 +1,10 @@
-import axios from './axios';
+import axios, { baseURL } from './axios';
 
 export const authApi = {
   // Login function with comprehensive token management
   login: async (credentials) => {
     try {
-      const response = await axios.post('/admin/login', credentials);
+      const response = await axios.post(`${baseURL}/admin/login`, credentials);
       
       // If login is successful, store the token and user data
       if (response.data.token) {
