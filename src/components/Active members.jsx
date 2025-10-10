@@ -15,12 +15,17 @@ import {
   InputAdornment,
   Typography,
   Modal,
-  Button
+  Button,
+  CircularProgress,
+  Alert,
+  Skeleton
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import SearchIcon from '@mui/icons-material/Search';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import { membersApi } from '../api';
 
 const Container = styled(Box)(({ theme }) => ({
   padding: '24px',
@@ -268,38 +273,145 @@ const ActiveMembers = () => {
   const [selectedMember, setSelectedMember] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [allMembers, setAllMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Load members data from localStorage and combine with static data
+  // Fetch active members from API
+  const fetchActiveMembers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await membersApi.fetchActiveMembers();
+      console.log('Active members API response:', response);
+      
+      let apiMembers = [];
+      
+      // Handle different response formats
+      if (response.success && response.data) {
+        apiMembers = response.data;
+      } else if (Array.isArray(response.data)) {
+        apiMembers = response.data;
+      } else if (Array.isArray(response)) {
+        apiMembers = response;
+      }
+      
+      // Transform API data to match component format
+      const transformedMembers = apiMembers.map((member, index) => ({
+        id: member.id || index + 1,
+        name: member.name || member.username || 'N/A',
+        phone: member.phone || member.mobile || 'N/A',
+        address: member.address || 'N/A',
+        spaceType: member.spaceType || member.space_type || 'N/A',
+        start: member.startDate ? new Date(member.startDate).toLocaleDateString('en-US', { 
+          day: 'numeric', 
+          month: 'short', 
+          year: 'numeric' 
+        }).toUpperCase() : 'N/A',
+        end: member.endDate ? new Date(member.endDate).toLocaleDateString('en-US', { 
+          day: 'numeric', 
+          month: 'short', 
+          year: 'numeric' 
+        }).toUpperCase() : 'Ongoing',
+        unit: member.unit || 'TBD',
+        amount: member.amount || member.totalAmount || 'N/A',
+        mail: member.email || 'N/A',
+        kyc: member.kyc || {
+          status: member.kycStatus || 'Pending',
+          idType: member.idType || 'TBD',
+          idNumber: member.idNumber || 'TBD',
+          dateOfBirth: member.dateOfBirth || 'TBD',
+          nationality: member.nationality || 'TBD',
+          occupation: member.occupation || 'TBD',
+          verificationDate: member.verificationDate || null
+        },
+        isFromAPI: true
+      }));
+      
+      // Also load any local confirmed leads as fallback
+      const confirmedLeads = JSON.parse(localStorage.getItem('activeMembers') || '[]');
+      const transformedConfirmedLeads = confirmedLeads.map((lead, index) => ({
+        id: `local_${index}`,
+        name: lead.name,
+        phone: lead.mobile,
+        address: lead.address,
+        spaceType: 'Hot Desk',
+        start: new Date(lead.confirmationDate).toLocaleDateString('en-US', { 
+          day: 'numeric', 
+          month: 'short', 
+          year: 'numeric' 
+        }).toUpperCase(),
+        end: 'Ongoing',
+        unit: 'TBD',
+        amount: 'TBD',
+        mail: lead.email,
+        kyc: {
+          status: 'Pending',
+          idType: 'TBD',
+          idNumber: 'TBD',
+          dateOfBirth: 'TBD',
+          nationality: 'TBD',
+          occupation: 'TBD',
+          verificationDate: null
+        },
+        isConfirmedLead: true
+      }));
+      
+      // Combine API data with local leads (if any)
+      const allMembersData = [...transformedMembers, ...transformedConfirmedLeads];
+      setAllMembers(allMembersData);
+      
+    } catch (err) {
+      console.error('Failed to fetch active members:', err);
+      setError(err.message || 'Failed to load active members');
+      
+      // Fallback to static data and local storage
+      const confirmedLeads = JSON.parse(localStorage.getItem('activeMembers') || '[]');
+      const transformedConfirmedLeads = confirmedLeads.map((lead, index) => ({
+        id: `fallback_${index}`,
+        name: lead.name,
+        phone: lead.mobile,
+        address: lead.address,
+        spaceType: 'Hot Desk',
+        start: new Date(lead.confirmationDate).toLocaleDateString('en-US', { 
+          day: 'numeric', 
+          month: 'short', 
+          year: 'numeric' 
+        }).toUpperCase(),
+        end: 'Ongoing',
+        unit: 'TBD',
+        amount: 'TBD',
+        mail: lead.email,
+        kyc: {
+          status: 'Pending',
+          idType: 'TBD',
+          idNumber: 'TBD',
+          dateOfBirth: 'TBD',
+          nationality: 'TBD',
+          occupation: 'TBD',
+          verificationDate: null
+        },
+        isConfirmedLead: true
+      }));
+      
+      // Use static rows as fallback + any local leads
+      setAllMembers([...rows, ...transformedConfirmedLeads]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const confirmedLeads = JSON.parse(localStorage.getItem('activeMembers') || '[]');
-    
-    // Transform confirmed leads to match Active Members format
-    const transformedConfirmedLeads = confirmedLeads.map((lead, index) => ({
-      id: rows.length + index + 1, // Unique ID
-      name: lead.name,
-      phone: lead.mobile,
-      address: lead.address,
-      spaceType: 'Hot Desk', // Default space type for confirmed leads
-      start: new Date(lead.confirmationDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase(),
-      end: 'Ongoing', // Default end date
-      unit: 'TBD', // To be determined
-      amount: 'TBD', // To be determined
-      mail: lead.email,
-      kyc: {
-        status: 'Pending',
-        idType: 'TBD',
-        idNumber: 'TBD',
-        dateOfBirth: 'TBD',
-        nationality: 'TBD',
-        occupation: 'TBD',
-        verificationDate: 'Pending'
-      },
-      isConfirmedLead: true // Flag to identify confirmed leads
-    }));
-
-    // Combine static rows with confirmed leads
-    setAllMembers([...rows, ...transformedConfirmedLeads]);
+    fetchActiveMembers();
   }, []);
+
+  // Refresh function
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchActiveMembers();
+    setRefreshing(false);
+  };
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -365,29 +477,71 @@ const ActiveMembers = () => {
 
   return (
     <Container>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-        <IconButton sx={{ mr: 1, bgcolor: '#E6F0F3', borderRadius: 2 }}>
-          <FilterListIcon />
-        </IconButton>
-        <TextField
-          variant="outlined"
-          size="small"
-          placeholder="Search..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          sx={{ width: 300, bgcolor: '#F8F9FA', borderRadius: 2 }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-        />
-        <Typography sx={{ ml: 2, color: '#A0AEC0', fontWeight: 500 }}>
-          Active Members
-        </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, justifyContent: 'space-between' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <IconButton sx={{ mr: 1, bgcolor: '#E6F0F3', borderRadius: 2 }}>
+            <FilterListIcon />
+          </IconButton>
+          <TextField
+            variant="outlined"
+            size="small"
+            placeholder="Search by name or email..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            sx={{ width: 350, bgcolor: '#F8F9FA', borderRadius: 2 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <Typography sx={{ ml: 2, color: '#A0AEC0', fontWeight: 500 }}>
+            Active Members ({filteredRows.length})
+          </Typography>
+        </Box>
+        
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <IconButton 
+            onClick={handleRefresh} 
+            disabled={refreshing}
+            sx={{ 
+              bgcolor: '#E8F5E8', 
+              borderRadius: 2,
+              '&:hover': { bgcolor: '#C8E6C9' }
+            }}
+          >
+            <RefreshIcon sx={{ 
+              animation: refreshing ? 'spin 1s linear infinite' : 'none',
+              '@keyframes spin': {
+                '0%': { transform: 'rotate(0deg)' },
+                '100%': { transform: 'rotate(360deg)' }
+              }
+            }} />
+          </IconButton>
+          {error && (
+            <Typography variant="caption" sx={{ color: '#f44336', fontWeight: 500 }}>
+              API Error - Using cached data
+            </Typography>
+          )}
+        </Box>
       </Box>
+
+      {/* Error Alert */}
+      {error && (
+        <Alert 
+          severity="warning" 
+          sx={{ mb: 2, borderRadius: 2 }}
+          action={
+            <Button color="inherit" size="small" onClick={handleRefresh}>
+              Retry
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
+      )}
       <StyledPaper>
         <TableContainer>
           <Table stickyHeader>
@@ -399,6 +553,7 @@ const ActiveMembers = () => {
                     indeterminate={selected.length > 0 && selected.length < filteredRows.length}
                     checked={filteredRows.length > 0 && selected.length === filteredRows.length}
                     onChange={handleSelectAllClick}
+                    disabled={loading}
                   />
                 </TableCell>
                 {columns.map((column) => (
@@ -412,79 +567,127 @@ const ActiveMembers = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
-                const isItemSelected = isSelected(row.id);
-                return (
-                  <TableRow
-                    hover
-                    role="checkbox"
-                    tabIndex={-1}
-                    key={row.id}
-                    selected={isItemSelected}
-                    sx={{ cursor: 'pointer' }}
-                  >
+              {loading ? (
+                // Loading skeleton rows
+                [...Array(5)].map((_, index) => (
+                  <TableRow key={`skeleton-${index}`}>
                     <TableCell padding="checkbox" sx={{ padding: '16px' }}>
-                      <Checkbox
-                        color="primary"
-                        checked={isItemSelected}
-                        onChange={() => handleClick(row.id)}
-                      />
+                      <Skeleton variant="rectangular" width={24} height={24} />
                     </TableCell>
-                    <TableCell sx={{ padding: '16px' }}>{row.id}</TableCell>
-                    <TableCell sx={{ padding: '16px' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Box>
-                          <Typography sx={{ fontWeight: 600 }}>{row.name}</Typography>
-                          <Typography sx={{ fontSize: 12, color: '#A0AEC0' }}>{row.phone}</Typography>
-                        </Box>
-                        {row.isConfirmedLead && (
-                          <Box
-                            sx={{
-                              backgroundColor: '#4CAF50',
-                              color: 'white',
-                              fontSize: '10px',
-                              px: 1,
-                              py: 0.5,
-                              borderRadius: '12px',
-                              fontWeight: 600,
-                              textTransform: 'uppercase'
-                            }}
-                          >
-                            New
-                          </Box>
-                        )}
-                      </Box>
-                    </TableCell>
-                    <TableCell sx={{ padding: '16px' }}>{row.address}</TableCell>
-                    <TableCell sx={{ padding: '16px' }}>{row.spaceType}</TableCell>
-                    <TableCell sx={{ padding: '16px' }}>{row.start}</TableCell>
-                    <TableCell sx={{ padding: '16px' }}>{row.end}</TableCell>
-                    <TableCell sx={{ padding: '16px' }}>{row.unit}</TableCell>
-                    <TableCell sx={{ padding: '16px' }}>{row.amount}</TableCell>
-                    <TableCell sx={{ padding: '16px' }}>{row.mail}</TableCell>
-                    <TableCell sx={{ padding: '16px', textAlign: 'center' }}>
-                      <VisibilityIcon sx={{ color: '#3B82F6', background: '#E8F0FE', borderRadius: '50%', fontSize: 22, p: '2px' }} />
-                    </TableCell>
-                    <TableCell sx={{ padding: '16px', textAlign: 'center' }}>
-                      <IconButton onClick={() => handleKycDetailsClick(row)}>
-                        <VisibilityIcon sx={{ color: '#4CAF50', background: '#E8F5E8', borderRadius: '50%', fontSize: 20, p: '2px' }} />
-                      </IconButton>
-                    </TableCell>
+                    {columns.map((column) => (
+                      <TableCell key={column.id} sx={{ padding: '16px' }}>
+                        <Skeleton variant="text" height={20} />
+                      </TableCell>
+                    ))}
                   </TableRow>
-                );
-              })}
+                ))
+              ) : filteredRows.length === 0 ? (
+                // No data message
+                <TableRow>
+                  <TableCell colSpan={columns.length + 1} sx={{ textAlign: 'center', py: 4 }}>
+                    <Typography variant="h6" color="text.secondary">
+                      No active members found
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                      {search ? 'Try adjusting your search criteria' : 'No members data available'}
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                // Data rows
+                filteredRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
+                  const isItemSelected = isSelected(row.id);
+                  return (
+                    <TableRow
+                      hover
+                      role="checkbox"
+                      tabIndex={-1}
+                      key={row.id}
+                      selected={isItemSelected}
+                      sx={{ cursor: 'pointer' }}
+                    >
+                      <TableCell padding="checkbox" sx={{ padding: '16px' }}>
+                        <Checkbox
+                          color="primary"
+                          checked={isItemSelected}
+                          onChange={() => handleClick(row.id)}
+                        />
+                      </TableCell>
+                      <TableCell sx={{ padding: '16px' }}>{row.id}</TableCell>
+                      <TableCell sx={{ padding: '16px' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box>
+                            <Typography sx={{ fontWeight: 600 }}>{row.name}</Typography>
+                            <Typography sx={{ fontSize: 12, color: '#A0AEC0' }}>{row.phone}</Typography>
+                          </Box>
+                          {row.isConfirmedLead && (
+                            <Box
+                              sx={{
+                                backgroundColor: '#4CAF50',
+                                color: 'white',
+                                fontSize: '10px',
+                                px: 1,
+                                py: 0.5,
+                                borderRadius: '12px',
+                                fontWeight: 600,
+                                textTransform: 'uppercase'
+                              }}
+                            >
+                              Local
+                            </Box>
+                          )}
+                          {row.isFromAPI && (
+                            <Box
+                              sx={{
+                                backgroundColor: '#2196F3',
+                                color: 'white',
+                                fontSize: '10px',
+                                px: 1,
+                                py: 0.5,
+                                borderRadius: '12px',
+                                fontWeight: 600,
+                                textTransform: 'uppercase'
+                              }}
+                            >
+                              API
+                            </Box>
+                          )}
+                        </Box>
+                      </TableCell>
+                      <TableCell sx={{ padding: '16px' }}>{row.address}</TableCell>
+                      <TableCell sx={{ padding: '16px' }}>{row.spaceType}</TableCell>
+                      <TableCell sx={{ padding: '16px' }}>{row.start}</TableCell>
+                      <TableCell sx={{ padding: '16px' }}>{row.end}</TableCell>
+                      <TableCell sx={{ padding: '16px' }}>{row.unit}</TableCell>
+                      <TableCell sx={{ padding: '16px' }}>{row.amount}</TableCell>
+                      <TableCell sx={{ padding: '16px' }}>{row.mail}</TableCell>
+                      <TableCell sx={{ padding: '16px', textAlign: 'center' }}>
+                        <VisibilityIcon sx={{ color: '#3B82F6', background: '#E8F0FE', borderRadius: '50%', fontSize: 22, p: '2px' }} />
+                      </TableCell>
+                      <TableCell sx={{ padding: '16px', textAlign: 'center' }}>
+                        <IconButton onClick={() => handleKycDetailsClick(row)}>
+                          <VisibilityIcon sx={{ color: '#4CAF50', background: '#E8F5E8', borderRadius: '50%', fontSize: 20, p: '2px' }} />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </TableContainer>
-        <TablePagination
-          rowsPerPageOptions={[10, 25, 50]}
-          component="div"
-          count={filteredRows.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
+        
+        {!loading && (
+          <TablePagination
+            rowsPerPageOptions={[10, 25, 50]}
+            component="div"
+            count={filteredRows.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
+        )}
       </StyledPaper>
 
       {/* KYC Details Modal */}

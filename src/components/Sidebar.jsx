@@ -196,13 +196,12 @@ const Sidebar = () => {
 
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-    { text: 'Leads', icon: <PeopleIcon />, path: '/users' },
+    { text: 'Space Bookings', icon: <PeopleIcon />, path: '/users' },
     { text: 'Active members', icon: <StarIcon />, path: '/active-members' },
     { text: 'Past members', icon: <HistoryIcon />, path: '/past-members' },
         { text: 'Inventory', icon: <InventoryIcon />, path: '/inventory' },
     { text: 'Book Meeting Room', icon: <MeetingRoomIcon />, path: '/book-meeting' },
     { text: 'Refreshment', icon: <RestaurantMenuIcon />, path: '/refreshment' },
-    { text: 'Booked Space Details', icon: <BookOnlineIcon />, path: '/booked-spaces' },
   ];
 
   const handleNavigation = (path) => {

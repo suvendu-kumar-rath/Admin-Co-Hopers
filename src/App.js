@@ -12,7 +12,7 @@ import ProtectedRoute from './components/ProtectedRoute.jsx';
 import PastMembers from './components/PastMembers.jsx';
 import Inventory from './components/Inventory.jsx';
 import Refreshment from './components/Refreshment.jsx';
-import BookedSpaceDetails from './components/BookedSpaceDetails.jsx';
+
 
 const theme = createTheme({
   typography: {
@@ -148,15 +148,7 @@ function App() {
                 </SidebarProvider>
               } />
               
-              <Route path="/booked-spaces" element={
-                <SidebarProvider>
-                  <Sidebar />
-                  <ResponsiveLayout>
-                    <Header />
-                    <BookedSpaceDetails />
-                  </ResponsiveLayout>
-                </SidebarProvider>
-              } />
+
             </Route>
             
             {/* Redirect any unknown routes to dashboard */}

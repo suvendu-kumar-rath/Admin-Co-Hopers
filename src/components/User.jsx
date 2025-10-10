@@ -1,35 +1,77 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-  TextField,
-  Button,
+  Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Checkbox,
-  IconButton,
-  InputAdornment,
-  MenuItem,
-  Select,
-  styled,
-  Paper,
+  Button,
+  Chip,
+  Avatar,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Alert,
   Snackbar,
+  CircularProgress,
+  TextField,
+  InputAdornment,
+  TablePagination,
+  Tooltip,
+  IconButton,
 } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import FilterListIcon from '@mui/icons-material/FilterList';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { motion } from 'framer-motion';
+import {
+  CheckCircle as CheckIcon,
+  Cancel as CancelIcon,
+  Search as SearchIcon,
+  Visibility as VisibilityIcon,
+  Email as EmailIcon,
+  Phone as PhoneIcon,
+} from '@mui/icons-material';
+import { styled } from '@mui/material/styles';
+import { bookingsApi } from '../api/bookings';
 
-const MotionBox = motion(Box);
+const StyledTableCell = styled(TableCell)(({ theme }) => ({
+  fontWeight: 'bold',
+  backgroundColor: theme.palette.primary.main,
+  color: theme.palette.primary.contrastText,
+  padding: '12px 16px',
+}));
+
+const StyledTableRow = styled(TableRow)(({ theme }) => ({
+  '&:nth-of-type(odd)': {
+    backgroundColor: theme.palette.action.hover,
+  },
+  '&:hover': {
+    backgroundColor: theme.palette.action.selected,
+  },
+}));
+
+const ActionButton = styled(Button)(({ theme }) => ({
+  margin: theme.spacing(0.5),
+  minWidth: 80,
+}));
+
+const StatusChip = styled(Chip)(({ status, theme }) => ({
+  fontWeight: 'bold',
+  ...(status === 'CONFIRMED' && {
+    backgroundColor: theme.palette.success.main,
+    color: theme.palette.success.contrastText,
+  }),
+  ...(status === 'REJECTED' && {
+    backgroundColor: theme.palette.error.main,
+    color: theme.palette.error.contrastText,
+  }),
+  ...(status === 'PENDING' && {
+    backgroundColor: theme.palette.warning.main,
+    color: theme.palette.warning.contrastText,
+  }),
+}));
 
 const Container = styled(Box)(({ theme }) => ({
   padding: '24px',
@@ -42,47 +84,6 @@ const Container = styled(Box)(({ theme }) => ({
   },
 }));
 
-const SearchContainer = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginBottom: '24px',
-  [theme.breakpoints.down('md')]: {
-    flexDirection: 'column',
-    gap: '16px',
-    alignItems: 'stretch',
-  },
-}));
-
-const SearchField = styled(TextField)(({ theme }) => ({
-  width: '400px',
-  '& .MuiOutlinedInput-root': {
-    backgroundColor: '#F8F9FA',
-    borderRadius: '8px',
-    '& fieldset': {
-      borderColor: '#E0E0E0',
-    },
-  },
-  [theme.breakpoints.down('md')]: {
-    width: '100%',
-  },
-}));
-
-const StyledTableContainer = styled(TableContainer)({
-  backgroundColor: 'white',
-  borderRadius: '12px',
-  boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.05)',
-});
-
-const StyledTableCell = styled(TableCell)({
-  padding: '16px',
-  '&.MuiTableCell-head': {
-    backgroundColor: '#F8F9FA',
-    fontWeight: 600,
-    color: '#333',
-  },
-});
-
 const DateCell = styled(Box)({
   padding: '6px 12px',
   borderRadius: '8px',
@@ -94,259 +95,475 @@ const DateCell = styled(Box)({
 });
 
 const User = () => {
-  const [selectedLeads, setSelectedLeads] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const [leadToConfirm, setLeadToConfirm] = useState(null);
-  const [successMessage, setSuccessMessage] = useState('');
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [leads, setLeads] = useState([
-    { id: 1, name: 'Corey Stanton', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-01-15', mobile: '8567485158', email: 'corey@example.com', status: 'lead' },
-    { id: 2, name: 'Adison Aminoff', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-02-20', mobile: '8567485159', email: 'adison@example.com', status: 'lead' },
-    { id: 3, name: 'Alfredo Aminoff', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-03-10', mobile: '8567485160', email: 'alfredo@example.com', status: 'lead' },
-    { id: 4, name: 'John Smith', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-02-28', mobile: '8567485161', email: 'john@example.com', status: 'lead' },
-    { id: 5, name: 'Sarah Johnson', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-03-05', mobile: '8567485162', email: 'sarah@example.com', status: 'lead' },
-    { id: 6, name: 'Mike Wilson', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-03-12', mobile: '8567485163', email: 'mike@example.com', status: 'lead' },
-    { id: 7, name: 'Emma Davis', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-03-18', mobile: '8567485164', email: 'emma@example.com', status: 'lead' },
-    { id: 8, name: 'Chris Brown', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-01-08', mobile: '8567485165', email: 'chris@example.com', status: 'lead' },
-    { id: 9, name: 'Lisa Anderson', address: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla...', dateOfJoining: '2023-04-02', mobile: '8567485166', email: 'lisa@example.com', status: 'lead' },
-  ]);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imageDialogOpen, setImageDialogOpen] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [processingBookingId, setProcessingBookingId] = useState(null);
 
-  // Leads data is now managed in state above
+  // Mock data for space bookings - replace with actual API call
+  const mockBookings = [
+    {
+      id: 1,
+      userId: 'USR001',
+      username: 'John Doe',
+      email: 'john@example.com',
+      mobileNumber: '+1234567890',
+      spaceName: 'Conference Room A',
+      roomNumber: '101',
+      cabinNumber: 'C001',
+      seater: 8,
+      startDate: '2024-01-15',
+      endDate: '2024-01-16',
+      amount: 2500,
+      paymentScreenshot: 'https://via.placeholder.com/300x200?text=Payment+Screenshot+1',
+      paymentStatus: 'PENDING'
+    },
+    {
+      id: 2,
+      userId: 'USR002',
+      username: 'Jane Smith',
+      email: 'jane@example.com',
+      mobileNumber: '+1234567891',
+      spaceName: 'Meeting Room B',
+      roomNumber: '102',
+      cabinNumber: 'C002',
+      seater: 4,
+      startDate: '2024-01-20',
+      endDate: '2024-01-22',
+      amount: 1800,
+      paymentScreenshot: 'https://via.placeholder.com/300x200?text=Payment+Screenshot+2',
+      paymentStatus: 'CONFIRMED'
+    },
+    {
+      id: 3,
+      userId: 'USR003',
+      username: 'Mike Johnson',
+      email: 'mike@example.com',
+      mobileNumber: '+1234567892',
+      spaceName: 'Workspace C',
+      roomNumber: '103',
+      cabinNumber: 'C003',
+      seater: 2,
+      startDate: '2024-01-25',
+      endDate: '2024-01-26',
+      amount: 1200,
+      paymentScreenshot: 'https://via.placeholder.com/300x200?text=Payment+Screenshot+3',
+      paymentStatus: 'REJECTED'
+    },
+    {
+      id: 4,
+      userId: 'USR004',
+      username: 'Sarah Wilson',
+      email: 'sarah@example.com',
+      mobileNumber: '+1234567893',
+      spaceName: 'Executive Suite',
+      roomNumber: '201',
+      cabinNumber: 'C004',
+      seater: 12,
+      startDate: '2024-02-01',
+      endDate: '2024-02-03',
+      amount: 3500,
+      paymentScreenshot: 'https://via.placeholder.com/300x200?text=Payment+Screenshot+4',
+      paymentStatus: 'PENDING'
+    },
+    {
+      id: 5,
+      userId: 'USR005',
+      username: 'David Brown',
+      email: 'david@example.com',
+      mobileNumber: '+1234567894',
+      spaceName: 'Creative Lab',
+      roomNumber: '105',
+      cabinNumber: 'C005',
+      seater: 6,
+      startDate: '2024-02-05',
+      endDate: '2024-02-06',
+      amount: 1900,
+      paymentScreenshot: 'https://via.placeholder.com/300x200?text=Payment+Screenshot+5',
+      paymentStatus: 'CONFIRMED'
+    }
+  ];
 
-  const handleConfirmLead = (lead) => {
-    setLeadToConfirm(lead);
-    setConfirmDialogOpen(true);
-  };
+  useEffect(() => {
+    fetchBookings();
+  }, []);
 
-  const confirmLeadToActiveMember = () => {
-    if (!leadToConfirm) return;
-
-    // Get existing active members from localStorage
-    const existingActiveMembers = JSON.parse(localStorage.getItem('activeMembers') || '[]');
-    
-    // Add the confirmed lead to active members with updated status and confirmation date
-    const newActiveMember = {
-      ...leadToConfirm,
-      status: 'active',
-      confirmationDate: new Date().toISOString(),
-      membershipStartDate: new Date().toISOString()
-    };
-    
-    const updatedActiveMembers = [...existingActiveMembers, newActiveMember];
-    localStorage.setItem('activeMembers', JSON.stringify(updatedActiveMembers));
-
-    // Remove the lead from the leads list
-    setLeads(leads.filter(lead => lead.id !== leadToConfirm.id));
-
-    // Close dialog and show success message
-    setConfirmDialogOpen(false);
-    setLeadToConfirm(null);
-    setSuccessMessage(`${leadToConfirm.name} has been confirmed and moved to Active Members!`);
-    setSnackbarOpen(true);
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbarOpen(false);
-  };
-
-  const handleSelectAll = (event) => {
-    if (event.target.checked) {
-      setSelectedLeads(leads.map(lead => lead.id));
-    } else {
-      setSelectedLeads([]);
+  const fetchBookings = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Try to fetch from API first
+      try {
+        const response = await bookingsApi.fetchBookings();
+        
+        // Handle different response structures from your API
+        let bookingsData = response.data || response.bookings || response || [];
+        
+        // Ensure it's an array
+        if (!Array.isArray(bookingsData)) {
+          bookingsData = [];
+        }
+        
+        console.log('Fetched space bookings data:', bookingsData);
+        setBookings(bookingsData);
+        
+      } catch (apiError) {
+        console.warn('API call failed, using mock data:', apiError.message);
+        // Fallback to mock data if API is not available
+        setBookings(mockBookings);
+      }
+      
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching bookings:', err);
+      setError('Failed to fetch space bookings');
+      setLoading(false);
     }
   };
 
-  const handleSelectLead = (id) => {
-    const newSelected = selectedLeads.includes(id)
-      ? selectedLeads.filter(leadId => leadId !== id)
-      : [...selectedLeads, id];
-    setSelectedLeads(newSelected);
+  const handleStatusUpdate = async (bookingId, newStatus) => {
+    try {
+      setProcessingBookingId(bookingId);
+      
+      // Try to update via API first
+      try {
+        const response = await bookingsApi.updatePaymentStatus(bookingId, newStatus);
+        console.log('API Response:', response);
+        
+        // Update local state on success
+        setBookings(prevBookings =>
+          prevBookings.map(booking => {
+            const id = booking.id || booking._id || booking.bookingId;
+            return id == bookingId
+              ? { ...booking, paymentStatus: newStatus, status: newStatus }
+              : booking;
+          })
+        );
+        
+        setSnackbar({
+          open: true,
+          message: `Space booking ${newStatus.toLowerCase()} successfully!`,
+          severity: 'success'
+        });
+        
+      } catch (apiError) {
+        console.warn('API update failed, updating locally:', apiError.message);
+        
+        // Fallback to local state update
+        setBookings(prevBookings =>
+          prevBookings.map(booking => {
+            const id = booking.id || booking._id || booking.bookingId;
+            return id == bookingId
+              ? { ...booking, paymentStatus: newStatus, status: newStatus }
+              : booking;
+          })
+        );
+        
+        setSnackbar({
+          open: true,
+          message: `Space booking ${newStatus.toLowerCase()} locally (API unavailable)`,
+          severity: 'warning'
+        });
+      }
+      
+    } catch (err) {
+      console.error('Error updating booking status:', err);
+      setSnackbar({
+        open: true,
+        message: 'Failed to update booking status',
+        severity: 'error'
+      });
+    } finally {
+      setProcessingBookingId(null);
+    }
   };
 
+  const handleImageClick = (imageUrl) => {
+    setSelectedImage(imageUrl);
+    setImageDialogOpen(true);
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
+  const filteredBookings = bookings.filter(booking =>
+    booking.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    booking.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    booking.spaceName?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
     });
   };
 
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR'
+    }).format(amount);
+  };
+
+  if (loading) {
+    return (
+      <Container>
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+          <CircularProgress size={60} />
+        </Box>
+      </Container>
+    );
+  }
+
   return (
     <Container>
-      <MotionBox
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <SearchContainer>
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-            <SearchField
-              placeholder="Search..."
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon sx={{ color: '#9CA3AF' }} />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <IconButton sx={{ backgroundColor: '#F3F4F6', borderRadius: '8px' }}>
-              <FilterListIcon />
-            </IconButton>
-          </Box>
-        </SearchContainer>
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h4" component="h1" fontWeight="bold" gutterBottom>
+          Space Bookings Management
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Manage and review all space booking requests
+        </Typography>
+      </Box>
 
-        <StyledTableContainer component={Paper}>
-          <Table>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center' }}>
+        <TextField
+          placeholder="Search by name, email, or space..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          size="small"
+          sx={{ minWidth: 300 }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+        />
+        <Button
+          variant="outlined"
+          onClick={fetchBookings}
+          disabled={loading}
+          startIcon={loading ? <CircularProgress size={16} /> : null}
+        >
+          {loading ? 'Refreshing...' : 'Refresh'}
+        </Button>
+      </Box>
+
+      <Paper elevation={2}>
+        <TableContainer>
+          <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <StyledTableCell padding="checkbox">
-                  <Checkbox
-                    indeterminate={selectedLeads.length > 0 && selectedLeads.length < leads.length}
-                    checked={selectedLeads.length === leads.length}
-                    onChange={handleSelectAll}
-                  />
-                </StyledTableCell>
-                <StyledTableCell>ID</StyledTableCell>
-                <StyledTableCell>NAME</StyledTableCell>
-                <StyledTableCell>ADDRESS</StyledTableCell>
-                <StyledTableCell>DATE OF JOINING</StyledTableCell>
-                <StyledTableCell>MOBILE</StyledTableCell>
-                <StyledTableCell>MAIL</StyledTableCell>
-                <StyledTableCell>ACTION</StyledTableCell>
+                <StyledTableCell>User Info</StyledTableCell>
+                <StyledTableCell>Space Details</StyledTableCell>
+                <StyledTableCell>Booking Period</StyledTableCell>
+                <StyledTableCell>Amount</StyledTableCell>
+                <StyledTableCell>Payment Status</StyledTableCell>
+                <StyledTableCell>Payment Proof</StyledTableCell>
+                <StyledTableCell align="center">Actions</StyledTableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-                          {leads.map((lead) => (
-              <TableRow
-                key={lead.id}
-                hover
-                selected={selectedLeads.includes(lead.id)}
-                component={motion.tr}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.3 }}
-              >
-                <StyledTableCell padding="checkbox">
-                  <Checkbox
-                    checked={selectedLeads.includes(lead.id)}
-                    onChange={() => handleSelectLead(lead.id)}
-                  />
-                </StyledTableCell>
-                <StyledTableCell>{lead.id}</StyledTableCell>
-                <StyledTableCell>{lead.name}</StyledTableCell>
-                <StyledTableCell>{lead.address}</StyledTableCell>
-                <StyledTableCell>
-                  <DateCell>{formatDate(lead.dateOfJoining)}</DateCell>
-                </StyledTableCell>
-                <StyledTableCell>{lead.mobile}</StyledTableCell>
-                <StyledTableCell>{lead.email}</StyledTableCell>
-                <StyledTableCell>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    size="small"
-                    startIcon={<CheckCircleIcon />}
-                    onClick={() => handleConfirmLead(lead)}
-                    sx={{
-                      borderRadius: '8px',
-                      textTransform: 'none',
-                      fontWeight: 500,
-                      boxShadow: 'none',
-                      '&:hover': {
-                        boxShadow: '0 2px 8px rgba(68, 97, 242, 0.3)',
-                      }
-                    }}
-                  >
-                    Confirm
-                  </Button>
-                </StyledTableCell>
-              </TableRow>
-            ))}
+              {filteredBookings
+                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                .map((booking) => (
+                  <StyledTableRow key={booking.id}>
+                    <TableCell>
+                      <Box display="flex" alignItems="center" gap={2}>
+                        <Avatar sx={{ bgcolor: 'primary.main' }}>
+                          {booking.username?.charAt(0).toUpperCase()}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="subtitle2" fontWeight="bold">
+                            {booking.username}
+                          </Typography>
+                          <Box display="flex" alignItems="center" gap={0.5}>
+                            <EmailIcon fontSize="small" color="action" />
+                            <Typography variant="caption" color="text.secondary">
+                              {booking.email}
+                            </Typography>
+                          </Box>
+                          <Box display="flex" alignItems="center" gap={0.5}>
+                            <PhoneIcon fontSize="small" color="action" />
+                            <Typography variant="caption" color="text.secondary">
+                              {booking.mobileNumber}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Box>
+                    </TableCell>
+                    
+                    <TableCell>
+                      <Typography variant="subtitle2" fontWeight="bold">
+                        {booking.spaceName}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        Room: {booking.roomNumber} | Cabin: {booking.cabinNumber}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Capacity: {booking.seater} seats
+                      </Typography>
+                    </TableCell>
+                    
+                    <TableCell>
+                      <Typography variant="body2">
+                        <strong>Start:</strong> {formatDate(booking.startDate)}
+                      </Typography>
+                      <Typography variant="body2">
+                        <strong>End:</strong> {formatDate(booking.endDate)}
+                      </Typography>
+                    </TableCell>
+                    
+                    <TableCell>
+                      <Typography variant="h6" color="primary" fontWeight="bold">
+                        {formatCurrency(booking.amount)}
+                      </Typography>
+                    </TableCell>
+                    
+                    <TableCell>
+                      <StatusChip
+                        label={booking.paymentStatus}
+                        status={booking.paymentStatus}
+                        size="small"
+                      />
+                    </TableCell>
+                    
+                    <TableCell>
+                      {booking.paymentScreenshot ? (
+                        <Tooltip title="View Payment Screenshot">
+                          <IconButton
+                            onClick={() => handleImageClick(booking.paymentScreenshot)}
+                            color="primary"
+                            size="small"
+                          >
+                            <VisibilityIcon />
+                          </IconButton>
+                        </Tooltip>
+                      ) : (
+                        <Typography variant="caption" color="text.secondary">
+                          No image
+                        </Typography>
+                      )}
+                    </TableCell>
+                    
+                    <TableCell align="center">
+                      <Box display="flex" gap={1} justifyContent="center">
+                        {booking.paymentStatus !== 'CONFIRMED' && (
+                          <ActionButton
+                            variant="contained"
+                            color="success"
+                            size="small"
+                            onClick={() => handleStatusUpdate(booking.id, 'CONFIRMED')}
+                            disabled={processingBookingId === booking.id}
+                            startIcon={processingBookingId === booking.id ? 
+                              <CircularProgress size={16} /> : <CheckIcon />}
+                          >
+                            Confirm
+                          </ActionButton>
+                        )}
+                        
+                        {booking.paymentStatus !== 'REJECTED' && (
+                          <ActionButton
+                            variant="contained"
+                            color="error"
+                            size="small"
+                            onClick={() => handleStatusUpdate(booking.id, 'REJECTED')}
+                            disabled={processingBookingId === booking.id}
+                            startIcon={processingBookingId === booking.id ? 
+                              <CircularProgress size={16} /> : <CancelIcon />}
+                          >
+                            Reject
+                          </ActionButton>
+                        )}
+                      </Box>
+                    </TableCell>
+                  </StyledTableRow>
+                ))}
             </TableBody>
           </Table>
-        </StyledTableContainer>
+        </TableContainer>
+        
+        <TablePagination
+          component="div"
+          count={filteredBookings.length}
+          page={page}
+          onPageChange={(event, newPage) => setPage(newPage)}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={(event) => {
+            setRowsPerPage(parseInt(event.target.value, 10));
+            setPage(0);
+          }}
+          rowsPerPageOptions={[5, 10, 25, 50]}
+        />
+      </Paper>
 
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
-          <Typography variant="body2" color="text.secondary">
-            1-10 of 97
-          </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Typography variant="body2" color="text.secondary">
-              Rows per page:
-            </Typography>
-            <Select
-              value={rowsPerPage}
-              onChange={(e) => setRowsPerPage(e.target.value)}
-              size="small"
-              sx={{ minWidth: 80 }}
-            >
-              <MenuItem value={10}>10</MenuItem>
-              <MenuItem value={25}>25</MenuItem>
-              <MenuItem value={50}>50</MenuItem>
-            </Select>
-          </Box>
-        </Box>
+      {/* Image Dialog */}
+      <Dialog 
+        open={imageDialogOpen} 
+        onClose={() => setImageDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          Payment Screenshot
+        </DialogTitle>
+        <DialogContent>
+          {selectedImage && (
+            <Box display="flex" justifyContent="center" p={2}>
+              <img
+                src={selectedImage}
+                alt="Payment Screenshot"
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '500px',
+                  objectFit: 'contain',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+                }}
+              />
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setImageDialogOpen(false)}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-        {/* Confirmation Dialog */}
-        <Dialog
-          open={confirmDialogOpen}
-          onClose={() => setConfirmDialogOpen(false)}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>
-            <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
-              Confirm Lead to Active Member
-            </Typography>
-          </DialogTitle>
-          <DialogContent>
-            <Typography variant="body1" sx={{ mb: 2 }}>
-              Are you sure you want to confirm <strong>{leadToConfirm?.name}</strong> as an active member?
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              This action will move the lead to the Active Members section and cannot be undone.
-            </Typography>
-          </DialogContent>
-          <DialogActions sx={{ p: 2, gap: 1 }}>
-            <Button 
-              onClick={() => setConfirmDialogOpen(false)}
-              variant="outlined"
-              sx={{ textTransform: 'none' }}
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={confirmLeadToActiveMember}
-              variant="contained"
-              color="primary"
-              sx={{ textTransform: 'none' }}
-            >
-              Confirm
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* Success Snackbar */}
-        <Snackbar
-          open={snackbarOpen}
-          autoHideDuration={4000}
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
           onClose={handleCloseSnackbar}
-          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          severity={snackbar.severity}
+          variant="filled"
         >
-          <Alert
-            onClose={handleCloseSnackbar}
-            severity="success"
-            variant="filled"
-            sx={{ width: '100%' }}
-          >
-            {successMessage}
-          </Alert>
-        </Snackbar>
-      </MotionBox>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };
