@@ -193,13 +193,23 @@ const BookMeetingRoom = () => {
   const handleConfirm = async (id) => {
     try {
       setProcessingBookingId(id);
-      await meetingRoomApi.confirmBooking(id);
+      console.log('🔄 Confirming booking with ID:', id);
       
-      // Update local state
+      const response = await meetingRoomApi.confirmBooking(id);
+      console.log('✅ Confirm API response:', response);
+      
+      // Update local state - handle different possible ID formats
       setBookings(prevBookings => 
-        prevBookings.map(booking => 
-          booking.id === id ? { ...booking, status: 'Confirmed' } : booking
-        )
+        prevBookings.map(booking => {
+          const bookingId = booking.id || booking._id || booking.bookingId;
+          return bookingId == id ? { 
+            ...booking, 
+            status: 'Confirmed',
+            // Also update other possible status fields
+            booking_status: 'Confirmed',
+            verification_status: 'confirmed'
+          } : booking;
+        })
       );
       
       setSnackbarMessage('Booking confirmed successfully!');
@@ -207,8 +217,25 @@ const BookMeetingRoom = () => {
       setSnackbarOpen(true);
       
     } catch (error) {
-      console.error('Failed to confirm booking:', error);
-      setSnackbarMessage('Failed to confirm booking. Please try again.');
+      console.error('❌ Failed to confirm booking:', error);
+      
+      // Extract more specific error message
+      let errorMessage = 'Failed to confirm booking. Please try again.';
+      if (error.response?.data?.message) {
+        errorMessage = `Failed to confirm booking: ${error.response.data.message}`;
+      } else if (error.response?.data?.error) {
+        errorMessage = `Failed to confirm booking: ${error.response.data.error}`;
+      } else if (error.response?.status === 400) {
+        errorMessage = 'Bad request - the booking might not exist or has invalid data.';
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Unauthorized - please check your authentication.';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Booking not found - it might have been deleted.';
+      } else if (error.response?.status >= 500) {
+        errorMessage = 'Server error - please try again later.';
+      }
+      
+      setSnackbarMessage(errorMessage);
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
     } finally {
@@ -219,13 +246,23 @@ const BookMeetingRoom = () => {
   const handleReject = async (id) => {
     try {
       setProcessingBookingId(id);
-      await meetingRoomApi.rejectBooking(id);
+      console.log('🔄 Rejecting booking with ID:', id);
       
-      // Update local state
+      const response = await meetingRoomApi.rejectBooking(id);
+      console.log('✅ Reject API response:', response);
+      
+      // Update local state - handle different possible ID formats
       setBookings(prevBookings => 
-        prevBookings.map(booking => 
-          booking.id === id ? { ...booking, status: 'Rejected' } : booking
-        )
+        prevBookings.map(booking => {
+          const bookingId = booking.id || booking._id || booking.bookingId;
+          return bookingId == id ? { 
+            ...booking, 
+            status: 'Rejected',
+            // Also update other possible status fields
+            booking_status: 'Rejected',
+            verification_status: 'rejected'
+          } : booking;
+        })
       );
       
       setSnackbarMessage('Booking rejected successfully!');
@@ -233,8 +270,25 @@ const BookMeetingRoom = () => {
       setSnackbarOpen(true);
       
     } catch (error) {
-      console.error('Failed to reject booking:', error);
-      setSnackbarMessage('Failed to reject booking. Please try again.');
+      console.error('❌ Failed to reject booking:', error);
+      
+      // Extract more specific error message
+      let errorMessage = 'Failed to reject booking. Please try again.';
+      if (error.response?.data?.message) {
+        errorMessage = `Failed to reject booking: ${error.response.data.message}`;
+      } else if (error.response?.data?.error) {
+        errorMessage = `Failed to reject booking: ${error.response.data.error}`;
+      } else if (error.response?.status === 400) {
+        errorMessage = 'Bad request - the booking might not exist or has invalid data.';
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Unauthorized - please check your authentication.';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Booking not found - it might have been deleted.';
+      } else if (error.response?.status >= 500) {
+        errorMessage = 'Server error - please try again later.';
+      }
+      
+      setSnackbarMessage(errorMessage);
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
     } finally {
@@ -408,14 +462,6 @@ const BookMeetingRoom = () => {
                     <TableBodyCell>
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         {row.slotTiming || row.slot_timing || row.timeSlot || row.timing || 'N/A'}
-                        <IconButton 
-                          size="small" 
-                          color="primary" 
-                          onClick={() => openEditDialog(row)}
-                          sx={{ ml: 1 }}
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
                       </Box>
                     </TableBodyCell>
                     <TableBodyCell>{row.paymentEmail || row.payment_email || row.email || 'N/A'}</TableBodyCell>
@@ -437,36 +483,54 @@ const BookMeetingRoom = () => {
                       </Tooltip>
                     </TableBodyCell>
                     <TableBodyCell>
-                      {row.status === 'Pending' ? (
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Button 
-                            variant="contained" 
-                            size="small" 
-                            color="success" 
-                            startIcon={processingBookingId === row.id ? <CircularProgress size={16} color="inherit" /> : <CheckCircleIcon />}
-                            onClick={() => handleConfirm(row.id)}
-                            disabled={processingBookingId === row.id}
-                          >
-                            {processingBookingId === row.id ? 'Confirming...' : 'Confirm'}
-                          </Button>
-                          <Button 
-                            variant="contained" 
-                            size="small" 
-                            color="error" 
-                            startIcon={processingBookingId === row.id ? <CircularProgress size={16} color="inherit" /> : <CancelIcon />}
-                            onClick={() => handleReject(row.id)}
-                            disabled={processingBookingId === row.id}
-                          >
-                            {processingBookingId === row.id ? 'Rejecting...' : 'Reject'}
-                          </Button>
-                        </Box>
-                      ) : (
-                        <Chip 
-                          label={row.status} 
-                          color={row.status === 'Confirmed' ? 'success' : 'error'}
-                          variant="outlined"
-                        />
-                      )}
+                      {(() => {
+                        // Get booking ID in flexible way
+                        const bookingId = row.id || row._id || row.bookingId;
+                        // Get status in flexible way
+                        const currentStatus = row.status || row.booking_status || row.verification_status || 'Pending';
+                        
+                        if (currentStatus === 'Pending' || currentStatus === 'pending') {
+                          return (
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                              <Button 
+                                variant="contained" 
+                                size="small" 
+                                color="success" 
+                                startIcon={processingBookingId === bookingId ? <CircularProgress size={16} color="inherit" /> : <CheckCircleIcon />}
+                                onClick={() => handleConfirm(bookingId)}
+                                disabled={processingBookingId === bookingId}
+                              >
+                                {processingBookingId === bookingId ? 'Confirming...' : 'Confirm'}
+                              </Button>
+                              <Button 
+                                variant="contained" 
+                                size="small" 
+                                color="error" 
+                                startIcon={processingBookingId === bookingId ? <CircularProgress size={16} color="inherit" /> : <CancelIcon />}
+                                onClick={() => handleReject(bookingId)}
+                                disabled={processingBookingId === bookingId}
+                              >
+                                {processingBookingId === bookingId ? 'Rejecting...' : 'Reject'}
+                              </Button>
+                            </Box>
+                          );
+                        } else {
+                          // Show status chip for confirmed/rejected bookings
+                          const chipColor = 
+                            currentStatus === 'Confirmed' || currentStatus === 'confirmed' ? 'success' :
+                            currentStatus === 'Rejected' || currentStatus === 'rejected' ? 'error' :
+                            'default';
+                          
+                          return (
+                            <Chip 
+                              label={currentStatus}
+                              color={chipColor}
+                              variant="outlined"
+                              sx={{ fontWeight: 'bold' }}
+                            />
+                          );
+                        }
+                      })()}
                     </TableBodyCell>
                   </TableRow>
                 ))}
@@ -484,134 +548,6 @@ const BookMeetingRoom = () => {
         />
       </StyledPaper>
 
-      {/* Edit Slot Timing Dialog */}
-      <Dialog 
-        open={editDialogOpen} 
-        onClose={closeEditDialog}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 2,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.15)'
-          }
-        }}
-      >
-        <DialogTitle sx={{ 
-          bgcolor: '#8EC8D4', 
-          color: 'white',
-          fontWeight: 600,
-          py: 2
-        }}>
-          Edit Time Slot
-        </DialogTitle>
-        <DialogContent sx={{ pt: 3, pb: 4 }}>
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" fontWeight={500} gutterBottom>
-                {currentEditBooking?.userName} - {currentEditBooking?.bookingType}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                {currentEditBooking?.date} • {currentEditBooking?.seatType}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                Payment Email: {currentEditBooking?.paymentEmail}
-              </Typography>
-              <Divider sx={{ my: 2 }} />
-            </Grid>
-            
-            <Grid item xs={12}>
-              <Typography variant="subtitle2" fontWeight={500} gutterBottom>
-                Time Format
-              </Typography>
-              <FormControl fullWidth variant="outlined" size="small">
-                <Select
-                  value={timeFormat}
-                  onChange={handleTimeFormatChange}
-                  displayEmpty
-                >
-                  <MenuItem value="12h">12-hour (AM/PM)</MenuItem>
-                  <MenuItem value="24h">24-hour</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <Typography variant="subtitle2" fontWeight={500} gutterBottom>
-                Start Time
-              </Typography>
-              <TextField
-                type="time"
-                fullWidth
-                variant="outlined"
-                size="small"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                InputLabelProps={{
-                  shrink: true,
-                }}
-                inputProps={{
-                  step: 300, // 5 min
-                }}
-                sx={{
-                  '& input': {
-                    padding: '10px 14px',
-                  }
-                }}
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <Typography variant="subtitle2" fontWeight={500} gutterBottom>
-                End Time
-              </Typography>
-              <TextField
-                type="time"
-                fullWidth
-                variant="outlined"
-                size="small"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                InputLabelProps={{
-                  shrink: true,
-                }}
-                inputProps={{
-                  step: 300, // 5 min
-                }}
-                sx={{
-                  '& input': {
-                    padding: '10px 14px',
-                  }
-                }}
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button 
-            onClick={closeEditDialog} 
-            color="inherit"
-            variant="outlined"
-            sx={{ borderRadius: 2 }}
-          >
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleSaveSlotTiming} 
-            color="primary" 
-            variant="contained"
-            sx={{ 
-              borderRadius: 2,
-              bgcolor: '#8EC8D4',
-              '&:hover': {
-                bgcolor: '#7ab8c4'
-              }
-            }}
-          >
-            Save Changes
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       {/* Payment Email Dialog */}
       <Dialog

@@ -49,8 +49,12 @@ export const dashboardApi = {
     console.log('Fetching dashboard statistics...');
     
     try {
-      const dashboardData = await dashboardApi.fetchDashboardData();
-      console.log('Raw backend data:', dashboardData);
+      const response = await dashboardApi.fetchDashboardData();
+      console.log('Raw backend response:', response);
+      
+      // Extract the actual data from the nested response structure
+      const dashboardData = response.data || response;
+      console.log('Extracted dashboard data:', dashboardData);
       
       // Map backend data structure to frontend expectations
       const stats = {

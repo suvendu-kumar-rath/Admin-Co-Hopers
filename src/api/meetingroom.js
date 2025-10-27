@@ -29,25 +29,69 @@ export const meetingRoomApi = {
       const token = localStorage.getItem('authToken');
       console.log(`${action === 'confirm' ? 'Confirming' : 'Rejecting'} booking with ID: ${bookingId}`);
       
-      const response = await axios.post(`${baseURL}/meetingrooms/verify-booking/${bookingId}`, 
-        { 
-          action: action, // 'confirm' or 'reject'
-          status: action === 'confirm' ? 'confirmed' : 'rejected'
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          withCredentials: false,
-        }
-      );
+      const endpoint = `/meetingrooms/verify-booking/${bookingId}`;
+      console.log('🔗 API Endpoint:', `${baseURL}${endpoint}`);
       
-      console.log(`✅ Booking ${action}ed successfully:`, response.data);
-      return response.data;
+      // Try different payload formats until one works
+      const payloadOptions = [
+        { status: action === 'confirm' ? 'confirmed' : 'rejected' },
+        { action: action },
+        { verification_status: action === 'confirm' ? 'confirmed' : 'rejected' },
+        { 
+          action: action,
+          status: action === 'confirm' ? 'confirmed' : 'rejected'
+        }
+      ];
+      
+      let lastError = null;
+      
+      for (let i = 0; i < payloadOptions.length; i++) {
+        try {
+          const payload = payloadOptions[i];
+          console.log(`📤 Attempt ${i + 1}: Sending payload:`, payload);
+          
+          const response = await axios.put(`${baseURL}${endpoint}`, 
+            payload,
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
+              withCredentials: false,
+            }
+          );
+          
+          console.log(`✅ Booking ${action}ed successfully on attempt ${i + 1}:`, response.data);
+          return response.data;
+          
+        } catch (attemptError) {
+          console.warn(`⚠️ Attempt ${i + 1} failed:`, attemptError.response?.data || attemptError.message);
+          lastError = attemptError;
+          
+          // If it's not a 400 error, don't try other formats
+          if (attemptError.response?.status !== 400) {
+            break;
+          }
+        }
+      }
+      
+      // If all attempts failed, throw the last error
+      throw lastError;
       
     } catch (error) {
-      console.error(`❌ Failed to ${action} booking:`, error.response?.data || error.message);
+      console.error(`❌ Failed to ${action} booking after all attempts:`, {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message,
+        endpoint: `/meetingrooms/verify-booking/${bookingId}`
+      });
+      
+      // Log the full error response to understand what the backend expects
+      if (error.response?.data) {
+        console.error('🔍 Backend error details:', error.response.data);
+      }
+      
       throw error;
     }
   },

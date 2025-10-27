@@ -12,6 +12,7 @@ import ProtectedRoute from './components/ProtectedRoute.jsx';
 import PastMembers from './components/PastMembers.jsx';
 import Inventory from './components/Inventory.jsx';
 import Refreshment from './components/Refreshment.jsx';
+import AppVersionManagement from './components/AppVersionManagement.jsx';
 
 
 const theme = createTheme({
@@ -144,6 +145,16 @@ function App() {
                   <ResponsiveLayout>
                     <Header />
                     <Refreshment />
+                  </ResponsiveLayout>
+                </SidebarProvider>
+              } />
+              
+              <Route path="/app-version" element={
+                <SidebarProvider>
+                  <Sidebar />
+                  <ResponsiveLayout>
+                    <Header />
+                    <AppVersionManagement />
                   </ResponsiveLayout>
                 </SidebarProvider>
               } />
