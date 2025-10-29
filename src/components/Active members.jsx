@@ -62,7 +62,6 @@ const ModalContent = styled(Box)({
 const columns = [
   { id: 'id', label: 'ID', minWidth: 40 },
   { id: 'name', label: 'NAME', minWidth: 120 },
-  { id: 'address', label: 'ADDRESS', minWidth: 170 },
   { id: 'spaceType', label: 'SPACE TYPE', minWidth: 100 },
   { id: 'start', label: 'START', minWidth: 80 },
   { id: 'end', label: 'END', minWidth: 80 },
@@ -271,7 +270,8 @@ const ActiveMembers = () => {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState([]);
   const [selectedMember, setSelectedMember] = useState(null);
-  const [modalOpen, setModalOpen] = useState(false);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [kycModalOpen, setKycModalOpen] = useState(false);
   const [allMembers, setAllMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -317,7 +317,11 @@ const ActiveMembers = () => {
         unit: member.unit || 'TBD',
         amount: member.amount || member.totalAmount || 'N/A',
         mail: member.email || 'N/A',
-        kyc: member.kyc || {
+        // Store details and kycDetails from API response
+        details: member.details || null,
+        kycDetails: member.kycDetails || null,
+        // Keep original kyc for backward compatibility
+        kyc: member.kycDetails || member.kyc || {
           status: member.kycStatus || 'Pending',
           idType: member.idType || 'TBD',
           idNumber: member.idNumber || 'TBD',
@@ -456,13 +460,23 @@ const ActiveMembers = () => {
     row.mail.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleKycDetailsClick = (member) => {
+  const handleDetailsClick = (member) => {
     setSelectedMember(member);
-    setModalOpen(true);
+    setDetailsModalOpen(true);
   };
 
-  const handleCloseModal = () => {
-    setModalOpen(false);
+  const handleKycDetailsClick = (member) => {
+    setSelectedMember(member);
+    setKycModalOpen(true);
+  };
+
+  const handleCloseDetailsModal = () => {
+    setDetailsModalOpen(false);
+    setSelectedMember(null);
+  };
+
+  const handleCloseKycModal = () => {
+    setKycModalOpen(false);
     setSelectedMember(null);
   };
 
@@ -654,7 +668,6 @@ const ActiveMembers = () => {
                           )}
                         </Box>
                       </TableCell>
-                      <TableCell sx={{ padding: '16px' }}>{row.address}</TableCell>
                       <TableCell sx={{ padding: '16px' }}>{row.spaceType}</TableCell>
                       <TableCell sx={{ padding: '16px' }}>{row.start}</TableCell>
                       <TableCell sx={{ padding: '16px' }}>{row.end}</TableCell>
@@ -662,7 +675,9 @@ const ActiveMembers = () => {
                       <TableCell sx={{ padding: '16px' }}>{row.amount}</TableCell>
                       <TableCell sx={{ padding: '16px' }}>{row.mail}</TableCell>
                       <TableCell sx={{ padding: '16px', textAlign: 'center' }}>
-                        <VisibilityIcon sx={{ color: '#3B82F6', background: '#E8F0FE', borderRadius: '50%', fontSize: 22, p: '2px' }} />
+                        <IconButton onClick={() => handleDetailsClick(row)}>
+                          <VisibilityIcon sx={{ color: '#3B82F6', background: '#E8F0FE', borderRadius: '50%', fontSize: 22, p: '2px' }} />
+                        </IconButton>
                       </TableCell>
                       <TableCell sx={{ padding: '16px', textAlign: 'center' }}>
                         <IconButton onClick={() => handleKycDetailsClick(row)}>
@@ -690,96 +705,234 @@ const ActiveMembers = () => {
         )}
       </StyledPaper>
 
-      {/* KYC Details Modal */}
-      <Modal open={modalOpen} onClose={handleCloseModal}>
+      {/* Details Modal */}
+      <Modal open={detailsModalOpen} onClose={handleCloseDetailsModal}>
         <ModalContent>
-          {selectedMember && (
+          {selectedMember && selectedMember.details && (
             <>
               <Typography variant="h5" sx={{ mb: 3, fontWeight: 600, color: '#333' }}>
-                KYC Details - {selectedMember.name}
+                Member Details - {selectedMember.name}
               </Typography>
               
-              <Box sx={{ mb: 4, p: 3, backgroundColor: '#F8F9FA', borderRadius: 2 }}>
-                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
+              <Box sx={{ p: 2, backgroundColor: '#F8F9FA', borderRadius: 2, mb: 3 }}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
                   <Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      Verification Status:
-                    </Typography>
-                    <Box 
-                      sx={{ 
-                        display: 'inline-block',
-                        px: 2, 
-                        py: 0.5, 
-                        borderRadius: 2,
-                        ...getKycStatusColor(selectedMember.kyc.status),
-                        fontWeight: 600,
-                        fontSize: '0.875rem'
-                      }}
-                    >
-                      {selectedMember.kyc.status}
-                    </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>ID:</Typography>
+                    <Typography variant="body1">{selectedMember.details.id}</Typography>
                   </Box>
-                  
                   <Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      ID Type:
-                    </Typography>
-                    <Typography variant="body1" fontWeight={600}>
-                      {selectedMember.kyc.idType}
-                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>User ID:</Typography>
+                    <Typography variant="body1">{selectedMember.details.userId}</Typography>
                   </Box>
-                  
                   <Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      ID Number:
-                    </Typography>
-                    <Typography variant="body1" fontWeight={600}>
-                      {selectedMember.kyc.idNumber}
-                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Space ID:</Typography>
+                    <Typography variant="body1">{selectedMember.details.spaceId}</Typography>
                   </Box>
-                  
                   <Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      Date of Birth:
-                    </Typography>
-                    <Typography variant="body1">
-                      {new Date(selectedMember.kyc.dateOfBirth).toLocaleDateString()}
-                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Booking Date:</Typography>
+                    <Typography variant="body1">{selectedMember.details.bookingDate}</Typography>
                   </Box>
-                  
                   <Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      Nationality:
-                    </Typography>
-                    <Typography variant="body1">
-                      {selectedMember.kyc.nationality}
-                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Start Date:</Typography>
+                    <Typography variant="body1">{selectedMember.details.startDate}</Typography>
                   </Box>
-                  
                   <Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      Occupation:
-                    </Typography>
-                    <Typography variant="body1">
-                      {selectedMember.kyc.occupation}
-                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>End Date:</Typography>
+                    <Typography variant="body1">{selectedMember.details.endDate}</Typography>
                   </Box>
-                  
-                  <Box sx={{ gridColumn: 'span 2' }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      Verification Date:
-                    </Typography>
-                    <Typography variant="body1">
-                      {selectedMember.kyc.verificationDate 
-                        ? new Date(selectedMember.kyc.verificationDate).toLocaleDateString()
-                        : 'Not verified yet'}
-                    </Typography>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Amount:</Typography>
+                    <Typography variant="body1">₹{selectedMember.details.amount}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Status:</Typography>
+                    <Typography variant="body1">{selectedMember.details.status}</Typography>
                   </Box>
                 </Box>
               </Box>
 
               <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <Button variant="contained" onClick={handleCloseModal}>
+                <Button variant="contained" onClick={handleCloseDetailsModal}>
+                  Close
+                </Button>
+              </Box>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+
+      {/* KYC Details Modal */}
+      <Modal open={kycModalOpen} onClose={handleCloseKycModal}>
+        <ModalContent sx={{ maxWidth: '900px' }}>
+          {selectedMember && selectedMember.kycDetails && (
+            <>
+              <Typography variant="h5" sx={{ mb: 3, fontWeight: 600, color: '#333' }}>
+                KYC Details - {selectedMember.kycDetails.name}
+              </Typography>
+              
+              <Box sx={{ p: 2, backgroundColor: '#F8F9FA', borderRadius: 2, mb: 3 }}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>ID:</Typography>
+                    <Typography variant="body1">{selectedMember.kycDetails.id}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Booking ID:</Typography>
+                    <Typography variant="body1">{selectedMember.kycDetails.bookingId}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Document Type:</Typography>
+                    <Typography variant="body1">{selectedMember.kycDetails.documentType}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Name:</Typography>
+                    <Typography variant="body1">{selectedMember.kycDetails.name}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Email:</Typography>
+                    <Typography variant="body1">{selectedMember.kycDetails.email}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Mobile:</Typography>
+                    <Typography variant="body1">{selectedMember.kycDetails.mobile}</Typography>
+                  </Box>
+                  {selectedMember.kycDetails.gstNumber && (
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>GST Number:</Typography>
+                      <Typography variant="body1">{selectedMember.kycDetails.gstNumber}</Typography>
+                    </Box>
+                  )}
+                  {selectedMember.kycDetails.companyName && (
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Company Name:</Typography>
+                      <Typography variant="body1">{selectedMember.kycDetails.companyName}</Typography>
+                    </Box>
+                  )}
+                  {selectedMember.kycDetails.directorName && (
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Director Name:</Typography>
+                      <Typography variant="body1">{selectedMember.kycDetails.directorName}</Typography>
+                    </Box>
+                  )}
+                  {selectedMember.kycDetails.din && (
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>DIN:</Typography>
+                      <Typography variant="body1">{selectedMember.kycDetails.din}</Typography>
+                    </Box>
+                  )}
+                  {selectedMember.kycDetails.idFront && (
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>ID Front:</Typography>
+                      <Box component="a" href={`https://api.boldtribe.in${selectedMember.kycDetails.idFront}`} target="_blank" rel="noopener noreferrer"
+                        sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+                        View Document
+                      </Box>
+                    </Box>
+                  )}
+                  {selectedMember.kycDetails.idBack && (
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>ID Back:</Typography>
+                      <Box component="a" href={`https://api.boldtribe.in${selectedMember.kycDetails.idBack}`} target="_blank" rel="noopener noreferrer"
+                        sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+                        View Document
+                      </Box>
+                    </Box>
+                  )}
+                  {selectedMember.kycDetails.pan && (
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>PAN:</Typography>
+                      <Box component="a" href={`https://api.boldtribe.in${selectedMember.kycDetails.pan}`} target="_blank" rel="noopener noreferrer"
+                        sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+                        View Document
+                      </Box>
+                    </Box>
+                  )}
+                  {selectedMember.kycDetails.photo && (
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Photo:</Typography>
+                      <Box component="a" href={`https://api.boldtribe.in/uploads/kyc/${selectedMember.kycDetails.photo}`} target="_blank" rel="noopener noreferrer"
+                        sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+                        View Photo
+                      </Box>
+                    </Box>
+                  )}
+                  {selectedMember.kycDetails.paymentScreenshot && (
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Payment Screenshot:</Typography>
+                      <Box component="a" href={`https://api.boldtribe.in${selectedMember.kycDetails.paymentScreenshot}`} target="_blank" rel="noopener noreferrer"
+                        sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+                        View Screenshot
+                      </Box>
+                    </Box>
+                  )}
+                  {selectedMember.kycDetails.companyPAN && (
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Company PAN:</Typography>
+                      <Box component="a" href={`https://api.boldtribe.in${selectedMember.kycDetails.companyPAN}`} target="_blank" rel="noopener noreferrer"
+                        sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+                        View Document
+                      </Box>
+                    </Box>
+                  )}
+                  {selectedMember.kycDetails.certificateOfIncorporation && (
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Certificate of Incorporation:</Typography>
+                      <Box component="a" href={`https://api.boldtribe.in${selectedMember.kycDetails.certificateOfIncorporation}`} target="_blank" rel="noopener noreferrer"
+                        sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+                        View Document
+                      </Box>
+                    </Box>
+                  )}
+                  {selectedMember.kycDetails.directorPAN && (
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Director PAN:</Typography>
+                      <Box component="a" href={`https://api.boldtribe.in${selectedMember.kycDetails.directorPAN}`} target="_blank" rel="noopener noreferrer"
+                        sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+                        View Document
+                      </Box>
+                    </Box>
+                  )}
+                  {selectedMember.kycDetails.directorPhoto && (
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Director Photo:</Typography>
+                      <Box component="a" href={`https://api.boldtribe.in${selectedMember.kycDetails.directorPhoto}`} target="_blank" rel="noopener noreferrer"
+                        sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+                        View Photo
+                      </Box>
+                    </Box>
+                  )}
+                  {selectedMember.kycDetails.directorIdFront && (
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Director ID Front:</Typography>
+                      <Box component="a" href={`https://api.boldtribe.in${selectedMember.kycDetails.directorIdFront}`} target="_blank" rel="noopener noreferrer"
+                        sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+                        View Document
+                      </Box>
+                    </Box>
+                  )}
+                  {selectedMember.kycDetails.directorIdBack && (
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Director ID Back:</Typography>
+                      <Box component="a" href={`https://api.boldtribe.in${selectedMember.kycDetails.directorIdBack}`} target="_blank" rel="noopener noreferrer"
+                        sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+                        View Document
+                      </Box>
+                    </Box>
+                  )}
+                  {selectedMember.kycDetails.directorPaymentProof && (
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Director Payment Proof:</Typography>
+                      <Box component="a" href={`https://api.boldtribe.in${selectedMember.kycDetails.directorPaymentProof}`} target="_blank" rel="noopener noreferrer"
+                        sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+                        View Document
+                      </Box>
+                    </Box>
+                  )}
+                </Box>
+              </Box>
+
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <Button variant="contained" onClick={handleCloseKycModal}>
                   Close
                 </Button>
               </Box>

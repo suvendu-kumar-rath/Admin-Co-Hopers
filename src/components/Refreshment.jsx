@@ -17,7 +17,10 @@ import {
   Button,
   TextField,
   InputAdornment,
-  Tooltip
+  Tooltip,
+  CircularProgress,
+  Alert,
+  Snackbar
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -27,6 +30,7 @@ import {
   Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
+import refreshmentApi from '../api/refreshment';
 
 const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
   marginTop: theme.spacing(3),
@@ -97,6 +101,9 @@ const Refreshment = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedRow, setSelectedRow] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   // Sample data - replace this with API call
   const sampleData = [
@@ -163,20 +170,96 @@ const Refreshment = () => {
   ];
 
   useEffect(() => {
-    // Simulate API call
-    setRefreshmentData(sampleData);
-    setFilteredData(sampleData);
+    fetchRefreshmentOrders();
   }, []);
 
+  const fetchRefreshmentOrders = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log('🔄 Fetching cafeteria orders...');
+      
+      // Try to fetch from API first
+      try {
+        const response = await refreshmentApi.fetchOrders();
+        
+        // Handle different response structures from your API
+        let ordersData = response.data || response.orders || response || [];
+        
+        // Ensure it's an array
+        if (!Array.isArray(ordersData)) {
+          ordersData = [];
+        }
+        
+        console.log('📊 Raw API response:', response);
+        console.log('📋 Processed orders data:', ordersData);
+        
+        // Transform API data to match component structure
+        const transformedData = ordersData.map(order => ({
+          id: order.id || order._id || order.orderId,
+          cabinNumber: order.cabinNumber || order.cabin_number || order.spaceNumber || 'N/A',
+          username: (order.user && order.user.username) || order.username || order.user_name || order.customerName || order.name || 'N/A',
+          roomNumber: order.roomNumber || order.room_number || order.spaceId || 'N/A',
+          // Store individual item details for structured display
+          itemName: order.itemName || 'N/A',
+          quantity: order.quantity || 0,
+          orderType: order.orderType || 'N/A',
+          specialInstructions: order.specialInstructions || '',
+          paymentScreenshot: order.paymentScreenshot || order.payment_screenshot || order.receiptImage || '',
+          paymentMethod: order.paymentMethod || order.payment_method || order.paymentType || 'N/A',
+          amount: order.amount || order.totalAmount || order.total_amount || order.price || 0,
+          orderDate: order.orderDate || order.order_date || order.createdAt || order.created_at || new Date().toISOString().split('T')[0],
+          status: order.status || order.orderStatus || order.order_status || 'Pending'
+        }));
+        
+        console.log(`✅ Successfully loaded ${transformedData.length} orders from API`);
+        console.log('📸 Sample order data:', transformedData[0]);
+        setRefreshmentData(transformedData);
+        setFilteredData(transformedData);
+        
+      } catch (apiError) {
+        console.error('❌ API call failed:', apiError);
+        console.log('🔄 Falling back to sample data...');
+        
+        // Fallback to sample data if API is not available
+        setRefreshmentData(sampleData);
+        setFilteredData(sampleData);
+        
+        setSnackbar({
+          open: true,
+          message: 'Using demo data - API not available',
+          severity: 'warning'
+        });
+      }
+      
+    } catch (err) {
+      console.error('💥 Critical error fetching orders:', err);
+      setError('Failed to fetch refreshment orders');
+      
+      // Load sample data as last resort
+      console.log('🆘 Loading sample data as last resort...');
+      setRefreshmentData(sampleData);
+      setFilteredData(sampleData);
+      
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    // Filter data based on search term
-    const filtered = refreshmentData.filter(item =>
-      item.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.cabinNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.roomNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.items.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.paymentMethod.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Filter data based on search term with null-safe operations
+    const filtered = refreshmentData.filter(item => {
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        (item.username || '').toLowerCase().includes(searchLower) ||
+        (item.cabinNumber || '').toLowerCase().includes(searchLower) ||
+        (item.roomNumber || '').toLowerCase().includes(searchLower) ||
+        (item.items || '').toLowerCase().includes(searchLower) ||
+        (item.paymentMethod || '').toLowerCase().includes(searchLower) ||
+        (item.status || '').toLowerCase().includes(searchLower)
+      );
+    });
     setFilteredData(filtered);
   }, [searchTerm, refreshmentData]);
 
@@ -207,13 +290,53 @@ const Refreshment = () => {
   };
 
   const refreshData = () => {
-    // Simulate data refresh
-    setRefreshmentData([...sampleData]);
-    console.log('Refreshment data refreshed');
+    console.log('🔄 Refreshing refreshment data...');
+    fetchRefreshmentOrders();
   };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar(prev => ({ ...prev, open: false }));
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <Box sx={{ p: 3, bgcolor: '#fafafa', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <Box sx={{ textAlign: 'center' }}>
+          <CircularProgress size={40} />
+          <Typography variant="body1" sx={{ mt: 2 }}>
+            Loading refreshment orders...
+          </Typography>
+        </Box>
+      </Box>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <Box sx={{ p: 3, bgcolor: '#fafafa', minHeight: '100vh' }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+        <Button variant="contained" onClick={fetchRefreshmentOrders}>
+          Retry
+        </Button>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ p: 3, bgcolor: '#fafafa', minHeight: '100vh' }}>
+      {/* Debug Info - Remove this in production */}
+      {process.env.NODE_ENV === 'development' && (
+        <Box sx={{ mb: 2, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+          <Typography variant="subtitle2" color="text.secondary">
+            Debug Info: Orders Array Length: {refreshmentData.length} | Loading: {loading.toString()} | Error: {error || 'None'}
+          </Typography>
+        </Box>
+      )}
+      
       <HeaderBox>
         <Box>
           <Typography variant="h4" component="h1" sx={{ 
@@ -265,7 +388,7 @@ const Refreshment = () => {
               <TableCell>Cabin Number</TableCell>
               <TableCell>Username</TableCell>
               <TableCell>Room Number</TableCell>
-              <TableCell>Items</TableCell>
+              <TableCell>Item</TableCell>
               <TableCell>Payment Screenshot</TableCell>
               <TableCell>Payment Method</TableCell>
               <TableCell>Amount</TableCell>
@@ -298,26 +421,100 @@ const Refreshment = () => {
                   </Typography>
                 </TableCell>
                 <TableCell>
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      maxWidth: 200, 
-                      overflow: 'hidden', 
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {row.items}
-                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 600, color: '#555' }}>
+                        Item:
+                      </Typography>
+                      <Typography 
+                        variant="body2" 
+                        fontWeight={500}
+                        sx={{ 
+                          maxWidth: 180, 
+                          overflow: 'hidden', 
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {row.itemName || 'N/A'}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 600, color: '#555' }}>
+                        Qty:
+                      </Typography>
+                      <Chip 
+                        label={row.quantity || 0} 
+                        size="small" 
+                        sx={{ height: 20, bgcolor: '#e8f5e9', color: '#2e7d32' }}
+                      />
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 600, color: '#555' }}>
+                        Type:
+                      </Typography>
+                      <Chip 
+                        label={row.orderType || 'N/A'} 
+                        size="small" 
+                        sx={{ height: 20, bgcolor: '#e3f2fd', color: '#1565c0' }}
+                      />
+                    </Box>
+                    {row.specialInstructions && (
+                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 600, color: '#555' }}>
+                          Notes:
+                        </Typography>
+                        <Typography 
+                          variant="caption" 
+                          sx={{ 
+                            maxWidth: 150, 
+                            overflow: 'hidden', 
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            fontStyle: 'italic',
+                            color: '#757575'
+                          }}
+                          title={row.specialInstructions}
+                        >
+                          {row.specialInstructions}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
                 </TableCell>
                 <TableCell>
-                  <Avatar
-                    src={row.paymentScreenshot}
-                    alt="Payment Screenshot"
-                    variant="rounded"
-                    sx={{ width: 40, height: 40, cursor: 'pointer' }}
-                    onClick={() => handleViewScreenshot(row.paymentScreenshot)}
-                  />
+                  {row.paymentScreenshot ? (
+                    <Tooltip title="Click to view payment screenshot">
+                      <Avatar
+                        src={row.paymentScreenshot}
+                        alt="Payment Screenshot"
+                        variant="rounded"
+                        sx={{ 
+                          width: 40, 
+                          height: 40, 
+                          cursor: 'pointer',
+                          bgcolor: '#e3f2fd',
+                          '&:hover': { opacity: 0.8 }
+                        }}
+                        onClick={() => handleViewScreenshot(row.paymentScreenshot)}
+                      />
+                    </Tooltip>
+                  ) : (
+                    <Tooltip title="No payment screenshot">
+                      <Avatar
+                        alt="No Screenshot"
+                        variant="rounded"
+                        sx={{ 
+                          width: 40, 
+                          height: 40, 
+                          bgcolor: '#f5f5f5',
+                          color: '#9e9e9e'
+                        }}
+                      >
+                        N/A
+                      </Avatar>
+                    </Tooltip>
+                  )}
                 </TableCell>
                 <TableCell>
                   <PaymentMethodChip
@@ -373,7 +570,7 @@ const Refreshment = () => {
         </MenuItem>
       </Menu>
 
-      {filteredData.length === 0 && (
+      {filteredData.length === 0 && !loading && (
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <Typography variant="h6" color="text.secondary" gutterBottom>
             No refreshment orders found
@@ -383,6 +580,23 @@ const Refreshment = () => {
           </Typography>
         </Box>
       )}
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
