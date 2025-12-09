@@ -53,16 +53,9 @@ export const bookingsApi = {
     
     const token = localStorage.getItem('authToken');
     
-    // Validate status
-    const validStatuses = ['PENDING', 'CONFIRMED', 'REJECTED'];
-    if (!validStatuses.includes(status)) {
-      throw new Error(`Invalid status: ${status}. Must be one of: ${validStatuses.join(', ')}`);
-    }
-    
     try {
       const response = await axios.put(`${baseURL}/admin/space-bookings/${bookingId}/verify`, {
-        status: status,
-        verified: status === 'CONFIRMED' ? true : false
+        status: status
       }, {
         headers: {
           'Content-Type': 'application/json',
@@ -82,11 +75,11 @@ export const bookingsApi = {
 
   // Helper methods for confirm/reject
   confirmBooking: async (bookingId) => {
-    return await bookingsApi.updatePaymentStatus(bookingId, 'CONFIRMED');
+    return await bookingsApi.updatePaymentStatus(bookingId, 'Approve');
   },
 
   rejectBooking: async (bookingId) => {
-    return await bookingsApi.updatePaymentStatus(bookingId, 'REJECTED');
+    return await bookingsApi.updatePaymentStatus(bookingId, 'Reject');
   },
 
   // Fetch bookings with filters

@@ -13,6 +13,7 @@ import PastMembers from './components/PastMembers.jsx';
 import Inventory from './components/Inventory.jsx';
 import Refreshment from './components/Refreshment.jsx';
 import AppVersionManagement from './components/AppVersionManagement.jsx';
+import KycApproval from './components/KycApproval.jsx';
 
 
 const theme = createTheme({
@@ -115,6 +116,16 @@ function App() {
                   <ResponsiveLayout>
                     <Header />
                     <PastMembers />
+                  </ResponsiveLayout>
+                </SidebarProvider>
+              } />
+              
+              <Route path="/kyc-approval" element={
+                <SidebarProvider>
+                  <Sidebar />
+                  <ResponsiveLayout>
+                    <Header />
+                    <KycApproval />
                   </ResponsiveLayout>
                 </SidebarProvider>
               } />

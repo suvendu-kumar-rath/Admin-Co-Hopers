@@ -118,6 +118,28 @@ export const spacesApi = {
     return response.data;
   },
 
+  // Fetch space by ID function
+  fetchSpaceById: async (spaceId) => {
+    console.log('Fetching space by ID:', spaceId);
+    const token = localStorage.getItem('authToken');
+    
+    try {
+      const response = await axios.get(`${baseURL}/spaces/spaces/${spaceId}`, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        withCredentials: false,
+      });
+      
+      console.log('✅ Space fetched successfully:', response.data);
+      return response.data;
+      
+    } catch (error) {
+      console.error('❌ Failed to fetch space:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
   // Test function to check API with minimal data
   testCreate: async () => {
     console.log('Testing API with minimal data...');

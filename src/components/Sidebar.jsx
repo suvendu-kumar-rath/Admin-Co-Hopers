@@ -22,6 +22,7 @@ import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
 import BookOnlineIcon from '@mui/icons-material/BookOnline';
 import SystemUpdateAltIcon from '@mui/icons-material/SystemUpdateAlt';
+import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 
 import InventoryIcon from '@mui/icons-material/Inventory';
 import CoHopersLogo from '../assets/images/BoldTribe Logo-3.png';
@@ -200,6 +201,7 @@ const Sidebar = () => {
     { text: 'Space Bookings', icon: <PeopleIcon />, path: '/users' },
     { text: 'Active members', icon: <StarIcon />, path: '/active-members' },
     { text: 'Past members', icon: <HistoryIcon />, path: '/past-members' },
+    { text: 'KYC Approval', icon: <VerifiedUserIcon />, path: '/kyc-approval' },
     { text: 'Inventory', icon: <InventoryIcon />, path: '/inventory' },
     { text: 'Book Meeting Room', icon: <MeetingRoomIcon />, path: '/book-meeting' },
     { text: 'Refreshment', icon: <RestaurantMenuIcon />, path: '/refreshment' },
