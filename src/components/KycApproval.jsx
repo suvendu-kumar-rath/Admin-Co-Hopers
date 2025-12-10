@@ -134,19 +134,41 @@ const KycApproval = () => {
     setRejectReason('');
   };
 
-  const handleApprove = async (kycId) => {
+  const handleApprove = async (kyc) => {
+    // Get the KYC ID from different possible field names
+    const kycId = kyc.id || kyc._id || kyc.kycId || kyc.bookingId;
+    
+    if (!kycId) {
+      console.error('No valid KYC ID found:', kyc);
+      setError('Invalid KYC ID. Please refresh and try again.');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+    
     try {
       setActionLoading(true);
-      console.log('Approving KYC with ID:', kycId);
+      console.log('Approving KYC with ID:', kycId, 'Full KYC object:', kyc);
       const response = await kycApprovalApi.approveKyc(kycId);
       
       console.log('Approve response:', response);
-      // Check for success in response
-      if (response.success || response.message || response) {
-        setSuccessMessage('KYC approved successfully');
-        fetchKycData(); // Refresh the list
-        setTimeout(() => setSuccessMessage(''), 3000);
-      }
+      
+      // Update local state immediately to change button to chip
+      setKycData(prevData => 
+        prevData.map(item => {
+          const itemId = item.id || item._id || item.kycId || item.bookingId;
+          if (itemId === kycId) {
+            return { ...item, status: 'Approved', verification_status: 'approved' };
+          }
+          return item;
+        })
+      );
+      
+      setSuccessMessage('KYC approved successfully');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      
+      // Optionally refresh from server to get updated list
+      setTimeout(() => fetchKycData(), 1000);
+      
     } catch (err) {
       console.error('Approve error:', err);
       setError(err.message || 'Failed to approve KYC');
@@ -163,19 +185,41 @@ const KycApproval = () => {
       return;
     }
 
+    // Get the KYC ID from different possible field names
+    const kycId = selectedKyc.id || selectedKyc._id || selectedKyc.kycId || selectedKyc.bookingId;
+    
+    if (!kycId) {
+      console.error('No valid KYC ID found:', selectedKyc);
+      setError('Invalid KYC ID. Please refresh and try again.');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
     try {
       setActionLoading(true);
-      console.log('Rejecting KYC with ID:', selectedKyc.id, 'Reason:', rejectReason);
-      const response = await kycApprovalApi.rejectKyc(selectedKyc.id, rejectReason);
+      console.log('Rejecting KYC with ID:', kycId, 'Reason:', rejectReason);
+      const response = await kycApprovalApi.rejectKyc(kycId, rejectReason);
       
       console.log('Reject response:', response);
-      // Check for success in response
-      if (response.success || response.message || response) {
-        setSuccessMessage('KYC rejected successfully');
-        handleCloseRejectModal();
-        fetchKycData(); // Refresh the list
-        setTimeout(() => setSuccessMessage(''), 3000);
-      }
+      
+      // Update local state immediately to change button to chip
+      setKycData(prevData => 
+        prevData.map(item => {
+          const itemId = item.id || item._id || item.kycId || item.bookingId;
+          if (itemId === kycId) {
+            return { ...item, status: 'Rejected', verification_status: 'rejected' };
+          }
+          return item;
+        })
+      );
+      
+      setSuccessMessage('KYC rejected successfully');
+      handleCloseRejectModal();
+      setTimeout(() => setSuccessMessage(''), 3000);
+      
+      // Optionally refresh from server to get updated list
+      setTimeout(() => fetchKycData(), 1000);
+      
     } catch (err) {
       console.error('Reject error:', err);
       setError(err.message || 'Failed to reject KYC');
@@ -468,28 +512,52 @@ const KycApproval = () => {
                     </IconButton>
                   </TableCell>
                   <TableCell align="center">
-                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                      <Button
-                        variant="contained"
-                        color="success"
-                        size="small"
-                        startIcon={<CheckCircleIcon />}
-                        onClick={() => handleApprove(kyc.id)}
-                        disabled={actionLoading}
-                      >
-                        Approve
-                      </Button>
-                      <Button
-                        variant="contained"
-                        color="error"
-                        size="small"
-                        startIcon={<CancelIcon />}
-                        onClick={() => handleOpenRejectModal(kyc)}
-                        disabled={actionLoading}
-                      >
-                        Reject
-                      </Button>
-                    </Box>
+                    {(() => {
+                      // Check if KYC has already been processed
+                      const status = kyc.status || kyc.verification_status || kyc.kycStatus || 'pending';
+                      const isProcessed = status.toLowerCase() === 'approved' || status.toLowerCase() === 'rejected' || status.toLowerCase() === 'approve' || status.toLowerCase() === 'reject';
+                      
+                      if (isProcessed) {
+                        // Show status chip for already processed KYCs
+                        const chipColor = (status.toLowerCase() === 'approved' || status.toLowerCase() === 'approve') ? 'success' : 'error';
+                        const chipLabel = (status.toLowerCase() === 'approved' || status.toLowerCase() === 'approve') ? 'Approved' : 'Rejected';
+                        
+                        return (
+                          <Chip 
+                            label={chipLabel}
+                            color={chipColor}
+                            size="small"
+                            sx={{ fontWeight: 600 }}
+                          />
+                        );
+                      } else {
+                        // Show approve/reject buttons for pending KYCs
+                        return (
+                          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                            <Button
+                              variant="contained"
+                              color="success"
+                              size="small"
+                              startIcon={<CheckCircleIcon />}
+                              onClick={() => handleApprove(kyc)}
+                              disabled={actionLoading}
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              variant="contained"
+                              color="error"
+                              size="small"
+                              startIcon={<CancelIcon />}
+                              onClick={() => handleOpenRejectModal(kyc)}
+                              disabled={actionLoading}
+                            >
+                              Reject
+                            </Button>
+                          </Box>
+                        );
+                      }
+                    })()}
                   </TableCell>
                 </TableRow>
               ))}
