@@ -471,7 +471,7 @@ const User = () => {
                             variant="contained"
                             color="success"
                             size="small"
-                            onClick={() => handleStatusUpdate(booking.id, 'CONFIRMED')}
+                            onClick={() => handleStatusUpdate(booking.id, 'Confirm')}
                             disabled={processingBookingId === booking.id}
                             startIcon={processingBookingId === booking.id ? 
                               <CircularProgress size={16} /> : <CheckIcon />}
@@ -485,7 +485,7 @@ const User = () => {
                             variant="contained"
                             color="error"
                             size="small"
-                            onClick={() => handleStatusUpdate(booking.id, 'REJECTED')}
+                            onClick={() => handleStatusUpdate(booking.id, 'Reject')}
                             disabled={processingBookingId === booking.id}
                             startIcon={processingBookingId === booking.id ? 
                               <CircularProgress size={16} /> : <CancelIcon />}
