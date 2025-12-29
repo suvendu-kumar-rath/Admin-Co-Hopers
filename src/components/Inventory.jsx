@@ -1021,9 +1021,7 @@ const Inventory = () => {
                     </StyledTableBodyCell>
                   <StyledTableBodyCell>
                     <Box display="flex" alignItems="center" gap={isSmall ? 0.5 : 1}>
-                      <ActionButton actiontype="view">
-                        <VisibilityIcon fontSize={isSmall ? "small" : "small"} />
-                      </ActionButton>
+                      {/* View icon removed as requested */}
                       <ActionButton 
                         actiontype="delete"
                         onClick={() => handleDeleteClick(row)}

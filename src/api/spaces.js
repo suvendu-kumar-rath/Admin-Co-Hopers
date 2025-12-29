@@ -86,6 +86,8 @@ export const spacesApi = {
     if (seater !== undefined) formData.append('seater', String(seater));
     if (price !== undefined) formData.append('price', String(price));
     if (availability !== undefined) formData.append('availability', availability);
+    if (roomNumber !== undefined) formData.append('roomNumber', String(roomNumber));
+    if (cabinNumber !== undefined) formData.append('cabinNumber', String(cabinNumber));
     if (Array.isArray(availableDates)) {
       formData.append('availableDates', JSON.stringify(availableDates));
     }
