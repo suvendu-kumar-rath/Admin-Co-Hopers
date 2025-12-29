@@ -18,14 +18,18 @@ import {
   Button,
   CircularProgress,
   Alert,
-  Skeleton
+  Skeleton,
+  Snackbar
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import SearchIcon from '@mui/icons-material/Search';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { membersApi } from '../api';
+import axios from 'axios';
 
 const Container = styled(Box)(({ theme }) => ({
   padding: '24px',
@@ -70,6 +74,7 @@ const columns = [
   { id: 'mail', label: 'MAIL', minWidth: 180 },
   { id: 'details', label: 'DETAILS', minWidth: 60 },
   { id: 'kyc', label: 'KYC DETAILS', minWidth: 80 },
+  { id: 'notice', label: 'NOTICE', minWidth: 80 },
 ];
 
 const rows = [
@@ -276,6 +281,12 @@ const ActiveMembers = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [noticeModalOpen, setNoticeModalOpen] = useState(false);
+  const [selectedNoticeMember, setSelectedNoticeMember] = useState(null);
+  const [noticePdf, setNoticePdf] = useState(null);
+  const [noticeRemainingDays, setNoticeRemainingDays] = useState('');
+  const [noticeLoading, setNoticeLoading] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   // Fetch active members from API
   const fetchActiveMembers = async () => {
@@ -478,6 +489,83 @@ const ActiveMembers = () => {
   const handleCloseKycModal = () => {
     setKycModalOpen(false);
     setSelectedMember(null);
+  };
+
+  const handleNoticeClick = (member) => {
+    setSelectedNoticeMember(member);
+    setNoticeModalOpen(true);
+    setNoticePdf(null);
+    setNoticeRemainingDays('');
+  };
+
+  const handleCloseNoticeModal = () => {
+    setNoticeModalOpen(false);
+    setSelectedNoticeMember(null);
+    setNoticePdf(null);
+    setNoticeRemainingDays('');
+  };
+
+  const handlePdfChange = (event) => {
+    const file = event.target.files[0];
+    if (file && file.type === 'application/pdf') {
+      setNoticePdf(file);
+    } else {
+      setSnackbar({ open: true, message: 'Please select a valid PDF file', severity: 'error' });
+    }
+  };
+
+  const handleSubmitNotice = async () => {
+    if (!selectedNoticeMember) {
+      setSnackbar({ open: true, message: 'No member selected', severity: 'error' });
+      return;
+    }
+
+    if (!noticePdf) {
+      setSnackbar({ open: true, message: 'Please select a PDF file', severity: 'error' });
+      return;
+    }
+
+    if (!noticeRemainingDays || noticeRemainingDays <= 0) {
+      setSnackbar({ open: true, message: 'Please enter valid remaining days', severity: 'error' });
+      return;
+    }
+
+    setNoticeLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('notice', noticePdf);
+      formData.append('remainingDays', noticeRemainingDays);
+
+      const bookingId = selectedNoticeMember.id;
+      const token = localStorage.getItem('authToken');
+
+      const response = await axios.post(
+        `https://api.boldtribe.in/api/admin/booking/${bookingId}/submit-notice`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        }
+      );
+
+      console.log('Notice submitted successfully:', response.data);
+      setSnackbar({ open: true, message: 'Notice submitted successfully!', severity: 'success' });
+      handleCloseNoticeModal();
+      await handleRefresh();
+    } catch (error) {
+      console.error('Failed to submit notice:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to submit notice';
+      setSnackbar({ open: true, message: errorMessage, severity: 'error' });
+    } finally {
+      setNoticeLoading(false);
+    }
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbar({ ...snackbar, open: false });
   };
 
   const getKycStatusColor = (status) => {
@@ -684,6 +772,11 @@ const ActiveMembers = () => {
                           <VisibilityIcon sx={{ color: '#4CAF50', background: '#E8F5E8', borderRadius: '50%', fontSize: 20, p: '2px' }} />
                         </IconButton>
                       </TableCell>
+                      <TableCell sx={{ padding: '16px', textAlign: 'center' }}>
+                        <IconButton onClick={() => handleNoticeClick(row)}>
+                          <NotificationsIcon sx={{ color: '#FF9800', background: '#FFF3E0', borderRadius: '50%', fontSize: 20, p: '2px' }} />
+                        </IconButton>
+                      </TableCell>
                     </TableRow>
                   );
                 })
@@ -754,6 +847,88 @@ const ActiveMembers = () => {
               <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <Button variant="contained" onClick={handleCloseDetailsModal}>
                   Close
+                </Button>
+              </Box>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+
+      {/* Notice Modal */}
+      <Modal open={noticeModalOpen} onClose={handleCloseNoticeModal}>
+        <ModalContent>
+          {selectedNoticeMember && (
+            <>
+              <Typography variant="h5" sx={{ mb: 3, fontWeight: 600, color: '#333' }}>
+                Submit Notice - {selectedNoticeMember.name}
+              </Typography>
+              
+              <Box sx={{ p: 2, backgroundColor: '#F8F9FA', borderRadius: 2, mb: 3 }}>
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
+                    Booking ID:
+                  </Typography>
+                  <Typography variant="body1">{selectedNoticeMember.id}</Typography>
+                </Box>
+
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
+                    Member Name:
+                  </Typography>
+                  <Typography variant="body1">{selectedNoticeMember.name}</Typography>
+                </Box>
+
+                <Box sx={{ mb: 3 }}>
+                  <TextField
+                    fullWidth
+                    label="Remaining Days"
+                    type="number"
+                    value={noticeRemainingDays}
+                    onChange={(e) => setNoticeRemainingDays(e.target.value)}
+                    variant="outlined"
+                    inputProps={{ min: 1 }}
+                    helperText="Enter the number of remaining days for the notice"
+                  />
+                </Box>
+
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontWeight: 600 }}>
+                    Upload Notice PDF:
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    startIcon={<CloudUploadIcon />}
+                    fullWidth
+                    sx={{ mb: 1 }}
+                  >
+                    {noticePdf ? noticePdf.name : 'Select PDF File'}
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      hidden
+                      onChange={handlePdfChange}
+                    />
+                  </Button>
+                  {noticePdf && (
+                    <Typography variant="caption" color="success.main">
+                      File selected: {noticePdf.name} ({(noticePdf.size / 1024).toFixed(2)} KB)
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+                <Button variant="outlined" onClick={handleCloseNoticeModal}>
+                  Cancel
+                </Button>
+                <Button 
+                  variant="contained" 
+                  onClick={handleSubmitNotice}
+                  disabled={noticeLoading || !noticePdf || !noticeRemainingDays}
+                  startIcon={noticeLoading && <CircularProgress size={20} />}
+                >
+                  {noticeLoading ? 'Submitting...' : 'Submit Notice'}
                 </Button>
               </Box>
             </>
@@ -940,6 +1115,18 @@ const ActiveMembers = () => {
           )}
         </ModalContent>
       </Modal>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };

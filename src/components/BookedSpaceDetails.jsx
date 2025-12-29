@@ -100,6 +100,7 @@ const BookedSpaceDetails = () => {
       startDate: '2024-01-15',
       endDate: '2024-01-16',
       amount: 2500,
+      negotiatedAmount: 2200,
       paymentScreenshot: 'https://via.placeholder.com/300x200?text=Payment+Screenshot+1',
       paymentStatus: 'PENDING'
     },
@@ -116,6 +117,7 @@ const BookedSpaceDetails = () => {
       startDate: '2024-01-20',
       endDate: '2024-01-22',
       amount: 1800,
+      negotiatedAmount: 1650,
       paymentScreenshot: 'https://via.placeholder.com/300x200?text=Payment+Screenshot+2',
       paymentStatus: 'CONFIRMED'
     },
@@ -132,6 +134,7 @@ const BookedSpaceDetails = () => {
       startDate: '2024-01-25',
       endDate: '2024-01-26',
       amount: 1200,
+      negotiatedAmount: 1100,
       paymentScreenshot: 'https://via.placeholder.com/300x200?text=Payment+Screenshot+3',
       paymentStatus: 'REJECTED'
     },
@@ -360,6 +363,7 @@ const BookedSpaceDetails = () => {
               <StyledTableCell>Space Details</StyledTableCell>
               <StyledTableCell>Duration</StyledTableCell>
               <StyledTableCell>Amount</StyledTableCell>
+              <StyledTableCell>Negotiated Amount</StyledTableCell>
               <StyledTableCell>Payment</StyledTableCell>
               <StyledTableCell>Status</StyledTableCell>
               <StyledTableCell>Actions</StyledTableCell>
@@ -380,6 +384,7 @@ const BookedSpaceDetails = () => {
               const startDate = booking.startDate || booking.start_date || booking.checkIn || booking.from_date;
               const endDate = booking.endDate || booking.end_date || booking.checkOut || booking.to_date;
               const amount = booking.amount || booking.price || booking.total || booking.cost || 0;
+              const negotiatedAmount = booking.negotiatedAmount || booking.negotiated_amount || booking.finalAmount || booking.final_amount || 0;
               const paymentScreenshot = booking.paymentScreenshot || booking.payment_screenshot || booking.paymentProof;
               const paymentStatus = booking.paymentStatus || booking.payment_status || booking.status || 'PENDING';
               
@@ -432,6 +437,11 @@ const BookedSpaceDetails = () => {
                   <TableCell>
                     <Typography variant="h6" color="primary">
                       ₹{Number(amount).toLocaleString()}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="h6" color="secondary.main">
+                      {negotiatedAmount > 0 ? `₹${Number(negotiatedAmount).toLocaleString()}` : 'N/A'}
                     </Typography>
                   </TableCell>
                   <TableCell>
