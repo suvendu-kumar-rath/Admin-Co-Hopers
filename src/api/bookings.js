@@ -48,15 +48,22 @@ export const bookingsApi = {
   },
 
   // Verify space booking (confirm/reject)
-  updatePaymentStatus: async (bookingId, status) => {
-    console.log('Verifying space booking status:', { bookingId, status });
+  updatePaymentStatus: async (bookingId, status, negotiatedAmount = null) => {
+    console.log('Verifying space booking status:', { bookingId, status, negotiatedAmount });
     
     const token = localStorage.getItem('authToken');
     
+    const requestBody = {
+      status: status
+    };
+    
+    // Add negotiated amount if provided
+    if (negotiatedAmount !== null && negotiatedAmount !== undefined) {
+      requestBody.negotiatedAmount = negotiatedAmount;
+    }
+    
     try {
-      const response = await axios.put(`${baseURL}/admin/space-bookings/${bookingId}/verify`, {
-        status: status
-      }, {
+      const response = await axios.put(`${baseURL}/admin/space-bookings/${bookingId}/verify`, requestBody, {
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),

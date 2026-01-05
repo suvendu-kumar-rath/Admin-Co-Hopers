@@ -77,197 +77,197 @@ const columns = [
   { id: 'notice', label: 'NOTICE', minWidth: 80 },
 ];
 
-const rows = [
-  { 
-    id: 1, 
-    name: 'Ann Culhane', 
-    phone: '5684320536', 
-    address: 'Lorem ipsum elit. Nulla...', 
-    spaceType: 'Private Office', 
-    start: '1 JAN 2025', 
-    end: '1 JAN 2025', 
-    unit: '605', 
-    amount: '5158', 
-    mail: 'sbdhjbj13@gmail.com',
-    kyc: {
-      status: 'Verified',
-      idType: 'Passport',
-      idNumber: 'P1234567',
-      dateOfBirth: '1990-05-15',
-      nationality: 'American',
-      occupation: 'Software Engineer',
-      verificationDate: '2024-12-15'
-    }
-  },
-  { 
-    id: 2, 
-    name: 'Ahmad Rosser', 
-    phone: '5684320537', 
-    address: 'Lorem ipsum elit. Nulla...', 
-    spaceType: 'Shared Desk', 
-    start: '1 JAN 2025', 
-    end: '1 JAN 2025', 
-    unit: '605', 
-    amount: '5158', 
-    mail: 'sbdhjbj13@gmail.com',
-    kyc: {
-      status: 'Pending',
-      idType: 'Driver License',
-      idNumber: 'DL987654',
-      dateOfBirth: '1988-03-22',
-      nationality: 'Canadian',
-      occupation: 'Designer',
-      verificationDate: null
-    }
-  },
-  { 
-    id: 3, 
-    name: 'Zain Calzoni', 
-    phone: '5684320538', 
-    address: 'Lorem ipsum elit. Nulla...', 
-    spaceType: 'Hot Desk', 
-    start: '1 JAN 2025', 
-    end: '1 JAN 2025', 
-    unit: '605', 
-    amount: '5158', 
-    mail: 'sbdhjbj13@gmail.com',
-    kyc: {
-      status: 'Verified',
-      idType: 'National ID',
-      idNumber: 'NID456789',
-      dateOfBirth: '1992-11-08',
-      nationality: 'British',
-      occupation: 'Marketing Manager',
-      verificationDate: '2024-12-20'
-    }
-  },
-  { 
-    id: 4, 
-    name: 'Leo Stanton', 
-    phone: '5684320539', 
-    address: 'Lorem ipsum elit. Nulla...', 
-    spaceType: 'Meeting Room', 
-    start: '1 JAN 2025', 
-    end: '1 JAN 2025', 
-    unit: '605', 
-    amount: '5158', 
-    mail: 'sbdhjbj13@gmail.com',
-    kyc: {
-      status: 'Rejected',
-      idType: 'Passport',
-      idNumber: 'P7654321',
-      dateOfBirth: '1985-07-12',
-      nationality: 'Australian',
-      occupation: 'Consultant',
-      verificationDate: null
-    }
-  },
-  { 
-    id: 5, 
-    name: 'Kalya Vetovas', 
-    phone: '5684320540', 
-    address: 'Lorem ipsum elit. Nulla...', 
-    spaceType: 'Private Office', 
-    start: '1 JAN 2025', 
-    end: '1 JAN 2025', 
-    unit: '605', 
-    amount: '5158', 
-    mail: 'sbdhjbj13@gmail.com',
-    kyc: {
-      status: 'Verified',
-      idType: 'Driver License',
-      idNumber: 'DL123456',
-      dateOfBirth: '1993-09-25',
-      nationality: 'German',
-      occupation: 'Data Analyst',
-      verificationDate: '2024-12-18'
-    }
-  },
-  { 
-    id: 6, 
-    name: 'Ryan Westervet', 
-    phone: '5684320541', 
-    address: 'Lorem ipsum elit. Nulla...', 
-    spaceType: 'Shared Desk', 
-    start: '1 JAN 2025', 
-    end: '1 JAN 2025', 
-    unit: '605', 
-    amount: '5158', 
-    mail: 'sbdhjbj13@gmail.com',
-    kyc: {
-      status: 'Pending',
-      idType: 'Passport',
-      idNumber: 'P9876543',
-      dateOfBirth: '1991-12-03',
-      nationality: 'French',
-      occupation: 'Product Manager',
-      verificationDate: null
-    }
-  },
-  { 
-    id: 7, 
-    name: 'Corey Stanton', 
-    phone: '5684320542', 
-    address: 'Lorem ipsum elit. Nulla...', 
-    spaceType: 'Hot Desk', 
-    start: '1 JAN 2025', 
-    end: '1 JAN 2025', 
-    unit: '605', 
-    amount: '5158', 
-    mail: 'sbdhjbj13@gmail.com',
-    kyc: {
-      status: 'Verified',
-      idType: 'National ID',
-      idNumber: 'NID789123',
-      dateOfBirth: '1989-04-17',
-      nationality: 'Spanish',
-      occupation: 'Web Developer',
-      verificationDate: '2024-12-22'
-    }
-  },
-  { 
-    id: 8, 
-    name: 'Adison Aminoff', 
-    phone: '5684320533', 
-    address: 'Lorem ipsum elit. Nulla...', 
-    spaceType: 'Conference Room', 
-    start: '1 JAN 2025', 
-    end: '1 JAN 2025', 
-    unit: '605', 
-    amount: '5158', 
-    mail: 'sbdhjbj13@gmail.com',
-    kyc: {
-      status: 'Pending',
-      idType: 'Driver License',
-      idNumber: 'DL567890',
-      dateOfBirth: '1987-08-30',
-      nationality: 'Italian',
-      occupation: 'Business Analyst',
-      verificationDate: null
-    }
-  },
-  { 
-    id: 9, 
-    name: 'Alfredo Aminoff', 
-    phone: '5684320534', 
-    address: 'Lorem ipsum elit. Nulla...', 
-    spaceType: 'Private Office', 
-    start: '1 JAN 2025', 
-    end: '1 JAN 2025', 
-    unit: '605', 
-    amount: '5158', 
-    mail: 'sbdhjbj13@gmail.com',
-    kyc: {
-      status: 'Verified',
-      idType: 'Passport',
-      idNumber: 'P5432109',
-      dateOfBirth: '1994-01-14',
-      nationality: 'Dutch',
-      occupation: 'UX Designer',
-      verificationDate: '2024-12-25'
-    }
-  },
-];
+// const rows = [
+//   { 
+//     id: 1, 
+//     name: 'Ann Culhane', 
+//     phone: '5684320536', 
+//     address: 'Lorem ipsum elit. Nulla...', 
+//     spaceType: 'Private Office', 
+//     start: '1 JAN 2025', 
+//     end: '1 JAN 2025', 
+//     unit: '605', 
+//     amount: '5158', 
+//     mail: 'sbdhjbj13@gmail.com',
+//     kyc: {
+//       status: 'Verified',
+//       idType: 'Passport',
+//       idNumber: 'P1234567',
+//       dateOfBirth: '1990-05-15',
+//       nationality: 'American',
+//       occupation: 'Software Engineer',
+//       verificationDate: '2024-12-15'
+//     }
+//   },
+//   { 
+//     id: 2, 
+//     name: 'Ahmad Rosser', 
+//     phone: '5684320537', 
+//     address: 'Lorem ipsum elit. Nulla...', 
+//     spaceType: 'Shared Desk', 
+//     start: '1 JAN 2025', 
+//     end: '1 JAN 2025', 
+//     unit: '605', 
+//     amount: '5158', 
+//     mail: 'sbdhjbj13@gmail.com',
+//     kyc: {
+//       status: 'Pending',
+//       idType: 'Driver License',
+//       idNumber: 'DL987654',
+//       dateOfBirth: '1988-03-22',
+//       nationality: 'Canadian',
+//       occupation: 'Designer',
+//       verificationDate: null
+//     }
+//   },
+//   { 
+//     id: 3, 
+//     name: 'Zain Calzoni', 
+//     phone: '5684320538', 
+//     address: 'Lorem ipsum elit. Nulla...', 
+//     spaceType: 'Hot Desk', 
+//     start: '1 JAN 2025', 
+//     end: '1 JAN 2025', 
+//     unit: '605', 
+//     amount: '5158', 
+//     mail: 'sbdhjbj13@gmail.com',
+//     kyc: {
+//       status: 'Verified',
+//       idType: 'National ID',
+//       idNumber: 'NID456789',
+//       dateOfBirth: '1992-11-08',
+//       nationality: 'British',
+//       occupation: 'Marketing Manager',
+//       verificationDate: '2024-12-20'
+//     }
+//   },
+//   { 
+//     id: 4, 
+//     name: 'Leo Stanton', 
+//     phone: '5684320539', 
+//     address: 'Lorem ipsum elit. Nulla...', 
+//     spaceType: 'Meeting Room', 
+//     start: '1 JAN 2025', 
+//     end: '1 JAN 2025', 
+//     unit: '605', 
+//     amount: '5158', 
+//     mail: 'sbdhjbj13@gmail.com',
+//     kyc: {
+//       status: 'Rejected',
+//       idType: 'Passport',
+//       idNumber: 'P7654321',
+//       dateOfBirth: '1985-07-12',
+//       nationality: 'Australian',
+//       occupation: 'Consultant',
+//       verificationDate: null
+//     }
+//   },
+//   { 
+//     id: 5, 
+//     name: 'Kalya Vetovas', 
+//     phone: '5684320540', 
+//     address: 'Lorem ipsum elit. Nulla...', 
+//     spaceType: 'Private Office', 
+//     start: '1 JAN 2025', 
+//     end: '1 JAN 2025', 
+//     unit: '605', 
+//     amount: '5158', 
+//     mail: 'sbdhjbj13@gmail.com',
+//     kyc: {
+//       status: 'Verified',
+//       idType: 'Driver License',
+//       idNumber: 'DL123456',
+//       dateOfBirth: '1993-09-25',
+//       nationality: 'German',
+//       occupation: 'Data Analyst',
+//       verificationDate: '2024-12-18'
+//     }
+//   },
+//   { 
+//     id: 6, 
+//     name: 'Ryan Westervet', 
+//     phone: '5684320541', 
+//     address: 'Lorem ipsum elit. Nulla...', 
+//     spaceType: 'Shared Desk', 
+//     start: '1 JAN 2025', 
+//     end: '1 JAN 2025', 
+//     unit: '605', 
+//     amount: '5158', 
+//     mail: 'sbdhjbj13@gmail.com',
+//     kyc: {
+//       status: 'Pending',
+//       idType: 'Passport',
+//       idNumber: 'P9876543',
+//       dateOfBirth: '1991-12-03',
+//       nationality: 'French',
+//       occupation: 'Product Manager',
+//       verificationDate: null
+//     }
+//   },
+//   { 
+//     id: 7, 
+//     name: 'Corey Stanton', 
+//     phone: '5684320542', 
+//     address: 'Lorem ipsum elit. Nulla...', 
+//     spaceType: 'Hot Desk', 
+//     start: '1 JAN 2025', 
+//     end: '1 JAN 2025', 
+//     unit: '605', 
+//     amount: '5158', 
+//     mail: 'sbdhjbj13@gmail.com',
+//     kyc: {
+//       status: 'Verified',
+//       idType: 'National ID',
+//       idNumber: 'NID789123',
+//       dateOfBirth: '1989-04-17',
+//       nationality: 'Spanish',
+//       occupation: 'Web Developer',
+//       verificationDate: '2024-12-22'
+//     }
+//   },
+//   { 
+//     id: 8, 
+//     name: 'Adison Aminoff', 
+//     phone: '5684320533', 
+//     address: 'Lorem ipsum elit. Nulla...', 
+//     spaceType: 'Conference Room', 
+//     start: '1 JAN 2025', 
+//     end: '1 JAN 2025', 
+//     unit: '605', 
+//     amount: '5158', 
+//     mail: 'sbdhjbj13@gmail.com',
+//     kyc: {
+//       status: 'Pending',
+//       idType: 'Driver License',
+//       idNumber: 'DL567890',
+//       dateOfBirth: '1987-08-30',
+//       nationality: 'Italian',
+//       occupation: 'Business Analyst',
+//       verificationDate: null
+//     }
+//   },
+//   { 
+//     id: 9, 
+//     name: 'Alfredo Aminoff', 
+//     phone: '5684320534', 
+//     address: 'Lorem ipsum elit. Nulla...', 
+//     spaceType: 'Private Office', 
+//     start: '1 JAN 2025', 
+//     end: '1 JAN 2025', 
+//     unit: '605', 
+//     amount: '5158', 
+//     mail: 'sbdhjbj13@gmail.com',
+//     kyc: {
+//       status: 'Verified',
+//       idType: 'Passport',
+//       idNumber: 'P5432109',
+//       dateOfBirth: '1994-01-14',
+//       nationality: 'Dutch',
+//       occupation: 'UX Designer',
+//       verificationDate: '2024-12-25'
+//     }
+//   },
+// ];
 
 const ActiveMembers = () => {
   const [page, setPage] = useState(0);

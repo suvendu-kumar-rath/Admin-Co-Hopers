@@ -32,6 +32,7 @@ import {
   Visibility as VisibilityIcon,
   Email as EmailIcon,
   Phone as PhoneIcon,
+  Edit as EditIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { bookingsApi } from '../api/bookings';
@@ -105,6 +106,7 @@ const User = () => {
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [processingBookingId, setProcessingBookingId] = useState(null);
+  const [negotiatedAmountValues, setNegotiatedAmountValues] = useState({});
 
   // Mock data for space bookings - replace with actual API call
   const mockBookings = [
@@ -121,6 +123,7 @@ const User = () => {
       startDate: '2024-01-15',
       endDate: '2024-01-16',
       amount: 2500,
+      negotiatedAmount: 2300,
       paymentScreenshot: 'https://via.placeholder.com/300x200?text=Payment+Screenshot+1',
       paymentStatus: 'PENDING'
     },
@@ -137,6 +140,7 @@ const User = () => {
       startDate: '2024-01-20',
       endDate: '2024-01-22',
       amount: 1800,
+      negotiatedAmount: 1750,
       paymentScreenshot: 'https://via.placeholder.com/300x200?text=Payment+Screenshot+2',
       paymentStatus: 'CONFIRMED'
     },
@@ -153,6 +157,7 @@ const User = () => {
       startDate: '2024-01-25',
       endDate: '2024-01-26',
       amount: 1200,
+      negotiatedAmount: 1100,
       paymentScreenshot: 'https://via.placeholder.com/300x200?text=Payment+Screenshot+3',
       paymentStatus: 'REJECTED'
     },
@@ -169,6 +174,7 @@ const User = () => {
       startDate: '2024-02-01',
       endDate: '2024-02-03',
       amount: 3500,
+      negotiatedAmount: 3300,
       paymentScreenshot: 'https://via.placeholder.com/300x200?text=Payment+Screenshot+4',
       paymentStatus: 'PENDING'
     },
@@ -185,6 +191,7 @@ const User = () => {
       startDate: '2024-02-05',
       endDate: '2024-02-06',
       amount: 1900,
+      negotiatedAmount: 1850,
       paymentScreenshot: 'https://via.placeholder.com/300x200?text=Payment+Screenshot+5',
       paymentStatus: 'CONFIRMED'
     }
@@ -193,6 +200,15 @@ const User = () => {
   useEffect(() => {
     fetchBookings();
   }, []);
+
+  // Initialize negotiated amount values from bookings
+  useEffect(() => {
+    const initialValues = {};
+    bookings.forEach(booking => {
+      initialValues[booking.id] = booking.negotiatedAmount || '';
+    });
+    setNegotiatedAmountValues(initialValues);
+  }, [bookings]);
 
   const fetchBookings = async () => {
     try {
@@ -230,11 +246,27 @@ const User = () => {
 
   const handleStatusUpdate = async (bookingId, newStatus) => {
     try {
+      // Get the negotiated amount from the input field
+      const inputNegotiatedAmount = negotiatedAmountValues[bookingId];
+      const negotiatedAmount = inputNegotiatedAmount ? parseFloat(inputNegotiatedAmount) : null;
+      
+      // If confirming, check if negotiated amount is set and valid
+      if (newStatus === 'Confirm') {
+        if (!negotiatedAmount || isNaN(negotiatedAmount) || negotiatedAmount <= 0) {
+          setSnackbar({
+            open: true,
+            message: 'Please enter a valid negotiated amount before confirming',
+            severity: 'warning'
+          });
+          return;
+        }
+      }
+      
       setProcessingBookingId(bookingId);
       
       // Try to update via API first
       try {
-        const response = await bookingsApi.updatePaymentStatus(bookingId, newStatus);
+        const response = await bookingsApi.updatePaymentStatus(bookingId, newStatus, negotiatedAmount);
         console.log('API Response:', response);
         
         // Update local state on success
@@ -242,14 +274,19 @@ const User = () => {
           prevBookings.map(booking => {
             const id = booking.id || booking._id || booking.bookingId;
             return id == bookingId
-              ? { ...booking, paymentStatus: newStatus, status: newStatus }
+              ? { 
+                  ...booking, 
+                  paymentStatus: newStatus, 
+                  status: newStatus,
+                  ...(negotiatedAmount && { negotiatedAmount })
+                }
               : booking;
           })
         );
         
         setSnackbar({
           open: true,
-          message: `Space booking ${newStatus.toLowerCase()} successfully!`,
+          message: `Space booking ${newStatus.toLowerCase()}ed successfully!`,
           severity: 'success'
         });
         
@@ -261,14 +298,19 @@ const User = () => {
           prevBookings.map(booking => {
             const id = booking.id || booking._id || booking.bookingId;
             return id == bookingId
-              ? { ...booking, paymentStatus: newStatus, status: newStatus }
+              ? { 
+                  ...booking, 
+                  paymentStatus: newStatus, 
+                  status: newStatus,
+                  ...(negotiatedAmount && { negotiatedAmount })
+                }
               : booking;
           })
         );
         
         setSnackbar({
           open: true,
-          message: `Space booking ${newStatus.toLowerCase()} locally (API unavailable)`,
+          message: `Space booking ${newStatus.toLowerCase()}ed locally (API unavailable)`,
           severity: 'warning'
         });
       }
@@ -376,6 +418,7 @@ const User = () => {
                 <StyledTableCell>Space Details</StyledTableCell>
                 <StyledTableCell>Booking Period</StyledTableCell>
                 <StyledTableCell>Amount</StyledTableCell>
+                <StyledTableCell>Negotiated Amount</StyledTableCell>
                 <StyledTableCell>Payment Status</StyledTableCell>
                 <StyledTableCell>Payment Proof</StyledTableCell>
                 <StyledTableCell align="center">Actions</StyledTableCell>
@@ -436,6 +479,24 @@ const User = () => {
                       <Typography variant="h6" color="primary" fontWeight="bold">
                         {formatCurrency(booking.amount)}
                       </Typography>
+                    </TableCell>
+                    
+                    <TableCell>
+                      <TextField
+                        size="small"
+                        type="number"
+                        value={negotiatedAmountValues[booking.id] || ''}
+                        onChange={(e) => setNegotiatedAmountValues({
+                          ...negotiatedAmountValues,
+                          [booking.id]: e.target.value
+                        })}
+                        placeholder="Enter amount"
+                        sx={{ width: 150 }}
+                        InputProps={{
+                          startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                        }}
+                        disabled={booking.paymentStatus === 'CONFIRMED' || booking.paymentStatus === 'REJECTED'}
+                      />
                     </TableCell>
                     
                     <TableCell>
