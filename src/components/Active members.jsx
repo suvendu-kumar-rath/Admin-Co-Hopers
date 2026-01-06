@@ -30,6 +30,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { membersApi } from '../api';
 import axios from 'axios';
+import { formatDocumentUrl } from '../utils/imagePath';
 
 const Container = styled(Box)(({ theme }) => ({
   padding: '24px',
@@ -1049,7 +1050,7 @@ const ActiveMembers = () => {
                     {kyc.idFront && (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>ID Front:</Typography>
-                        <Box component="a" href={`https://api.boldtribe.in${kyc.idFront}`} target="_blank" rel="noopener noreferrer"
+                        <Box component="a" href={formatDocumentUrl(kyc.idFront)} target="_blank" rel="noopener noreferrer"
                           sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                           View Document
                         </Box>
@@ -1058,7 +1059,7 @@ const ActiveMembers = () => {
                     {kyc.idBack && (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>ID Back:</Typography>
-                        <Box component="a" href={`https://api.boldtribe.in${kyc.idBack}`} target="_blank" rel="noopener noreferrer"
+                        <Box component="a" href={formatDocumentUrl(kyc.idBack)} target="_blank" rel="noopener noreferrer"
                           sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                           View Document
                         </Box>
@@ -1067,7 +1068,7 @@ const ActiveMembers = () => {
                     {kyc.pan && (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>PAN:</Typography>
-                        <Box component="a" href={`https://api.boldtribe.in${kyc.pan}`} target="_blank" rel="noopener noreferrer"
+                        <Box component="a" href={formatDocumentUrl(kyc.pan)} target="_blank" rel="noopener noreferrer"
                           sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                           View Document
                         </Box>
@@ -1076,7 +1077,7 @@ const ActiveMembers = () => {
                     {kyc.photo && (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Photo:</Typography>
-                        <Box component="a" href={`https://api.boldtribe.in/uploads/kyc/${kyc.photo}`} target="_blank" rel="noopener noreferrer"
+                        <Box component="a" href={formatDocumentUrl(kyc.photo.startsWith('/') ? kyc.photo : `/uploads/kyc/${kyc.photo}`)} target="_blank" rel="noopener noreferrer"
                           sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                           View Photo
                         </Box>
@@ -1085,7 +1086,7 @@ const ActiveMembers = () => {
                     {kyc.paymentScreenshot && (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Payment Screenshot:</Typography>
-                        <Box component="a" href={`https://api.boldtribe.in${kyc.paymentScreenshot}`} target="_blank" rel="noopener noreferrer"
+                        <Box component="a" href={formatDocumentUrl(kyc.paymentScreenshot)} target="_blank" rel="noopener noreferrer"
                           sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                           View Screenshot
                         </Box>
@@ -1094,7 +1095,7 @@ const ActiveMembers = () => {
                     {kyc.companyPAN && (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Company PAN:</Typography>
-                        <Box component="a" href={`https://api.boldtribe.in${kyc.companyPAN}`} target="_blank" rel="noopener noreferrer"
+                        <Box component="a" href={formatDocumentUrl(kyc.companyPAN)} target="_blank" rel="noopener noreferrer"
                           sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                           View Document
                         </Box>
@@ -1103,7 +1104,7 @@ const ActiveMembers = () => {
                     {kyc.certificateOfIncorporation && (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Certificate of Incorporation:</Typography>
-                        <Box component="a" href={`https://api.boldtribe.in${kyc.certificateOfIncorporation}`} target="_blank" rel="noopener noreferrer"
+                        <Box component="a" href={formatDocumentUrl(kyc.certificateOfIncorporation)} target="_blank" rel="noopener noreferrer"
                           sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                           View Document
                         </Box>
@@ -1112,7 +1113,7 @@ const ActiveMembers = () => {
                     {kyc.directorPAN && (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Director PAN:</Typography>
-                        <Box component="a" href={`https://api.boldtribe.in${kyc.directorPAN}`} target="_blank" rel="noopener noreferrer"
+                        <Box component="a" href={formatDocumentUrl(kyc.directorPAN)} target="_blank" rel="noopener noreferrer"
                           sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                           View Document
                         </Box>
@@ -1121,7 +1122,7 @@ const ActiveMembers = () => {
                     {kyc.directorPhoto && (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Director Photo:</Typography>
-                        <Box component="a" href={`https://api.boldtribe.in${kyc.directorPhoto}`} target="_blank" rel="noopener noreferrer"
+                        <Box component="a" href={formatDocumentUrl(kyc.directorPhoto)} target="_blank" rel="noopener noreferrer"
                           sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                           View Photo
                         </Box>
@@ -1130,7 +1131,7 @@ const ActiveMembers = () => {
                     {kyc.directorIdFront && (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Director ID Front:</Typography>
-                        <Box component="a" href={`https://api.boldtribe.in${kyc.directorIdFront}`} target="_blank" rel="noopener noreferrer"
+                        <Box component="a" href={formatDocumentUrl(kyc.directorIdFront)} target="_blank" rel="noopener noreferrer"
                           sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                           View Document
                         </Box>
@@ -1139,7 +1140,7 @@ const ActiveMembers = () => {
                     {kyc.directorIdBack && (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Director ID Back:</Typography>
-                        <Box component="a" href={`https://api.boldtribe.in${kyc.directorIdBack}`} target="_blank" rel="noopener noreferrer"
+                        <Box component="a" href={formatDocumentUrl(kyc.directorIdBack)} target="_blank" rel="noopener noreferrer"
                           sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                           View Document
                         </Box>
@@ -1148,7 +1149,7 @@ const ActiveMembers = () => {
                     {kyc.directorPaymentProof && (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Director Payment Proof:</Typography>
-                        <Box component="a" href={`https://api.boldtribe.in${kyc.directorPaymentProof}`} target="_blank" rel="noopener noreferrer"
+                        <Box component="a" href={formatDocumentUrl(kyc.directorPaymentProof)} target="_blank" rel="noopener noreferrer"
                           sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                           View Document
                         </Box>
