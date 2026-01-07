@@ -1,19 +1,19 @@
 import React from 'react';
 import { Box, CssBaseline, ThemeProvider, createTheme, useTheme, useMediaQuery } from '@mui/material';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Sidebar, { SidebarProvider } from './src/components/Sidebar.jsx';
-import Header from './src/components/Header.jsx';
-import Dashboard from './src/components/Dashboard.jsx';
-import User from './src/components/User.jsx';
-import ActiveMembers from './src/components/Active members.jsx';
-import BookMeetingRoom from './src/components/BookMeetingRoom.jsx';
-import Login from './src/components/Login.jsx';
-import ProtectedRoute from './src/components/ProtectedRoute.jsx';
-import PastMembers from './src/components/PastMembers.jsx';
-import Inventory from './src/components/Inventory.jsx';
-import Refreshment from './src/components/Refreshment.jsx';
-import AppVersionManagement from './src/components/AppVersionManagement.jsx';
-import KycApproval from './src/components/KycApproval.jsx';
+import Sidebar, { SidebarProvider } from './components/Sidebar.jsx';
+import Header from './components/Header.jsx';
+import Dashboard from './components/Dashboard.jsx';
+import User from './components/User.jsx';
+import ActiveMembers from './components/Active members.jsx';
+import BookMeetingRoom from './components/BookMeetingRoom.jsx';
+import Login from './components/Login.jsx';
+import ProtectedRoute from './components/ProtectedRoute.jsx';
+import PastMembers from './components/PastMembers.jsx';
+import Inventory from './components/Inventory.jsx';
+import Refreshment from './components/Refreshment.jsx';
+import AppVersionManagement from './components/AppVersionManagement.jsx';
+import KycApproval from './components/KycApproval.jsx';
 
 
 const theme = createTheme({
