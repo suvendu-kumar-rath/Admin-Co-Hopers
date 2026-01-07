@@ -412,7 +412,7 @@ const ActiveMembers = () => {
       }));
       
       // Use static rows as fallback + any local leads
-      setAllMembers([...rows, ...transformedConfirmedLeads]);
+      setAllMembers([ ...transformedConfirmedLeads]);
     } finally {
       setLoading(false);
     }
