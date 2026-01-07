@@ -232,7 +232,7 @@ const KycApproval = () => {
 
   // Use the imported utility function instead of local one
   const formatDocumentUrl = formatDocUrl;
-
+  // Render KYC Details
   const renderKycDetails = () => {
     if (!selectedKyc) return null;
 
