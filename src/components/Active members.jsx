@@ -30,6 +30,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { membersApi } from '../api';
 import axios from 'axios';
+import { formatDocumentUrl } from '../utils/imagePath';
 
 const Container = styled(Box)(({ theme }) => ({
   padding: '24px',
@@ -77,197 +78,197 @@ const columns = [
   { id: 'notice', label: 'NOTICE', minWidth: 80 },
 ];
 
-const rows = [
-  { 
-    id: 1, 
-    name: 'Ann Culhane', 
-    phone: '5684320536', 
-    address: 'Lorem ipsum elit. Nulla...', 
-    spaceType: 'Private Office', 
-    start: '1 JAN 2025', 
-    end: '1 JAN 2025', 
-    unit: '605', 
-    amount: '5158', 
-    mail: 'sbdhjbj13@gmail.com',
-    kyc: {
-      status: 'Verified',
-      idType: 'Passport',
-      idNumber: 'P1234567',
-      dateOfBirth: '1990-05-15',
-      nationality: 'American',
-      occupation: 'Software Engineer',
-      verificationDate: '2024-12-15'
-    }
-  },
-  { 
-    id: 2, 
-    name: 'Ahmad Rosser', 
-    phone: '5684320537', 
-    address: 'Lorem ipsum elit. Nulla...', 
-    spaceType: 'Shared Desk', 
-    start: '1 JAN 2025', 
-    end: '1 JAN 2025', 
-    unit: '605', 
-    amount: '5158', 
-    mail: 'sbdhjbj13@gmail.com',
-    kyc: {
-      status: 'Pending',
-      idType: 'Driver License',
-      idNumber: 'DL987654',
-      dateOfBirth: '1988-03-22',
-      nationality: 'Canadian',
-      occupation: 'Designer',
-      verificationDate: null
-    }
-  },
-  { 
-    id: 3, 
-    name: 'Zain Calzoni', 
-    phone: '5684320538', 
-    address: 'Lorem ipsum elit. Nulla...', 
-    spaceType: 'Hot Desk', 
-    start: '1 JAN 2025', 
-    end: '1 JAN 2025', 
-    unit: '605', 
-    amount: '5158', 
-    mail: 'sbdhjbj13@gmail.com',
-    kyc: {
-      status: 'Verified',
-      idType: 'National ID',
-      idNumber: 'NID456789',
-      dateOfBirth: '1992-11-08',
-      nationality: 'British',
-      occupation: 'Marketing Manager',
-      verificationDate: '2024-12-20'
-    }
-  },
-  { 
-    id: 4, 
-    name: 'Leo Stanton', 
-    phone: '5684320539', 
-    address: 'Lorem ipsum elit. Nulla...', 
-    spaceType: 'Meeting Room', 
-    start: '1 JAN 2025', 
-    end: '1 JAN 2025', 
-    unit: '605', 
-    amount: '5158', 
-    mail: 'sbdhjbj13@gmail.com',
-    kyc: {
-      status: 'Rejected',
-      idType: 'Passport',
-      idNumber: 'P7654321',
-      dateOfBirth: '1985-07-12',
-      nationality: 'Australian',
-      occupation: 'Consultant',
-      verificationDate: null
-    }
-  },
-  { 
-    id: 5, 
-    name: 'Kalya Vetovas', 
-    phone: '5684320540', 
-    address: 'Lorem ipsum elit. Nulla...', 
-    spaceType: 'Private Office', 
-    start: '1 JAN 2025', 
-    end: '1 JAN 2025', 
-    unit: '605', 
-    amount: '5158', 
-    mail: 'sbdhjbj13@gmail.com',
-    kyc: {
-      status: 'Verified',
-      idType: 'Driver License',
-      idNumber: 'DL123456',
-      dateOfBirth: '1993-09-25',
-      nationality: 'German',
-      occupation: 'Data Analyst',
-      verificationDate: '2024-12-18'
-    }
-  },
-  { 
-    id: 6, 
-    name: 'Ryan Westervet', 
-    phone: '5684320541', 
-    address: 'Lorem ipsum elit. Nulla...', 
-    spaceType: 'Shared Desk', 
-    start: '1 JAN 2025', 
-    end: '1 JAN 2025', 
-    unit: '605', 
-    amount: '5158', 
-    mail: 'sbdhjbj13@gmail.com',
-    kyc: {
-      status: 'Pending',
-      idType: 'Passport',
-      idNumber: 'P9876543',
-      dateOfBirth: '1991-12-03',
-      nationality: 'French',
-      occupation: 'Product Manager',
-      verificationDate: null
-    }
-  },
-  { 
-    id: 7, 
-    name: 'Corey Stanton', 
-    phone: '5684320542', 
-    address: 'Lorem ipsum elit. Nulla...', 
-    spaceType: 'Hot Desk', 
-    start: '1 JAN 2025', 
-    end: '1 JAN 2025', 
-    unit: '605', 
-    amount: '5158', 
-    mail: 'sbdhjbj13@gmail.com',
-    kyc: {
-      status: 'Verified',
-      idType: 'National ID',
-      idNumber: 'NID789123',
-      dateOfBirth: '1989-04-17',
-      nationality: 'Spanish',
-      occupation: 'Web Developer',
-      verificationDate: '2024-12-22'
-    }
-  },
-  { 
-    id: 8, 
-    name: 'Adison Aminoff', 
-    phone: '5684320533', 
-    address: 'Lorem ipsum elit. Nulla...', 
-    spaceType: 'Conference Room', 
-    start: '1 JAN 2025', 
-    end: '1 JAN 2025', 
-    unit: '605', 
-    amount: '5158', 
-    mail: 'sbdhjbj13@gmail.com',
-    kyc: {
-      status: 'Pending',
-      idType: 'Driver License',
-      idNumber: 'DL567890',
-      dateOfBirth: '1987-08-30',
-      nationality: 'Italian',
-      occupation: 'Business Analyst',
-      verificationDate: null
-    }
-  },
-  { 
-    id: 9, 
-    name: 'Alfredo Aminoff', 
-    phone: '5684320534', 
-    address: 'Lorem ipsum elit. Nulla...', 
-    spaceType: 'Private Office', 
-    start: '1 JAN 2025', 
-    end: '1 JAN 2025', 
-    unit: '605', 
-    amount: '5158', 
-    mail: 'sbdhjbj13@gmail.com',
-    kyc: {
-      status: 'Verified',
-      idType: 'Passport',
-      idNumber: 'P5432109',
-      dateOfBirth: '1994-01-14',
-      nationality: 'Dutch',
-      occupation: 'UX Designer',
-      verificationDate: '2024-12-25'
-    }
-  },
-];
+// const rows = [
+//   { 
+//     id: 1, 
+//     name: 'Ann Culhane', 
+//     phone: '5684320536', 
+//     address: 'Lorem ipsum elit. Nulla...', 
+//     spaceType: 'Private Office', 
+//     start: '1 JAN 2025', 
+//     end: '1 JAN 2025', 
+//     unit: '605', 
+//     amount: '5158', 
+//     mail: 'sbdhjbj13@gmail.com',
+//     kyc: {
+//       status: 'Verified',
+//       idType: 'Passport',
+//       idNumber: 'P1234567',
+//       dateOfBirth: '1990-05-15',
+//       nationality: 'American',
+//       occupation: 'Software Engineer',
+//       verificationDate: '2024-12-15'
+//     }
+//   },
+//   { 
+//     id: 2, 
+//     name: 'Ahmad Rosser', 
+//     phone: '5684320537', 
+//     address: 'Lorem ipsum elit. Nulla...', 
+//     spaceType: 'Shared Desk', 
+//     start: '1 JAN 2025', 
+//     end: '1 JAN 2025', 
+//     unit: '605', 
+//     amount: '5158', 
+//     mail: 'sbdhjbj13@gmail.com',
+//     kyc: {
+//       status: 'Pending',
+//       idType: 'Driver License',
+//       idNumber: 'DL987654',
+//       dateOfBirth: '1988-03-22',
+//       nationality: 'Canadian',
+//       occupation: 'Designer',
+//       verificationDate: null
+//     }
+//   },
+//   { 
+//     id: 3, 
+//     name: 'Zain Calzoni', 
+//     phone: '5684320538', 
+//     address: 'Lorem ipsum elit. Nulla...', 
+//     spaceType: 'Hot Desk', 
+//     start: '1 JAN 2025', 
+//     end: '1 JAN 2025', 
+//     unit: '605', 
+//     amount: '5158', 
+//     mail: 'sbdhjbj13@gmail.com',
+//     kyc: {
+//       status: 'Verified',
+//       idType: 'National ID',
+//       idNumber: 'NID456789',
+//       dateOfBirth: '1992-11-08',
+//       nationality: 'British',
+//       occupation: 'Marketing Manager',
+//       verificationDate: '2024-12-20'
+//     }
+//   },
+//   { 
+//     id: 4, 
+//     name: 'Leo Stanton', 
+//     phone: '5684320539', 
+//     address: 'Lorem ipsum elit. Nulla...', 
+//     spaceType: 'Meeting Room', 
+//     start: '1 JAN 2025', 
+//     end: '1 JAN 2025', 
+//     unit: '605', 
+//     amount: '5158', 
+//     mail: 'sbdhjbj13@gmail.com',
+//     kyc: {
+//       status: 'Rejected',
+//       idType: 'Passport',
+//       idNumber: 'P7654321',
+//       dateOfBirth: '1985-07-12',
+//       nationality: 'Australian',
+//       occupation: 'Consultant',
+//       verificationDate: null
+//     }
+//   },
+//   { 
+//     id: 5, 
+//     name: 'Kalya Vetovas', 
+//     phone: '5684320540', 
+//     address: 'Lorem ipsum elit. Nulla...', 
+//     spaceType: 'Private Office', 
+//     start: '1 JAN 2025', 
+//     end: '1 JAN 2025', 
+//     unit: '605', 
+//     amount: '5158', 
+//     mail: 'sbdhjbj13@gmail.com',
+//     kyc: {
+//       status: 'Verified',
+//       idType: 'Driver License',
+//       idNumber: 'DL123456',
+//       dateOfBirth: '1993-09-25',
+//       nationality: 'German',
+//       occupation: 'Data Analyst',
+//       verificationDate: '2024-12-18'
+//     }
+//   },
+//   { 
+//     id: 6, 
+//     name: 'Ryan Westervet', 
+//     phone: '5684320541', 
+//     address: 'Lorem ipsum elit. Nulla...', 
+//     spaceType: 'Shared Desk', 
+//     start: '1 JAN 2025', 
+//     end: '1 JAN 2025', 
+//     unit: '605', 
+//     amount: '5158', 
+//     mail: 'sbdhjbj13@gmail.com',
+//     kyc: {
+//       status: 'Pending',
+//       idType: 'Passport',
+//       idNumber: 'P9876543',
+//       dateOfBirth: '1991-12-03',
+//       nationality: 'French',
+//       occupation: 'Product Manager',
+//       verificationDate: null
+//     }
+//   },
+//   { 
+//     id: 7, 
+//     name: 'Corey Stanton', 
+//     phone: '5684320542', 
+//     address: 'Lorem ipsum elit. Nulla...', 
+//     spaceType: 'Hot Desk', 
+//     start: '1 JAN 2025', 
+//     end: '1 JAN 2025', 
+//     unit: '605', 
+//     amount: '5158', 
+//     mail: 'sbdhjbj13@gmail.com',
+//     kyc: {
+//       status: 'Verified',
+//       idType: 'National ID',
+//       idNumber: 'NID789123',
+//       dateOfBirth: '1989-04-17',
+//       nationality: 'Spanish',
+//       occupation: 'Web Developer',
+//       verificationDate: '2024-12-22'
+//     }
+//   },
+//   { 
+//     id: 8, 
+//     name: 'Adison Aminoff', 
+//     phone: '5684320533', 
+//     address: 'Lorem ipsum elit. Nulla...', 
+//     spaceType: 'Conference Room', 
+//     start: '1 JAN 2025', 
+//     end: '1 JAN 2025', 
+//     unit: '605', 
+//     amount: '5158', 
+//     mail: 'sbdhjbj13@gmail.com',
+//     kyc: {
+//       status: 'Pending',
+//       idType: 'Driver License',
+//       idNumber: 'DL567890',
+//       dateOfBirth: '1987-08-30',
+//       nationality: 'Italian',
+//       occupation: 'Business Analyst',
+//       verificationDate: null
+//     }
+//   },
+//   { 
+//     id: 9, 
+//     name: 'Alfredo Aminoff', 
+//     phone: '5684320534', 
+//     address: 'Lorem ipsum elit. Nulla...', 
+//     spaceType: 'Private Office', 
+//     start: '1 JAN 2025', 
+//     end: '1 JAN 2025', 
+//     unit: '605', 
+//     amount: '5158', 
+//     mail: 'sbdhjbj13@gmail.com',
+//     kyc: {
+//       status: 'Verified',
+//       idType: 'Passport',
+//       idNumber: 'P5432109',
+//       dateOfBirth: '1994-01-14',
+//       nationality: 'Dutch',
+//       occupation: 'UX Designer',
+//       verificationDate: '2024-12-25'
+//     }
+//   },
+// ];
 
 const ActiveMembers = () => {
   const [page, setPage] = useState(0);
@@ -411,7 +412,7 @@ const ActiveMembers = () => {
       }));
       
       // Use static rows as fallback + any local leads
-      setAllMembers([...rows, ...transformedConfirmedLeads]);
+      setAllMembers([ ...transformedConfirmedLeads]);
     } finally {
       setLoading(false);
     }
@@ -1049,7 +1050,7 @@ const ActiveMembers = () => {
                     {kyc.idFront && (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>ID Front:</Typography>
-                        <Box component="a" href={`https://api.boldtribe.in${kyc.idFront}`} target="_blank" rel="noopener noreferrer"
+                        <Box component="a" href={formatDocumentUrl(kyc.idFront)} target="_blank" rel="noopener noreferrer"
                           sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                           View Document
                         </Box>
@@ -1058,7 +1059,7 @@ const ActiveMembers = () => {
                     {kyc.idBack && (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>ID Back:</Typography>
-                        <Box component="a" href={`https://api.boldtribe.in${kyc.idBack}`} target="_blank" rel="noopener noreferrer"
+                        <Box component="a" href={formatDocumentUrl(kyc.idBack)} target="_blank" rel="noopener noreferrer"
                           sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                           View Document
                         </Box>
@@ -1067,7 +1068,7 @@ const ActiveMembers = () => {
                     {kyc.pan && (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>PAN:</Typography>
-                        <Box component="a" href={`https://api.boldtribe.in${kyc.pan}`} target="_blank" rel="noopener noreferrer"
+                        <Box component="a" href={formatDocumentUrl(kyc.pan)} target="_blank" rel="noopener noreferrer"
                           sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                           View Document
                         </Box>
@@ -1076,7 +1077,7 @@ const ActiveMembers = () => {
                     {kyc.photo && (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Photo:</Typography>
-                        <Box component="a" href={`https://api.boldtribe.in/uploads/kyc/${kyc.photo}`} target="_blank" rel="noopener noreferrer"
+                        <Box component="a" href={formatDocumentUrl(kyc.photo.startsWith('/') ? kyc.photo : `/uploads/kyc/${kyc.photo}`)} target="_blank" rel="noopener noreferrer"
                           sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                           View Photo
                         </Box>
@@ -1085,7 +1086,7 @@ const ActiveMembers = () => {
                     {kyc.paymentScreenshot && (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Payment Screenshot:</Typography>
-                        <Box component="a" href={`https://api.boldtribe.in${kyc.paymentScreenshot}`} target="_blank" rel="noopener noreferrer"
+                        <Box component="a" href={formatDocumentUrl(kyc.paymentScreenshot)} target="_blank" rel="noopener noreferrer"
                           sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                           View Screenshot
                         </Box>
@@ -1094,7 +1095,7 @@ const ActiveMembers = () => {
                     {kyc.companyPAN && (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Company PAN:</Typography>
-                        <Box component="a" href={`https://api.boldtribe.in${kyc.companyPAN}`} target="_blank" rel="noopener noreferrer"
+                        <Box component="a" href={formatDocumentUrl(kyc.companyPAN)} target="_blank" rel="noopener noreferrer"
                           sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                           View Document
                         </Box>
@@ -1103,7 +1104,7 @@ const ActiveMembers = () => {
                     {kyc.certificateOfIncorporation && (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Certificate of Incorporation:</Typography>
-                        <Box component="a" href={`https://api.boldtribe.in${kyc.certificateOfIncorporation}`} target="_blank" rel="noopener noreferrer"
+                        <Box component="a" href={formatDocumentUrl(kyc.certificateOfIncorporation)} target="_blank" rel="noopener noreferrer"
                           sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                           View Document
                         </Box>
@@ -1112,7 +1113,7 @@ const ActiveMembers = () => {
                     {kyc.directorPAN && (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Director PAN:</Typography>
-                        <Box component="a" href={`https://api.boldtribe.in${kyc.directorPAN}`} target="_blank" rel="noopener noreferrer"
+                        <Box component="a" href={formatDocumentUrl(kyc.directorPAN)} target="_blank" rel="noopener noreferrer"
                           sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                           View Document
                         </Box>
@@ -1121,7 +1122,7 @@ const ActiveMembers = () => {
                     {kyc.directorPhoto && (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Director Photo:</Typography>
-                        <Box component="a" href={`https://api.boldtribe.in${kyc.directorPhoto}`} target="_blank" rel="noopener noreferrer"
+                        <Box component="a" href={formatDocumentUrl(kyc.directorPhoto)} target="_blank" rel="noopener noreferrer"
                           sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                           View Photo
                         </Box>
@@ -1130,7 +1131,7 @@ const ActiveMembers = () => {
                     {kyc.directorIdFront && (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Director ID Front:</Typography>
-                        <Box component="a" href={`https://api.boldtribe.in${kyc.directorIdFront}`} target="_blank" rel="noopener noreferrer"
+                        <Box component="a" href={formatDocumentUrl(kyc.directorIdFront)} target="_blank" rel="noopener noreferrer"
                           sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                           View Document
                         </Box>
@@ -1139,7 +1140,7 @@ const ActiveMembers = () => {
                     {kyc.directorIdBack && (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Director ID Back:</Typography>
-                        <Box component="a" href={`https://api.boldtribe.in${kyc.directorIdBack}`} target="_blank" rel="noopener noreferrer"
+                        <Box component="a" href={formatDocumentUrl(kyc.directorIdBack)} target="_blank" rel="noopener noreferrer"
                           sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                           View Document
                         </Box>
@@ -1148,7 +1149,7 @@ const ActiveMembers = () => {
                     {kyc.directorPaymentProof && (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>Director Payment Proof:</Typography>
-                        <Box component="a" href={`https://api.boldtribe.in${kyc.directorPaymentProof}`} target="_blank" rel="noopener noreferrer"
+                        <Box component="a" href={formatDocumentUrl(kyc.directorPaymentProof)} target="_blank" rel="noopener noreferrer"
                           sx={{ color: '#2196F3', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                           View Document
                         </Box>

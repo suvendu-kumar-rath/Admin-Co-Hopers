@@ -24,6 +24,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import CloseIcon from '@mui/icons-material/Close';
 import kycApprovalApi from '../api/kycApproval';
+import { formatDocumentUrl as formatDocUrl } from '../utils/imagePath';
 
 const PageContainer = styled(Box)(({ theme }) => ({
   padding: theme.spacing(3),
@@ -229,12 +230,9 @@ const KycApproval = () => {
     }
   };
 
-  const formatDocumentUrl = (path) => {
-    if (!path) return null;
-    if (path.startsWith('http')) return path;
-    return `https://api.boldtribe.in${path}`;
-  };
-
+  // Use the imported utility function instead of local one
+  const formatDocumentUrl = formatDocUrl;
+  // Render KYC Details
   const renderKycDetails = () => {
     if (!selectedKyc) return null;
 
@@ -331,113 +329,161 @@ const KycApproval = () => {
           <Grid container spacing={2}>
             {selectedKyc.idFront && (
               <Grid item xs={12} sm={6}>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  href={formatDocumentUrl(selectedKyc.idFront)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  View ID Front
-                </Button>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>ID Front</Typography>
+                <Box
+                  component="img"
+                  src={formatDocumentUrl(selectedKyc.idFront)}
+                  alt="ID Front"
+                  sx={{
+                    width: '100%',
+                    maxHeight: 200,
+                    objectFit: 'contain',
+                    border: '1px solid #ddd',
+                    borderRadius: 1,
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => window.open(formatDocumentUrl(selectedKyc.idFront), '_blank')}
+                />
               </Grid>
             )}
             
             {selectedKyc.idBack && (
               <Grid item xs={12} sm={6}>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  href={formatDocumentUrl(selectedKyc.idBack)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  View ID Back
-                </Button>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>ID Back</Typography>
+                <Box
+                  component="img"
+                  src={formatDocumentUrl(selectedKyc.idBack)}
+                  alt="ID Back"
+                  sx={{
+                    width: '100%',
+                    maxHeight: 200,
+                    objectFit: 'contain',
+                    border: '1px solid #ddd',
+                    borderRadius: 1,
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => window.open(formatDocumentUrl(selectedKyc.idBack), '_blank')}
+                />
               </Grid>
             )}
             
             {selectedKyc.pan && (
               <Grid item xs={12} sm={6}>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  href={formatDocumentUrl(selectedKyc.pan)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  View PAN Card
-                </Button>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>PAN Card</Typography>
+                <Box
+                  component="img"
+                  src={formatDocumentUrl(selectedKyc.pan)}
+                  alt="PAN Card"
+                  sx={{
+                    width: '100%',
+                    maxHeight: 200,
+                    objectFit: 'contain',
+                    border: '1px solid #ddd',
+                    borderRadius: 1,
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => window.open(formatDocumentUrl(selectedKyc.pan), '_blank')}
+                />
               </Grid>
             )}
             
             {selectedKyc.photo && (
               <Grid item xs={12} sm={6}>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  href={formatDocumentUrl(`/uploads/kyc/${selectedKyc.photo}`)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  View Photo
-                </Button>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Photo</Typography>
+                <Box
+                  component="img"
+                  src={formatDocumentUrl(selectedKyc.photo.startsWith('/') ? selectedKyc.photo : `/uploads/kyc/${selectedKyc.photo}`)}
+                  alt="Photo"
+                  sx={{
+                    width: '100%',
+                    maxHeight: 200,
+                    objectFit: 'contain',
+                    border: '1px solid #ddd',
+                    borderRadius: 1,
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => window.open(formatDocumentUrl(selectedKyc.photo.startsWith('/') ? selectedKyc.photo : `/uploads/kyc/${selectedKyc.photo}`), '_blank')}
+                />
               </Grid>
             )}
             
             {selectedKyc.paymentScreenshot && (
               <Grid item xs={12} sm={6}>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  href={formatDocumentUrl(selectedKyc.paymentScreenshot)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  View Payment Screenshot
-                </Button>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Payment Screenshot</Typography>
+                <Box
+                  component="img"
+                  src={formatDocumentUrl(selectedKyc.paymentScreenshot)}
+                  alt="Payment Screenshot"
+                  sx={{
+                    width: '100%',
+                    maxHeight: 200,
+                    objectFit: 'contain',
+                    border: '1px solid #ddd',
+                    borderRadius: 1,
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => window.open(formatDocumentUrl(selectedKyc.paymentScreenshot), '_blank')}
+                />
               </Grid>
             )}
             
             {selectedKyc.companyPAN && (
               <Grid item xs={12} sm={6}>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  href={formatDocumentUrl(selectedKyc.companyPAN)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  View Company PAN
-                </Button>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Company PAN</Typography>
+                <Box
+                  component="img"
+                  src={formatDocumentUrl(selectedKyc.companyPAN)}
+                  alt="Company PAN"
+                  sx={{
+                    width: '100%',
+                    maxHeight: 200,
+                    objectFit: 'contain',
+                    border: '1px solid #ddd',
+                    borderRadius: 1,
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => window.open(formatDocumentUrl(selectedKyc.companyPAN), '_blank')}
+                />
               </Grid>
             )}
             
             {selectedKyc.gstCertificate && (
               <Grid item xs={12} sm={6}>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  href={formatDocumentUrl(selectedKyc.gstCertificate)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  View GST Certificate
-                </Button>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>GST Certificate</Typography>
+                <Box
+                  component="img"
+                  src={formatDocumentUrl(selectedKyc.gstCertificate)}
+                  alt="GST Certificate"
+                  sx={{
+                    width: '100%',
+                    maxHeight: 200,
+                    objectFit: 'contain',
+                    border: '1px solid #ddd',
+                    borderRadius: 1,
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => window.open(formatDocumentUrl(selectedKyc.gstCertificate), '_blank')}
+                />
               </Grid>
             )}
             
             {selectedKyc.addressProof && (
               <Grid item xs={12} sm={6}>
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  href={formatDocumentUrl(selectedKyc.addressProof)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  View Address Proof
-                </Button>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Address Proof</Typography>
+                <Box
+                  component="img"
+                  src={formatDocumentUrl(selectedKyc.addressProof)}
+                  alt="Address Proof"
+                  sx={{
+                    width: '100%',
+                    maxHeight: 200,
+                    objectFit: 'contain',
+                    border: '1px solid #ddd',
+                    borderRadius: 1,
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => window.open(formatDocumentUrl(selectedKyc.addressProof), '_blank')}
+                />
               </Grid>
             )}
           </Grid>
