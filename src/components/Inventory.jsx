@@ -498,6 +498,7 @@ const Inventory = () => {
             : (space.cabin_number !== null && space.cabin_number !== undefined ? String(space.cabin_number) : '');
           
           console.log('🏠 Room/Cabin found:', { roomNum, cabinNum });
+          console.log('🚦 Space availability from API:', space.availability);
           
           return {
             id: space.id,
@@ -592,6 +593,7 @@ const Inventory = () => {
   };
 
   const handleInputChange = (field, value) => {
+    console.log(`📝 Field changed: ${field} = ${value}`);
     setFormData(prev => ({
       ...prev,
       [field]: value,
@@ -795,7 +797,8 @@ const Inventory = () => {
     setLoading(true);
     
     console.log('📝 Form data before submit:', formData);
-    console.log('🔧 Edit mode:', isEditMode);
+    console.log('� Availability value:', formData.availability);
+    console.log('�🔧 Edit mode:', isEditMode);
     console.log('📌 Editing item:', editingItem);
     
     // Define submitData outside try block so it's accessible in catch block
@@ -862,6 +865,7 @@ const Inventory = () => {
             ? String(space.cabinNumber) 
             : (space.cabin_number !== null && space.cabin_number !== undefined ? String(space.cabin_number) : '');
           
+          console.log('🚦 Space availability from API:', space.availability);
           return {
             id: space.id,
             roomNumber: roomNum || 'N/A',

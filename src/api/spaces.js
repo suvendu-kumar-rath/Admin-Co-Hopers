@@ -103,9 +103,11 @@ export const spacesApi = {
       console.log('✅ Sending price:', price);
     }
     
-    if (availability) {
-      formData.append('availability', availability);
+    if (availability !== undefined && availability !== null) {
+      formData.append('availability', String(availability));
       console.log('✅ Sending availability:', availability);
+    } else {
+      console.log('⚠️ Availability is missing:', availability);
     }
     
     // Only send roomNumber and cabinNumber if they have values

@@ -108,6 +108,7 @@ const User = () => {
   const [processingBookingId, setProcessingBookingId] = useState(null);
   const [imageLoadError, setImageLoadError] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
+  const [negotiatedAmountValues, setNegotiatedAmountValues] = useState({});
 
   // Mock data for space bookings - replace with actual API call
   const mockBookings = [
@@ -329,6 +330,7 @@ const User = () => {
   };
 
   const handleImageClick = (imageUrl) => {
+    console.log('🖼️ Image clicked, raw URL:', imageUrl);
     setImageLoadError(false);
     setImageLoading(true);
     
@@ -337,8 +339,13 @@ const User = () => {
     if (imageUrl && !imageUrl.startsWith('http')) {
       // Get base URL and remove /api suffix if present
       let baseURL = process.env.REACT_APP_API_URL || 'https://api.boldtribe.in/api';
+      console.log('🔧 Original base URL:', baseURL);
       baseURL = baseURL.replace(/\/api$/, ''); // Remove trailing /api
+      console.log('🔧 Base URL after removing /api:', baseURL);
       fullImageUrl = imageUrl.startsWith('/') ? `${baseURL}${imageUrl}` : `${baseURL}/${imageUrl}`;
+      console.log('✅ Constructed full URL:', fullImageUrl);
+    } else {
+      console.log('✅ Using URL as-is (already absolute):', fullImageUrl);
     }
     
     setSelectedImage(fullImageUrl);
