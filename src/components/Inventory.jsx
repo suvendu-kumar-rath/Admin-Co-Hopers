@@ -482,20 +482,38 @@ const Inventory = () => {
         setLoading(true);
         const response = await spacesApi.fetchSpaces();
         
-        // Transform API response to match expected format
-        const transformedData = response.data?.map(space => ({
-          id: space.id,
-          roomNumber: space.room_number || space.roomNumber || 'N/A',
-          cabinNumber: space.cabin_number || space.cabinNumber || 'N/A',
-          date: space.date || new Date().toISOString().split('T')[0],
-          availability: space.availability || 'AVAILABLE',
-          price: space.price || '0',
-          space_name: space.space_name || space.space_name || 'Unknown',
-          seater: space.seater || 1,
-          spaceImages: space.spaceImages || [],
-          availableDates: space.availableDates || []
-        })) || [];
+        console.log('📦 Raw API Response:', response);
+        console.log('📦 First space object:', response.data?.[0]);
         
+        // Transform API response to match expected format
+        const transformedData = response.data?.map(space => {
+          console.log('🔍 Processing space:', space);
+          
+          // Properly handle roomNumber and cabinNumber - check for null/undefined, not falsy
+          const roomNum = space.roomNumber !== null && space.roomNumber !== undefined 
+            ? String(space.roomNumber) 
+            : (space.room_number !== null && space.room_number !== undefined ? String(space.room_number) : '');
+          const cabinNum = space.cabinNumber !== null && space.cabinNumber !== undefined 
+            ? String(space.cabinNumber) 
+            : (space.cabin_number !== null && space.cabin_number !== undefined ? String(space.cabin_number) : '');
+          
+          console.log('🏠 Room/Cabin found:', { roomNum, cabinNum });
+          
+          return {
+            id: space.id,
+            roomNumber: roomNum || 'N/A',
+            cabinNumber: cabinNum || 'N/A',
+            date: space.date || new Date().toISOString().split('T')[0],
+            availability: space.availability || 'AVAILABLE',
+            price: space.price || '0',
+            space_name: space.space_name || space.name || 'Unknown',
+            seater: space.seater || 1,
+            spaceImages: space.images || space.spaceImages || space.space_images || [],
+            availableDates: space.availableDates || space.available_dates || []
+          };
+        }) || [];
+        
+        console.log('✅ Transformed data:', transformedData);
         setInventoryItems(transformedData);
         setSnackbarMessage('Inventory data loaded successfully');
         setSnackbarSeverity('success');
@@ -534,6 +552,15 @@ const Inventory = () => {
     console.log("inside edit modal", item)
     setIsEditMode(true);
     setEditingItem(item);
+    
+    // Convert existing image URLs to proper format for display
+    const existingImages = (item.spaceImages || []).map(img => {
+      if (typeof img === 'string') {
+        return { type: 'url', value: img }; // Mark as existing URL
+      }
+      return img;
+    });
+    
     setFormData({
       space_name: item.space_name,
       availability: item.availability,
@@ -541,8 +568,8 @@ const Inventory = () => {
       cabinNumber: item.cabinNumber,
       price: item.price,
       seater: item.seater,                
-      spaceImages: [], // Reset spaceImages for edit mode
-      availableDates: [], // Reset dates for edit mode
+      spaceImages: existingImages, // Load existing images with type markers
+      availableDates: item.availableDates || [], // Load existing dates
     });
     setOpenModal(true);
   };
@@ -576,17 +603,20 @@ const Inventory = () => {
     if (files.length > 0) {
       const totalFiles = formData.spaceImages.length + files.length;
       if (totalFiles <= 5) {
+        // Mark new files as type 'file'
+        const newFiles = files.map(file => ({ type: 'file', value: file }));
         setFormData(prev => ({
           ...prev,
-          spaceImages: [...prev.spaceImages, ...files],
+          spaceImages: [...prev.spaceImages, ...newFiles],
         }));
       } else {
         // Only add files up to the 5-file limit
         const remainingSlots = 5 - formData.spaceImages.length;
         if (remainingSlots > 0) {
+          const newFiles = files.slice(0, remainingSlots).map(file => ({ type: 'file', value: file }));
           setFormData(prev => ({
             ...prev,
-            spaceImages: [...prev.spaceImages, ...files.slice(0, remainingSlots)],
+            spaceImages: [...prev.spaceImages, ...newFiles],
           }));
         }
       }
@@ -647,7 +677,11 @@ const Inventory = () => {
 
   // Calendar helper functions
   const formatDate = (date) => {
-    return date.toISOString().split('T')[0];
+    // Use local date without timezone offset to avoid one-day-before issue
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   const isDateBooked = (date) => {
@@ -736,36 +770,56 @@ const Inventory = () => {
       return;
     }
 
-    // Validate minimum 1 photo requirement (required by backend)
-    if (formData.spaceImages.length === 0) {
-      setSnackbarMessage('At least one image is required. Please upload at least 1 photo.');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-      return;
-    }
+    // Only validate images for new space creation (not for edit mode)
+    if (!isEditMode) {
+      // Validate minimum 1 photo requirement for new spaces
+      if (formData.spaceImages.length === 0) {
+        setSnackbarMessage('At least one image is required. Please upload at least 1 photo.');
+        setSnackbarSeverity('error');
+        setSnackbarOpen(true);
+        return;
+      }
 
-    // Validate image files
-    const validImages = formData.spaceImages.filter(img => img instanceof File);
-    if (validImages.length === 0) {
-      setSnackbarMessage('Please upload valid image files.');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-      return;
+      // Validate image files for new spaces
+      const validImages = formData.spaceImages.filter(img => 
+        (img.type === 'file' && img.value instanceof File) || img instanceof File
+      );
+      if (validImages.length === 0) {
+        setSnackbarMessage('Please upload valid image files.');
+        setSnackbarSeverity('error');
+        setSnackbarOpen(true);
+        return;
+      }
     }
 
     setLoading(true);
     
+    console.log('📝 Form data before submit:', formData);
+    console.log('🔧 Edit mode:', isEditMode);
+    console.log('📌 Editing item:', editingItem);
+    
     // Define submitData outside try block so it's accessible in catch block
+    // Separate new files from existing URLs
+    const newFiles = formData.spaceImages
+      .filter(img => img.type === 'file')
+      .map(img => img.value);
+    const existingUrls = formData.spaceImages
+      .filter(img => img.type === 'url')
+      .map(img => img.value);
+    
     const submitData = {
       space_name: formData.space_name,
       seater: formData.seater,
       price: formData.price,
       availability: formData.availability,
-      spaceImages: formData.spaceImages,
+      spaceImages: isEditMode ? newFiles : formData.spaceImages.map(img => img.value || img),
+      existingImages: isEditMode ? existingUrls : [], // Keep track of existing images
       availableDates: formData.availableDates,
       roomNumber: formData.roomNumber,
       cabinNumber: formData.cabinNumber,
     };
+    
+    console.log('📤 Submit data being sent to API:', submitData);
     
     try {
 
@@ -799,19 +853,30 @@ const Inventory = () => {
       // Refresh inventory data from API
       try {
         const response = await spacesApi.fetchSpaces();
-        const transformedData = response.data?.map(space => ({
-          id: space.id,
-          roomNumber: space.room_number || space.roomNumber || 'N/A',
-          cabinNumber: space.cabin_number || space.cabinNumber || 'N/A',
-          date: space.date || new Date().toISOString().split('T')[0],
-          availability: space.availability || 'AVAILABLE',
-          price: space.price || '0',
-          space_name: space.space_name || space.space_name || 'Unknown',
-          seater: space.seater || 1,
-          spaceImages: space.spaceImages || [],
-          availableDates: space.availableDates || []
-        })) || [];
+        const transformedData = response.data?.map(space => {
+          // Properly handle roomNumber and cabinNumber - check for null/undefined, not falsy
+          const roomNum = space.roomNumber !== null && space.roomNumber !== undefined 
+            ? String(space.roomNumber) 
+            : (space.room_number !== null && space.room_number !== undefined ? String(space.room_number) : '');
+          const cabinNum = space.cabinNumber !== null && space.cabinNumber !== undefined 
+            ? String(space.cabinNumber) 
+            : (space.cabin_number !== null && space.cabin_number !== undefined ? String(space.cabin_number) : '');
+          
+          return {
+            id: space.id,
+            roomNumber: roomNum || 'N/A',
+            cabinNumber: cabinNum || 'N/A',
+            date: space.date || space.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+            availability: space.availability || 'AVAILABLE',
+            price: space.price || '0',
+            space_name: space.space_name || space.name || 'Unknown',
+            seater: space.seater || space.capacity || 1,
+            spaceImages: space.images || space.spaceImages || space.space_images || [],
+            availableDates: space.availableDates || space.available_dates || []
+          };
+        }) || [];
         setInventoryItems(transformedData);
+        console.log('✅ Inventory refreshed successfully:', transformedData);
       } catch (refreshError) {
         console.error('Error refreshing data:', refreshError);
       }
@@ -1191,51 +1256,74 @@ const Inventory = () => {
                 Selected Photos:
               </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {formData.spaceImages.map((image, index) => (
-                  <Box
-                    key={index}
-                    sx={{
-                      position: 'relative',
-                      width: 80,
-                      height: 80,
-                      borderRadius: '8px',
-                      overflow: 'hidden',
-                      border: '1px solid #E5E7EB',
-                      backgroundColor: '#F9FAFB',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <img
-                      src={URL.createObjectURL(image)}
-                      alt={`Preview ${index + 1}`}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                      }}
-                    />
-                    <IconButton
-                      size="small"
-                      onClick={() => handleRemoveImage(index)}
+                {formData.spaceImages.map((image, index) => {
+                  // Handle both File objects and URL strings
+                  let imageUrl;
+                  const imageData = image.value || image; // Support both old and new structure
+                  
+                  if (imageData instanceof File) {
+                    imageUrl = URL.createObjectURL(imageData);
+                  } else if (typeof imageData === 'string') {
+                    // Handle relative URLs from API - remove extra /api
+                    if (imageData.startsWith('http')) {
+                      imageUrl = imageData;
+                    } else {
+                      let apiURL = process.env.REACT_APP_API_URL || 'https://api.boldtribe.in/api';
+                      const baseURL = apiURL.replace(/\/api$/, ''); // Remove trailing /api
+                      imageUrl = imageData.startsWith('/') ? `${baseURL}${imageData}` : `${baseURL}/${imageData}`;
+                    }
+                  }
+                  
+                  return (
+                    <Box
+                      key={index}
                       sx={{
-                        position: 'absolute',
-                        top: 2,
-                        right: 2,
-                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                        color: 'white',
-                        width: 20,
-                        height: 20,
-                        '&:hover': {
-                          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                        },
+                        position: 'relative',
+                        width: 80,
+                        height: 80,
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        border: '1px solid #E5E7EB',
+                        backgroundColor: '#F9FAFB',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                       }}
                     >
-                      <CloseIcon sx={{ fontSize: 12 }} />
-                    </IconButton>
-                  </Box>
-                ))}
+                      <img
+                        src={imageUrl}
+                        alt={`Preview ${index + 1}`}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                        }}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.parentElement.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:#999;">❌</div>';
+                        }}
+                      />
+                      <IconButton
+                        size="small"
+                        onClick={() => handleRemoveImage(index)}
+                        sx={{
+                          position: 'absolute',
+                          top: 2,
+                          right: 2,
+                          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                          color: 'white',
+                          width: 20,
+                          height: 20,
+                          '&:hover': {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                          },
+                        }}
+                      >
+                        <CloseIcon sx={{ fontSize: 12 }} />
+                      </IconButton>
+                    </Box>
+                  );
+                })}
               </Box>
             </Box>
           )}

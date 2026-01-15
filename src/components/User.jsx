@@ -105,6 +105,8 @@ const User = () => {
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [processingBookingId, setProcessingBookingId] = useState(null);
+  const [imageLoadError, setImageLoadError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
 
   // Mock data for space bookings - replace with actual API call
   const mockBookings = [
@@ -286,7 +288,19 @@ const User = () => {
   };
 
   const handleImageClick = (imageUrl) => {
-    setSelectedImage(imageUrl);
+    setImageLoadError(false);
+    setImageLoading(true);
+    
+    // Handle relative URLs by prepending base URL if needed
+    let fullImageUrl = imageUrl;
+    if (imageUrl && !imageUrl.startsWith('http')) {
+      // Get base URL and remove /api suffix if present
+      let baseURL = process.env.REACT_APP_API_URL || 'https://api.boldtribe.in/api';
+      baseURL = baseURL.replace(/\/api$/, ''); // Remove trailing /api
+      fullImageUrl = imageUrl.startsWith('/') ? `${baseURL}${imageUrl}` : `${baseURL}/${imageUrl}`;
+    }
+    
+    setSelectedImage(fullImageUrl);
     setImageDialogOpen(true);
   };
 
@@ -526,21 +540,47 @@ const User = () => {
           Payment Screenshot
         </DialogTitle>
         <DialogContent>
-          {selectedImage && (
-            <Box display="flex" justifyContent="center" p={2}>
+          <Box display="flex" justifyContent="center" alignItems="center" p={2} minHeight="300px">
+            {imageLoading && !imageLoadError && (
+              <CircularProgress />
+            )}
+            {selectedImage && !imageLoadError && (
               <img
                 src={selectedImage}
                 alt="Payment Screenshot"
+                onLoad={() => setImageLoading(false)}
+                onError={() => {
+                  setImageLoading(false);
+                  setImageLoadError(true);
+                }}
                 style={{
                   maxWidth: '100%',
                   maxHeight: '500px',
                   objectFit: 'contain',
                   borderRadius: '8px',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                  display: imageLoading ? 'none' : 'block'
                 }}
+                crossOrigin="anonymous"
               />
-            </Box>
-          )}
+            )}
+            {imageLoadError && (
+              <Box sx={{ textAlign: 'center', width: '100%' }}>
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  Failed to load image. The image may be unavailable or the URL is incorrect.
+                </Alert>
+                <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-all', mb: 2 }}>
+                  URL: {selectedImage}
+                </Typography>
+                <Button
+                  variant="outlined"
+                  onClick={() => window.open(selectedImage, '_blank')}
+                >
+                  Try Opening in New Tab
+                </Button>
+              </Box>
+            )}
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setImageDialogOpen(false)}>

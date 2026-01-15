@@ -78,34 +78,98 @@ export const spacesApi = {
   },
 
   // Update space function
-  updateSpace: async (spaceId, { space_name, seater, price, availability, spaceImages, availableDates, roomNumber, cabinNumber }) => {
-    console.log('Updating space with data:', { space_name, seater, price, availability, roomNumber, cabinNumber });
+  updateSpace: async (spaceId, { space_name, seater, price, availability, spaceImages, existingImages, availableDates, roomNumber, cabinNumber }) => {
+    console.log('🔄 Updating space ID:', spaceId);
+    console.log('📝 Update data received:', { space_name, seater, price, availability, roomNumber, cabinNumber });
+    console.log('🖼️ Images - New:', spaceImages?.length || 0, 'Existing:', existingImages?.length || 0);
     
     const formData = new FormData();
-    if (space_name !== undefined) formData.append('space_name', space_name);
-    if (seater !== undefined) formData.append('seater', String(seater));
-    if (price !== undefined) formData.append('price', String(price));
-    if (availability !== undefined) formData.append('availability', availability);
-    if (roomNumber !== undefined) formData.append('roomNumber', String(roomNumber));
-    if (cabinNumber !== undefined) formData.append('cabinNumber', String(cabinNumber));
+    
+    // Try multiple field name variations for space name and seater
+    if (space_name !== undefined && space_name !== null) {
+      formData.append('space_name', String(space_name));
+      formData.append('name', String(space_name)); // Try alternative name
+      console.log('✅ Sending space_name (both space_name and name):', space_name);
+    }
+    
+    if (seater !== undefined && seater !== null) {
+      formData.append('seater', String(seater));
+      formData.append('capacity', String(seater)); // Try alternative name
+      console.log('✅ Sending seater (both seater and capacity):', seater);
+    }
+    
+    if (price !== undefined && price !== null) {
+      formData.append('price', String(price));
+      console.log('✅ Sending price:', price);
+    }
+    
+    if (availability) {
+      formData.append('availability', availability);
+      console.log('✅ Sending availability:', availability);
+    }
+    
+    // Only send roomNumber and cabinNumber if they have values
+    if (roomNumber !== undefined && roomNumber !== null && roomNumber !== '') {
+      formData.append('roomNumber', String(roomNumber));
+      console.log('✅ Sending roomNumber:', roomNumber);
+    } else {
+      console.log('⚠️ roomNumber is empty:', roomNumber);
+    }
+    
+    if (cabinNumber !== undefined && cabinNumber !== null && cabinNumber !== '') {
+      formData.append('cabinNumber', String(cabinNumber));
+      console.log('✅ Sending cabinNumber:', cabinNumber);
+    } else {
+      console.log('⚠️ cabinNumber is empty:', cabinNumber);
+    }
+    
     if (Array.isArray(availableDates)) {
       formData.append('availableDates', JSON.stringify(availableDates));
     }
-    if (Array.isArray(spaceImages)) {
+    
+    // Send existing image URLs to keep them
+    if (Array.isArray(existingImages) && existingImages.length > 0) {
+      formData.append('existingImages', JSON.stringify(existingImages));
+    }
+    
+    // Add new image files
+    if (Array.isArray(spaceImages) && spaceImages.length > 0) {
       spaceImages.forEach((file) => {
-        if (file) formData.append('spaceImages', file);
+        if (file && file instanceof File) {
+          console.log('📎 Adding new image file:', file.name);
+          formData.append('spaceImages', file);
+        }
       });
+    }
+    
+    // Log all formData entries for debugging
+    console.log('📤 FormData being sent:');
+    for (let pair of formData.entries()) {
+      if (pair[1] instanceof File) {
+        console.log(`  ${pair[0]}: File(${pair[1].name})`);
+      } else {
+        console.log(`  ${pair[0]}: ${pair[1]}`);
+      }
     }
 
     const token = localStorage.getItem('authToken');
-    const response = await axios.put(`${baseURL}/spaces/spaces/${spaceId}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      withCredentials: false,
-    });
-    return response.data;
+    try {
+      const response = await axios.put(`${baseURL}/spaces/spaces/${spaceId}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        withCredentials: false,
+      });
+      console.log('✅ Space updated successfully!');
+      console.log('📦 Response structure:', response);
+      console.log('📦 Response.data:', response.data);
+      console.log('📦 Updated space object:', response.data?.data || response.data?.space || response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Space update failed:', error.response?.data || error.message);
+      throw error;
+    }
   },
 
   // Fetch all spaces function
@@ -117,6 +181,8 @@ export const spacesApi = {
       },
       withCredentials: false,
     });
+    console.log('📦 fetchSpaces response:', response.data);
+    console.log('📦 First space in array:', response.data?.data?.[0] || response.data?.[0]);
     return response.data;
   },
 
