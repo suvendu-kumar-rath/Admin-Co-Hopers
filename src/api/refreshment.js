@@ -51,7 +51,7 @@ export const refreshmentApi = {
       const token = localStorage.getItem('authToken');
       console.log(`Updating order ${orderId} status to:`, status);
       
-      const response = await axios.patch(`/cafeteria/admin/orders/${orderId}/status`, 
+      const response = await axios.put(`/cafeteria/admin/orders/${orderId}`, 
         { status },
         {
           headers: {

@@ -308,7 +308,7 @@ const User = () => {
         setBookings(prevBookings =>
           prevBookings.map(booking => {
             const id = booking.id || booking._id || booking.bookingId;
-            return id === bookingId
+            return id == bookingId
               ? { 
                   ...booking, 
                   paymentStatus: uiStatus, 
@@ -341,7 +341,7 @@ const User = () => {
         setBookings(prevBookings =>
           prevBookings.map(booking => {
             const id = booking.id || booking._id || booking.bookingId;
-            return id === bookingId
+            return id == bookingId
               ? { 
                   ...booking, 
                   paymentStatus: uiStatus, 

@@ -368,8 +368,8 @@ const Refreshment = () => {
     try {
       setProcessingOrderId(orderId);
       
-      // Map to API format
-      const apiStatus = newStatus === 'Confirmed' ? 'Confirm' : 'Reject';
+      // Send status directly to API - backend expects 'Confirmed' or 'Rejected'
+      const apiStatus = newStatus;
       
       // Update via API if available
       try {

@@ -223,7 +223,7 @@ const Header = () => {
                   display: { xs: 'none', sm: 'block' }
                 }}
               >
-                Danielle Campbell
+                Admin Co-Hopers
               </Typography>
             )}
             <MotionIconButton 
