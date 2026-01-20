@@ -200,7 +200,8 @@ const User = () => {
 
   useEffect(() => {
     fetchBookings();
-  }, [fetchBookings]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Initialize negotiated amount values from bookings
   useEffect(() => {
