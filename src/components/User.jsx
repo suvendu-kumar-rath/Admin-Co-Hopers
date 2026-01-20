@@ -305,6 +305,7 @@ const User = () => {
         localStorage.setItem('spaceBookingUpdates', JSON.stringify(localUpdates));
         
         // Update local state on success with proper status
+        //and be
         setBookings(prevBookings =>
           prevBookings.map(booking => {
             const id = booking.id || booking._id || booking.bookingId;
