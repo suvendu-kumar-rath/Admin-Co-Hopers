@@ -164,12 +164,33 @@ const BookedSpaceDetails = () => {
         }
         
         console.log('Fetched space bookings data:', bookingsData);
+        
+        // Merge with localStorage updates (in case API doesn't have latest status)
+        const localUpdates = JSON.parse(localStorage.getItem('spaceBookingUpdates') || '{}');
+        bookingsData = bookingsData.map(booking => {
+          const bookingId = booking.id || booking._id || booking.bookingId;
+          if (localUpdates[bookingId]) {
+            return { ...booking, ...localUpdates[bookingId] };
+          }
+          return booking;
+        });
+        
         setBookings(bookingsData);
         
       } catch (apiError) {
         console.warn('API call failed, using mock data:', apiError.message);
-        // Fallback to mock data if API is not available
-        setBookings(mockBookings);
+        
+        // Fallback to mock data but apply localStorage updates
+        const localUpdates = JSON.parse(localStorage.getItem('spaceBookingUpdates') || '{}');
+        const updatedMockData = mockBookings.map(booking => {
+          const bookingId = booking.id || booking._id || booking.bookingId;
+          if (localUpdates[bookingId]) {
+            return { ...booking, ...localUpdates[bookingId] };
+          }
+          return booking;
+        });
+        
+        setBookings(updatedMockData);
       }
       
       setLoading(false);
@@ -184,12 +205,24 @@ const BookedSpaceDetails = () => {
     try {
       setProcessingBookingId(bookingId);
       
+      // newStatus is already in CONFIRMED/REJECTED format from button click
+      
       // Try to update via API first
       try {
-        const response = await bookingsApi.updatePaymentStatus(bookingId, newStatus);
+        // Map to API format (Confirm/Reject)
+        const apiStatus = newStatus === 'CONFIRMED' ? 'Confirm' : 'Reject';
+        const response = await bookingsApi.updatePaymentStatus(bookingId, apiStatus);
         console.log('API Response:', response);
         
-        // Update local state on success
+        // Save to localStorage for persistence
+        const localUpdates = JSON.parse(localStorage.getItem('spaceBookingUpdates') || '{}');
+        localUpdates[bookingId] = {
+          paymentStatus: newStatus,
+          status: newStatus
+        };
+        localStorage.setItem('spaceBookingUpdates', JSON.stringify(localUpdates));
+        
+        // Update local state on success with UI format
         setBookings(prevBookings =>
           prevBookings.map(booking => {
             const id = booking.id || booking._id || booking.bookingId;
@@ -206,6 +239,14 @@ const BookedSpaceDetails = () => {
         });
       } catch (apiError) {
         console.warn('API call failed, updating locally only:', apiError.message);
+        
+        // Save to localStorage for persistence even when API fails
+        const localUpdates = JSON.parse(localStorage.getItem('spaceBookingUpdates') || '{}');
+        localUpdates[bookingId] = {
+          paymentStatus: newStatus,
+          status: newStatus
+        };
+        localStorage.setItem('spaceBookingUpdates', JSON.stringify(localUpdates));
         
         // Fallback: update locally only
         setBookings(prevBookings =>
@@ -379,8 +420,7 @@ const BookedSpaceDetails = () => {
               <StyledTableCell>Amount</StyledTableCell>
               <StyledTableCell>Negotiated Amount</StyledTableCell>
               <StyledTableCell>Payment</StyledTableCell>
-              <StyledTableCell>Status</StyledTableCell>
-              <StyledTableCell>Actions</StyledTableCell>
+              <StyledTableCell>Status / Actions</StyledTableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -475,14 +515,19 @@ const BookedSpaceDetails = () => {
                     )}
                   </TableCell>
                   <TableCell>
-                    <StatusChip
-                      label={paymentStatus}
-                      status={paymentStatus}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    {paymentStatus === 'PENDING' && (
+                    {paymentStatus === 'CONFIRMED' ? (
+                      <StatusChip
+                        label="CONFIRMED"
+                        status="CONFIRMED"
+                        size="small"
+                      />
+                    ) : paymentStatus === 'REJECTED' ? (
+                      <StatusChip
+                        label="REJECTED"
+                        status="REJECTED"
+                        size="small"
+                      />
+                    ) : (
                       <Box sx={{ display: 'flex', gap: 1 }}>
                         <ActionButton
                           variant="contained"
@@ -505,11 +550,6 @@ const BookedSpaceDetails = () => {
                           Reject
                         </ActionButton>
                       </Box>
-                    )}
-                    {paymentStatus !== 'PENDING' && (
-                      <Typography variant="body2" color="text.secondary">
-                        No actions available
-                      </Typography>
                     )}
                   </TableCell>
                 </StyledTableRow>

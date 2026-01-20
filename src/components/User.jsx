@@ -230,12 +230,33 @@ const User = () => {
         }
         
         console.log('Fetched space bookings data:', bookingsData);
+        
+        // Merge with localStorage updates (in case API doesn't have latest status)
+        const localUpdates = JSON.parse(localStorage.getItem('spaceBookingUpdates') || '{}');
+        bookingsData = bookingsData.map(booking => {
+          const bookingId = booking.id || booking._id || booking.bookingId;
+          if (localUpdates[bookingId]) {
+            return { ...booking, ...localUpdates[bookingId] };
+          }
+          return booking;
+        });
+        
         setBookings(bookingsData);
         
       } catch (apiError) {
         console.warn('API call failed, using mock data:', apiError.message);
-        // Fallback to mock data if API is not available
-        setBookings(mockBookings);
+        
+        // Fallback to mock data but apply localStorage updates
+        const localUpdates = JSON.parse(localStorage.getItem('spaceBookingUpdates') || '{}');
+        const updatedMockData = mockBookings.map(booking => {
+          const bookingId = booking.id || booking._id || booking.bookingId;
+          if (localUpdates[bookingId]) {
+            return { ...booking, ...localUpdates[bookingId] };
+          }
+          return booking;
+        });
+        
+        setBookings(updatedMockData);
       }
       
       setLoading(false);
@@ -266,20 +287,32 @@ const User = () => {
       
       setProcessingBookingId(bookingId);
       
+      // Map the status to proper format (CONFIRMED/REJECTED for UI)
+      const uiStatus = newStatus === 'Confirm' ? 'CONFIRMED' : 'REJECTED';
+      
       // Try to update via API first
       try {
         const response = await bookingsApi.updatePaymentStatus(bookingId, newStatus, negotiatedAmount);
         console.log('API Response:', response);
         
-        // Update local state on success
+        // Save to localStorage for persistence
+        const localUpdates = JSON.parse(localStorage.getItem('spaceBookingUpdates') || '{}');
+        localUpdates[bookingId] = {
+          paymentStatus: uiStatus,
+          status: uiStatus,
+          ...(negotiatedAmount && { negotiatedAmount })
+        };
+        localStorage.setItem('spaceBookingUpdates', JSON.stringify(localUpdates));
+        
+        // Update local state on success with proper status
         setBookings(prevBookings =>
           prevBookings.map(booking => {
             const id = booking.id || booking._id || booking.bookingId;
             return id == bookingId
               ? { 
                   ...booking, 
-                  paymentStatus: newStatus, 
-                  status: newStatus,
+                  paymentStatus: uiStatus, 
+                  status: uiStatus,
                   ...(negotiatedAmount && { negotiatedAmount })
                 }
               : booking;
@@ -295,15 +328,24 @@ const User = () => {
       } catch (apiError) {
         console.warn('API update failed, updating locally:', apiError.message);
         
-        // Fallback to local state update
+        // Save to localStorage for persistence even when API fails
+        const localUpdates = JSON.parse(localStorage.getItem('spaceBookingUpdates') || '{}');
+        localUpdates[bookingId] = {
+          paymentStatus: uiStatus,
+          status: uiStatus,
+          ...(negotiatedAmount && { negotiatedAmount })
+        };
+        localStorage.setItem('spaceBookingUpdates', JSON.stringify(localUpdates));
+        
+        // Fallback to local state update with proper status
         setBookings(prevBookings =>
           prevBookings.map(booking => {
             const id = booking.id || booking._id || booking.bookingId;
             return id == bookingId
               ? { 
                   ...booking, 
-                  paymentStatus: newStatus, 
-                  status: newStatus,
+                  paymentStatus: uiStatus, 
+                  status: uiStatus,
                   ...(negotiatedAmount && { negotiatedAmount })
                 }
               : booking;
@@ -439,9 +481,8 @@ const User = () => {
                 <StyledTableCell>Booking Period</StyledTableCell>
                 <StyledTableCell>Amount</StyledTableCell>
                 <StyledTableCell>Negotiated Amount</StyledTableCell>
-                <StyledTableCell>Payment Status</StyledTableCell>
                 <StyledTableCell>Payment Proof</StyledTableCell>
-                <StyledTableCell align="center">Actions</StyledTableCell>
+                <StyledTableCell align="center">Status / Actions</StyledTableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -520,14 +561,6 @@ const User = () => {
                     </TableCell>
                     
                     <TableCell>
-                      <StatusChip
-                        label={booking.paymentStatus}
-                        status={booking.paymentStatus}
-                        size="small"
-                      />
-                    </TableCell>
-                    
-                    <TableCell>
                       {booking.paymentScreenshot ? (
                         <Tooltip title="View Payment Screenshot">
                           <IconButton
@@ -546,8 +579,20 @@ const User = () => {
                     </TableCell>
                     
                     <TableCell align="center">
-                      <Box display="flex" gap={1} justifyContent="center">
-                        {booking.paymentStatus !== 'CONFIRMED' && (
+                      {booking.paymentStatus === 'CONFIRMED' ? (
+                        <StatusChip
+                          label="CONFIRMED"
+                          status="CONFIRMED"
+                          size="small"
+                        />
+                      ) : booking.paymentStatus === 'REJECTED' ? (
+                        <StatusChip
+                          label="REJECTED"
+                          status="REJECTED"
+                          size="small"
+                        />
+                      ) : (
+                        <Box display="flex" gap={1} justifyContent="center">
                           <ActionButton
                             variant="contained"
                             color="success"
@@ -559,9 +604,6 @@ const User = () => {
                           >
                             Confirm
                           </ActionButton>
-                        )}
-                        
-                        {booking.paymentStatus !== 'REJECTED' && (
                           <ActionButton
                             variant="contained"
                             color="error"
@@ -573,8 +615,8 @@ const User = () => {
                           >
                             Reject
                           </ActionButton>
-                        )}
-                      </Box>
+                        </Box>
+                      )}
                     </TableCell>
                   </StyledTableRow>
                 ))}

@@ -20,14 +20,20 @@ import {
   Tooltip,
   CircularProgress,
   Alert,
-  Snackbar
+  Snackbar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import {
   Search as SearchIcon,
   MoreVert as MoreVertIcon,
   Visibility as VisibilityIcon,
   GetApp as DownloadIcon,
-  Refresh as RefreshIcon
+  Refresh as RefreshIcon,
+  CheckCircle as CheckIcon,
+  Cancel as CancelIcon
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import refreshmentApi from '../api/refreshment';
@@ -95,15 +101,42 @@ const PaymentMethodChip = styled(Chip)(({ method }) => {
   };
 });
 
+const StatusChip = styled(Chip)(({ status, theme }) => ({
+  fontWeight: 'bold',
+  ...(status === 'Confirmed' && {
+    backgroundColor: theme.palette.success.main,
+    color: theme.palette.success.contrastText,
+  }),
+  ...(status === 'Rejected' && {
+    backgroundColor: theme.palette.error.main,
+    color: theme.palette.error.contrastText,
+  }),
+  ...(status === 'Pending' && {
+    backgroundColor: theme.palette.warning.main,
+    color: theme.palette.warning.contrastText,
+  }),
+}));
+
+const ActionButton = styled(Button)(({ theme }) => ({
+  margin: theme.spacing(0.5),
+  minWidth: 80,
+}));
+
 const Refreshment = () => {
   const [refreshmentData, setRefreshmentData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
+  const [groupedData, setGroupedData] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedRow, setSelectedRow] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [processingOrderId, setProcessingOrderId] = useState(null);
+  const [imageDialogOpen, setImageDialogOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   // Sample data - replace this with API call
   const sampleData = [
@@ -198,16 +231,16 @@ const Refreshment = () => {
         // Transform API data to match component structure
         const transformedData = ordersData.map(order => ({
           id: order.id || order._id || order.orderId,
-          cabinNumber: order.cabinNumber || order.cabin_number || order.spaceNumber || 'N/A',
+          cabinNumber: order.cabinNumber || order.cabin_number || order.spaceNumber || '',
           username: (order.user && order.user.username) || order.username || order.user_name || order.customerName || order.name || 'N/A',
-          roomNumber: order.roomNumber || order.room_number || order.spaceId || 'N/A',
+          roomNumber: order.roomNumber || order.room_number || order.spaceId || '',
           // Store individual item details for structured display
           itemName: order.itemName || 'N/A',
           quantity: order.quantity || 0,
           orderType: order.orderType || 'N/A',
           specialInstructions: order.specialInstructions || '',
           paymentScreenshot: order.paymentScreenshot || order.payment_screenshot || order.receiptImage || '',
-          paymentMethod: order.paymentMethod || order.payment_method || order.paymentType || 'N/A',
+          paymentMethod: order.paymentMethod || order.payment_method || order.paymentType || '',
           amount: order.amount || order.totalAmount || order.total_amount || order.price || 0,
           orderDate: order.orderDate || order.order_date || order.createdAt || order.created_at || new Date().toISOString().split('T')[0],
           status: order.status || order.orderStatus || order.order_status || 'Pending'
@@ -215,16 +248,37 @@ const Refreshment = () => {
         
         console.log(`✅ Successfully loaded ${transformedData.length} orders from API`);
         console.log('📸 Sample order data:', transformedData[0]);
-        setRefreshmentData(transformedData);
-        setFilteredData(transformedData);
+        
+        // Merge with localStorage updates for persistence
+        const localUpdates = JSON.parse(localStorage.getItem('refreshmentOrderUpdates') || '{}');
+        const finalData = transformedData.map(order => {
+          const orderId = order.id || order._id || order.orderId;
+          if (localUpdates[orderId]) {
+            return { ...order, ...localUpdates[orderId] };
+          }
+          return order;
+        });
+        
+        setRefreshmentData(finalData);
+        setFilteredData(finalData);
         
       } catch (apiError) {
         console.error('❌ API call failed:', apiError);
         console.log('🔄 Falling back to sample data...');
         
+        // Apply localStorage updates to sample data too
+        const localUpdates = JSON.parse(localStorage.getItem('refreshmentOrderUpdates') || '{}');
+        const updatedSampleData = sampleData.map(order => {
+          const orderId = order.id || order._id || order.orderId;
+          if (localUpdates[orderId]) {
+            return { ...order, ...localUpdates[orderId] };
+          }
+          return order;
+        });
+        
         // Fallback to sample data if API is not available
-        setRefreshmentData(sampleData);
-        setFilteredData(sampleData);
+        setRefreshmentData(updatedSampleData);
+        setFilteredData(updatedSampleData);
         
         setSnackbar({
           open: true,
@@ -237,10 +291,20 @@ const Refreshment = () => {
       console.error('💥 Critical error fetching orders:', err);
       setError('Failed to fetch refreshment orders');
       
+      // Apply localStorage updates to sample data
+      const localUpdates = JSON.parse(localStorage.getItem('refreshmentOrderUpdates') || '{}');
+      const updatedSampleData = sampleData.map(order => {
+        const orderId = order.id || order._id || order.orderId;
+        if (localUpdates[orderId]) {
+          return { ...order, ...localUpdates[orderId] };
+        }
+        return order;
+      });
+      
       // Load sample data as last resort
       console.log('🆘 Loading sample data as last resort...');
-      setRefreshmentData(sampleData);
-      setFilteredData(sampleData);
+      setRefreshmentData(updatedSampleData);
+      setFilteredData(updatedSampleData);
       
     } finally {
       setLoading(false);
@@ -261,7 +325,107 @@ const Refreshment = () => {
       );
     });
     setFilteredData(filtered);
+
+    // Group filtered data by username
+    const grouped = {};
+    filtered.forEach(order => {
+      const key = order.username || 'Unknown User';
+      if (!grouped[key]) {
+        grouped[key] = {
+          userInfo: {
+            username: key,
+            cabinNumber: order.cabinNumber && order.cabinNumber !== 'N/A' ? order.cabinNumber : '',
+            roomNumber: order.roomNumber && order.roomNumber !== 'N/A' ? order.roomNumber : ''
+          },
+          orders: []
+        };
+      }
+      
+      // Update userInfo with first valid cabin/room if not set yet
+      if (!grouped[key].userInfo.cabinNumber && order.cabinNumber && order.cabinNumber !== 'N/A') {
+        grouped[key].userInfo.cabinNumber = order.cabinNumber;
+      }
+      if (!grouped[key].userInfo.roomNumber && order.roomNumber && order.roomNumber !== 'N/A') {
+        grouped[key].userInfo.roomNumber = order.roomNumber;
+      }
+      
+      grouped[key].orders.push(order);
+    });
+
+    // Sort orders by date (newest first) for each user
+    Object.keys(grouped).forEach(username => {
+      grouped[username].orders.sort((a, b) => {
+        const dateA = new Date(a.orderDate || 0);
+        const dateB = new Date(b.orderDate || 0);
+        return dateB - dateA; // Descending order (newest first)
+      });
+    });
+
+    setGroupedData(grouped);
   }, [searchTerm, refreshmentData]);
+
+  const handleStatusUpdate = async (orderId, newStatus) => {
+    try {
+      setProcessingOrderId(orderId);
+      
+      // Map to API format
+      const apiStatus = newStatus === 'Confirmed' ? 'Confirm' : 'Reject';
+      
+      // Update via API if available
+      try {
+        await refreshmentApi.updateOrderStatus(orderId, apiStatus);
+        
+        // Save to localStorage for persistence
+        const localUpdates = JSON.parse(localStorage.getItem('refreshmentOrderUpdates') || '{}');
+        localUpdates[orderId] = { status: newStatus };
+        localStorage.setItem('refreshmentOrderUpdates', JSON.stringify(localUpdates));
+        
+        // Update local state
+        setRefreshmentData(prevData =>
+          prevData.map(order => {
+            const id = order.id || order._id || order.orderId;
+            return id == orderId ? { ...order, status: newStatus } : order;
+          })
+        );
+        
+        setSnackbar({
+          open: true,
+          message: `Order ${newStatus.toLowerCase()} successfully!`,
+          severity: 'success'
+        });
+      } catch (apiError) {
+        console.warn('API update failed, updating locally:', apiError.message);
+        
+        // Save to localStorage even when API fails
+        const localUpdates = JSON.parse(localStorage.getItem('refreshmentOrderUpdates') || '{}');
+        localUpdates[orderId] = { status: newStatus };
+        localStorage.setItem('refreshmentOrderUpdates', JSON.stringify(localUpdates));
+        
+        // Update local state
+        setRefreshmentData(prevData =>
+          prevData.map(order => {
+            const id = order.id || order._id || order.orderId;
+            return id == orderId ? { ...order, status: newStatus } : order;
+          })
+        );
+        
+        setSnackbar({
+          open: true,
+          message: `Order ${newStatus.toLowerCase()} locally (API unavailable)`,
+          severity: 'warning'
+        });
+      }
+    } catch (err) {
+      console.error('Error updating order status:', err);
+      setSnackbar({
+        open: true,
+        message: 'Failed to update order status',
+        severity: 'error'
+      });
+    } finally {
+      setProcessingOrderId(null);
+    }
+  };
 
   const handleMenuClick = (event, row) => {
     setAnchorEl(event.currentTarget);
@@ -273,9 +437,42 @@ const Refreshment = () => {
     setSelectedRow(null);
   };
 
-  const handleViewScreenshot = (screenshotUrl) => {
-    window.open(screenshotUrl, '_blank');
-    handleMenuClose();
+  const handleViewScreenshot = (screenshotUrl, event) => {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    console.log('🖼️ Image clicked, raw URL:', screenshotUrl);
+    if (screenshotUrl && screenshotUrl.trim() !== '') {
+      setImageError(false);
+      setImageLoading(true);
+      
+      // Handle relative URLs by prepending base URL if needed
+      let fullImageUrl = screenshotUrl;
+      if (screenshotUrl && !screenshotUrl.startsWith('http')) {
+        // Get base URL and remove /api suffix if present
+        let baseURL = process.env.REACT_APP_API_URL || 'https://api.boldtribe.in/api';
+        console.log('🔧 Original base URL:', baseURL);
+        baseURL = baseURL.replace(/\/api$/, ''); // Remove trailing /api
+        console.log('🔧 Base URL after removing /api:', baseURL);
+        fullImageUrl = screenshotUrl.startsWith('/') ? `${baseURL}${screenshotUrl}` : `${baseURL}/${screenshotUrl}`;
+        console.log('✅ Constructed full URL:', fullImageUrl);
+      } else {
+        console.log('✅ Using URL as-is (already absolute):', fullImageUrl);
+      }
+      
+      setSelectedImage(fullImageUrl);
+      setImageDialogOpen(true);
+      // Close menu after a short delay to allow dialog to open
+      setTimeout(() => handleMenuClose(), 100);
+    } else {
+      console.warn('No screenshot URL provided');
+      setSnackbar({
+        open: true,
+        message: 'No screenshot URL available',
+        severity: 'warning'
+      });
+    }
   };
 
   const handleDownloadScreenshot = (screenshotUrl, username) => {
@@ -381,46 +578,64 @@ const Refreshment = () => {
         </Box>
       </HeaderBox>
 
-      <StyledTableContainer component={Paper}>
-        <Table>
-          <StyledTableHead>
-            <TableRow>
-              <TableCell>Cabin Number</TableCell>
-              <TableCell>Username</TableCell>
-              <TableCell>Room Number</TableCell>
-              <TableCell>Item</TableCell>
-              <TableCell>Payment Screenshot</TableCell>
-              <TableCell>Payment Method</TableCell>
-              <TableCell>Amount</TableCell>
-              <TableCell>Order Date</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell align="center">Actions</TableCell>
-            </TableRow>
-          </StyledTableHead>
-          <TableBody>
-            {filteredData.map((row) => (
-              <StyledTableRow key={row.id}>
-                <TableCell>
-                  <Typography variant="body2" fontWeight={600} color="primary">
-                    {row.cabinNumber}
+      {/* Display grouped orders by user */}
+      {Object.keys(groupedData).length === 0 && !loading ? (
+        <Box sx={{ textAlign: 'center', py: 8 }}>
+          <Typography variant="h6" color="text.secondary" gutterBottom>
+            No refreshment orders found
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {searchTerm ? 'Try adjusting your search criteria' : 'No orders have been placed yet'}
+          </Typography>
+        </Box>
+      ) : (
+        Object.entries(groupedData).map(([username, userData]) => (
+          <Box key={username} sx={{ mb: 4 }}>
+            {/* User Header */}
+            <Paper sx={{ p: 2, mb: 2, bgcolor: '#f8f9fa', borderRadius: 2, boxShadow: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Avatar sx={{ bgcolor: '#8EC8D4', width: 48, height: 48, fontSize: '1.25rem' }}>
+                  {username.charAt(0).toUpperCase()}
+                </Avatar>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="h6" fontWeight={700} color="#2c3e50">
+                    {username}
                   </Typography>
-                </TableCell>
-                <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Avatar sx={{ width: 32, height: 32, bgcolor: '#8EC8D4' }}>
-                      {row.username.charAt(0)}
-                    </Avatar>
-                    <Typography variant="body2" fontWeight={500}>
-                      {row.username}
-                    </Typography>
-                  </Box>
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2">
-                    {row.roomNumber}
+                  <Typography variant="body2" color="text.secondary">
+                    Cabin: {userData.userInfo.cabinNumber || 'N/A'} | Room: {userData.userInfo.roomNumber || 'N/A'}
                   </Typography>
-                </TableCell>
-                <TableCell>
+                </Box>
+                <Chip 
+                  label={`${userData.orders.length} Order${userData.orders.length > 1 ? 's' : ''}`}
+                  color="primary"
+                  variant="outlined"
+                  sx={{ fontWeight: 600 }}
+                />
+              </Box>
+            </Paper>
+
+            {/* Orders Table for this user */}
+            <StyledTableContainer component={Paper}>
+              <Table>
+                <StyledTableHead>
+                  <TableRow>
+                    <TableCell>Order ID</TableCell>
+                    <TableCell>Item Details</TableCell>
+                    <TableCell>Payment Screenshot</TableCell>
+                    <TableCell>Amount</TableCell>
+                    <TableCell>Order Date</TableCell>
+                    <TableCell align="center">Status / Actions</TableCell>
+                  </TableRow>
+                </StyledTableHead>
+                <TableBody>
+                  {userData.orders.map((row) => (
+                    <StyledTableRow key={row.id}>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={600} color="primary">
+                          #{row.id}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Typography variant="caption" sx={{ fontWeight: 600, color: '#555' }}>
@@ -485,19 +700,22 @@ const Refreshment = () => {
                 <TableCell>
                   {row.paymentScreenshot ? (
                     <Tooltip title="Click to view payment screenshot">
-                      <Avatar
-                        src={row.paymentScreenshot}
-                        alt="Payment Screenshot"
-                        variant="rounded"
-                        sx={{ 
-                          width: 40, 
-                          height: 40, 
-                          cursor: 'pointer',
-                          bgcolor: '#e3f2fd',
-                          '&:hover': { opacity: 0.8 }
-                        }}
-                        onClick={() => handleViewScreenshot(row.paymentScreenshot)}
-                      />
+                      <IconButton
+                        onClick={(e) => handleViewScreenshot(row.paymentScreenshot, e)}
+                        sx={{ p: 0 }}
+                      >
+                        <Avatar
+                          src={row.paymentScreenshot}
+                          alt="Payment Screenshot"
+                          variant="rounded"
+                          sx={{ 
+                            width: 50, 
+                            height: 50, 
+                            cursor: 'pointer',
+                            '&:hover': { opacity: 0.8 }
+                          }}
+                        />
+                      </IconButton>
                     </Tooltip>
                   ) : (
                     <Tooltip title="No payment screenshot">
@@ -505,8 +723,8 @@ const Refreshment = () => {
                         alt="No Screenshot"
                         variant="rounded"
                         sx={{ 
-                          width: 40, 
-                          height: 40, 
+                          width: 50, 
+                          height: 50, 
                           bgcolor: '#f5f5f5',
                           color: '#9e9e9e'
                         }}
@@ -515,13 +733,6 @@ const Refreshment = () => {
                       </Avatar>
                     </Tooltip>
                   )}
-                </TableCell>
-                <TableCell>
-                  <PaymentMethodChip
-                    label={row.paymentMethod}
-                    method={row.paymentMethod}
-                    size="small"
-                  />
                 </TableCell>
                 <TableCell>
                   <Typography variant="body2" fontWeight={600} color="success.main">
@@ -533,27 +744,52 @@ const Refreshment = () => {
                     {row.orderDate}
                   </Typography>
                 </TableCell>
-                <TableCell>
-                  <Chip
-                    label={row.status}
-                    size="small"
-                    color={row.status === 'Completed' ? 'success' : 'warning'}
-                    variant="outlined"
-                  />
-                </TableCell>
                 <TableCell align="center">
-                  <IconButton
-                    onClick={(e) => handleMenuClick(e, row)}
-                    size="small"
-                  >
-                    <MoreVertIcon />
-                  </IconButton>
+                  {row.status === 'Confirmed' ? (
+                    <StatusChip
+                      label="Confirmed"
+                      status="Confirmed"
+                      size="small"
+                    />
+                  ) : row.status === 'Rejected' ? (
+                    <StatusChip
+                      label="Rejected"
+                      status="Rejected"
+                      size="small"
+                    />
+                  ) : (
+                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                      <ActionButton
+                        variant="contained"
+                        color="success"
+                        size="small"
+                        startIcon={processingOrderId === row.id ? <CircularProgress size={16} /> : <CheckIcon />}
+                        onClick={() => handleStatusUpdate(row.id, 'Confirmed')}
+                        disabled={processingOrderId === row.id}
+                      >
+                        Accept
+                      </ActionButton>
+                      <ActionButton
+                        variant="contained"
+                        color="error"
+                        size="small"
+                        startIcon={processingOrderId === row.id ? <CircularProgress size={16} /> : <CancelIcon />}
+                        onClick={() => handleStatusUpdate(row.id, 'Rejected')}
+                        disabled={processingOrderId === row.id}
+                      >
+                        Reject
+                      </ActionButton>
+                    </Box>
+                  )}
                 </TableCell>
-              </StyledTableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </StyledTableContainer>
+                    </StyledTableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </StyledTableContainer>
+          </Box>
+        ))
+      )}
 
       <Menu
         anchorEl={anchorEl}
@@ -580,6 +816,90 @@ const Refreshment = () => {
           </Typography>
         </Box>
       )}
+
+      {/* Image Dialog */}
+      <Dialog
+        open={imageDialogOpen}
+        onClose={() => {
+          setImageDialogOpen(false);
+          setSelectedImage(null);
+          setImageError(false);
+          setImageLoading(false);
+        }}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          Payment Screenshot
+          {selectedImage && (
+            <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 1 }}>
+              {selectedImage}
+            </Typography>
+          )}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            minHeight: 400,
+            bgcolor: '#f5f5f5',
+            borderRadius: 1,
+            position: 'relative'
+          }}>
+            {imageLoading && !imageError && (
+              <CircularProgress />
+            )}
+            {imageError && (
+              <Box sx={{ textAlign: 'center', p: 3 }}>
+                <Typography color="error" gutterBottom>
+                  Failed to load image
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  The image may not exist or the URL is invalid
+                </Typography>
+              </Box>
+            )}
+            {selectedImage && (
+              <img 
+                src={selectedImage} 
+                alt="Payment Screenshot"
+                crossOrigin="anonymous"
+                style={{ 
+                  maxWidth: '100%', 
+                  maxHeight: '70vh', 
+                  objectFit: 'contain',
+                  display: imageLoading || imageError ? 'none' : 'block',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+                }}
+                onLoad={() => {
+                  console.log('✅ Image loaded successfully');
+                  setImageLoading(false);
+                }}
+                onError={(e) => {
+                  console.error('❌ Image failed to load:', selectedImage);
+                  setImageLoading(false);
+                  setImageError(true);
+                }}
+              />
+            )}
+            {!selectedImage && !imageLoading && (
+              <Typography>No image available</Typography>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setImageDialogOpen(false);
+            setSelectedImage(null);
+            setImageError(false);
+            setImageLoading(false);
+          }}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Snackbar for notifications */}
       <Snackbar
