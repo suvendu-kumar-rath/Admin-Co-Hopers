@@ -32,7 +32,6 @@ import {
   Visibility as VisibilityIcon,
   Email as EmailIcon,
   Phone as PhoneIcon,
-  Edit as EditIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { bookingsApi } from '../api/bookings';
@@ -201,7 +200,7 @@ const User = () => {
 
   useEffect(() => {
     fetchBookings();
-  }, []);
+  }, [fetchBookings]);
 
   // Initialize negotiated amount values from bookings
   useEffect(() => {
