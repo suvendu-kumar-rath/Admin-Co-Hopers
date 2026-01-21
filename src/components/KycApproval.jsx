@@ -447,6 +447,126 @@ const KycApproval = () => {
               </Grid>
             )}
             
+            {selectedKyc.certificateOfIncorporation && (
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Certificate of Incorporation</Typography>
+                <Box
+                  component="img"
+                  src={formatDocumentUrl(selectedKyc.certificateOfIncorporation)}
+                  alt="Certificate of Incorporation"
+                  sx={{
+                    width: '100%',
+                    maxHeight: 200,
+                    objectFit: 'contain',
+                    border: '1px solid #ddd',
+                    borderRadius: 1,
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => window.open(formatDocumentUrl(selectedKyc.certificateOfIncorporation), '_blank')}
+                />
+              </Grid>
+            )}
+            
+            {selectedKyc.directorPAN && (
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Director PAN</Typography>
+                <Box
+                  component="img"
+                  src={formatDocumentUrl(selectedKyc.directorPAN)}
+                  alt="Director PAN"
+                  sx={{
+                    width: '100%',
+                    maxHeight: 200,
+                    objectFit: 'contain',
+                    border: '1px solid #ddd',
+                    borderRadius: 1,
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => window.open(formatDocumentUrl(selectedKyc.directorPAN), '_blank')}
+                />
+              </Grid>
+            )}
+            
+            {selectedKyc.directorPhoto && (
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Director Photo</Typography>
+                <Box
+                  component="img"
+                  src={formatDocumentUrl(selectedKyc.directorPhoto)}
+                  alt="Director Photo"
+                  sx={{
+                    width: '100%',
+                    maxHeight: 200,
+                    objectFit: 'contain',
+                    border: '1px solid #ddd',
+                    borderRadius: 1,
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => window.open(formatDocumentUrl(selectedKyc.directorPhoto), '_blank')}
+                />
+              </Grid>
+            )}
+            
+            {selectedKyc.directorIdFront && (
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Director ID Front</Typography>
+                <Box
+                  component="img"
+                  src={formatDocumentUrl(selectedKyc.directorIdFront)}
+                  alt="Director ID Front"
+                  sx={{
+                    width: '100%',
+                    maxHeight: 200,
+                    objectFit: 'contain',
+                    border: '1px solid #ddd',
+                    borderRadius: 1,
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => window.open(formatDocumentUrl(selectedKyc.directorIdFront), '_blank')}
+                />
+              </Grid>
+            )}
+            
+            {selectedKyc.directorIdBack && (
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Director ID Back</Typography>
+                <Box
+                  component="img"
+                  src={formatDocumentUrl(selectedKyc.directorIdBack)}
+                  alt="Director ID Back"
+                  sx={{
+                    width: '100%',
+                    maxHeight: 200,
+                    objectFit: 'contain',
+                    border: '1px solid #ddd',
+                    borderRadius: 1,
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => window.open(formatDocumentUrl(selectedKyc.directorIdBack), '_blank')}
+                />
+              </Grid>
+            )}
+            
+            {selectedKyc.directorPaymentProof && (
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Director Payment Proof</Typography>
+                <Box
+                  component="img"
+                  src={formatDocumentUrl(selectedKyc.directorPaymentProof)}
+                  alt="Director Payment Proof"
+                  sx={{
+                    width: '100%',
+                    maxHeight: 200,
+                    objectFit: 'contain',
+                    border: '1px solid #ddd',
+                    borderRadius: 1,
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => window.open(formatDocumentUrl(selectedKyc.directorPaymentProof), '_blank')}
+                />
+              </Grid>
+            )}
+            
             {selectedKyc.gstCertificate && (
               <Grid item xs={12} sm={6}>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>GST Certificate</Typography>

@@ -138,11 +138,11 @@ export const bookingsApi = {
         withCredentials: false,
       });
       
-      console.log('✅ Booking stats fetched successfully:', response.data);
+      console.log(' Booking stats fetched successfully:', response.data);
       return response.data;
       
     } catch (error) {
-      console.error('❌ Failed to fetch booking stats:', error.response?.data || error.message);
+      console.error(' Failed to fetch booking stats:', error.response?.data || error.message);
       throw error;
     }
   },
@@ -225,11 +225,11 @@ export const bookingsApi = {
       link.remove();
       window.URL.revokeObjectURL(url);
       
-      console.log('✅ Bookings exported successfully');
+      console.log('Bookings exported successfully');
       return { success: true, message: 'Bookings exported successfully' };
       
     } catch (error) {
-      console.error('❌ Failed to export bookings:', error.response?.data || error.message);
+      console.error('Failed to export bookings:', error.response?.data || error.message);
       throw error;
     }
   },
@@ -251,11 +251,11 @@ export const bookingsApi = {
         withCredentials: false,
       });
       
-      console.log('✅ Notification sent successfully:', response.data);
+      console.log(' Notification sent successfully:', response.data);
       return response.data;
       
     } catch (error) {
-      console.error('❌ Failed to send notification:', error.response?.data || error.message);
+      console.error(' Failed to send notification:', error.response?.data || error.message);
       throw error;
     }
   },

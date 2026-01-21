@@ -29,10 +29,10 @@ export const approveKyc = async (kycId) => {
     const response = await axiosInstance.put(`/admin/kyc/${kycId}/verify`, {
       status: 'Approve'
     });
-    console.log('✅ KYC approved successfully:', response.data);
+    console.log(' KYC approved successfully:', response.data);
     return response.data;
   } catch (error) {
-    console.error('❌ Error approving KYC:', error);
+    console.error(' Error approving KYC:', error);
     console.error('Error response:', error.response?.data);
     console.error('Error status:', error.response?.status);
     if (error.response) {
