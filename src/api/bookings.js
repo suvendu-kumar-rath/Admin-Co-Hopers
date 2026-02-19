@@ -52,7 +52,6 @@ export const bookingsApi = {
     console.log('Verifying space booking status:', { bookingId, status, negotiatedAmount });
     
     const token = localStorage.getItem('authToken');
-    
     const requestBody = {
       status: status
     };

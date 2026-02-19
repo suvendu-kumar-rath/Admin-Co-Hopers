@@ -31,9 +31,6 @@ import {
   Badge,
   Alert,
   Snackbar,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -44,10 +41,8 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { motion } from 'framer-motion';
 import { spacesApi } from '../api';
-import APITester from './APITester';
 
 const MotionBox = motion(Box);
 const MotionPaper = motion(Paper);
@@ -970,18 +965,6 @@ const Inventory = () => {
           {isSmall ? 'Add Space' : 'Add New Space'}
         </Button>
       </Box>
-
-      {/* Debug Section - Remove this after fixing the 500 error */}
-      <Accordion sx={{ mb: 2, border: '2px solid #ff9800' }}>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ bgcolor: '#fff3e0' }}>
-          <Typography variant="h6" color="warning.main">
-            🔧 Debug 500 Error - API Tester
-          </Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <APITester />
-        </AccordionDetails>
-      </Accordion>
 
       {/* Table Section */}
       <MotionPaper

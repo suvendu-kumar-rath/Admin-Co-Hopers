@@ -33,7 +33,9 @@ import {
   GetApp as DownloadIcon,
   Refresh as RefreshIcon,
   CheckCircle as CheckIcon,
-  Cancel as CancelIcon
+  Cancel as CancelIcon,
+  FilterList as FilterListIcon,
+  Clear as ClearIcon
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import refreshmentApi from '../api/refreshment';
@@ -137,6 +139,12 @@ const Refreshment = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
+  
+  // Filter states
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [showFilters, setShowFilters] = useState(false);
 
   // Sample data - replace this with API call
   const sampleData = [
@@ -312,17 +320,41 @@ const Refreshment = () => {
   };
 
   useEffect(() => {
-    // Filter data based on search term with null-safe operations
+    // Filter data based on search term and date range with null-safe operations
     const filtered = refreshmentData.filter(item => {
       const searchLower = searchTerm.toLowerCase();
-      return (
-        (item.username || '').toLowerCase().includes(searchLower) ||
-        (item.cabinNumber || '').toLowerCase().includes(searchLower) ||
-        (item.roomNumber || '').toLowerCase().includes(searchLower) ||
-        (item.items || '').toLowerCase().includes(searchLower) ||
-        (item.paymentMethod || '').toLowerCase().includes(searchLower) ||
-        (item.status || '').toLowerCase().includes(searchLower)
+      
+      // Search term filter - convert all values to strings to handle numbers
+      const matchesSearch = searchTerm === '' || (
+        String(item.username || '').toLowerCase().includes(searchLower) ||
+        String(item.cabinNumber || '').toLowerCase().includes(searchLower) ||
+        String(item.roomNumber || '').toLowerCase().includes(searchLower) ||
+        String(item.items || '').toLowerCase().includes(searchLower) ||
+        String(item.itemName || '').toLowerCase().includes(searchLower) ||
+        String(item.paymentMethod || '').toLowerCase().includes(searchLower) ||
+        String(item.status || '').toLowerCase().includes(searchLower)
       );
+      
+      // Date range filter
+      let matchesDateRange = true;
+      if (dateFrom || dateTo) {
+        const orderDate = new Date(item.orderDate);
+        if (dateFrom) {
+          const fromDate = new Date(dateFrom);
+          fromDate.setHours(0, 0, 0, 0);
+          matchesDateRange = matchesDateRange && orderDate >= fromDate;
+        }
+        if (dateTo) {
+          const toDate = new Date(dateTo);
+          toDate.setHours(23, 59, 59, 999);
+          matchesDateRange = matchesDateRange && orderDate <= toDate;
+        }
+      }
+      
+      // Status filter
+      const matchesStatus = statusFilter === 'All' || item.status === statusFilter;
+      
+      return matchesSearch && matchesDateRange && matchesStatus;
     });
     setFilteredData(filtered);
 
@@ -362,7 +394,15 @@ const Refreshment = () => {
     });
 
     setGroupedData(grouped);
-  }, [searchTerm, refreshmentData]);
+  }, [searchTerm, refreshmentData, dateFrom, dateTo, statusFilter]);
+  
+  // Reset all filters
+  const handleResetFilters = () => {
+    setSearchTerm('');
+    setDateFrom('');
+    setDateTo('');
+    setStatusFilter('All');
+  };
 
   const handleStatusUpdate = async (orderId, newStatus) => {
     try {
@@ -525,15 +565,6 @@ const Refreshment = () => {
 
   return (
     <Box sx={{ p: 3, bgcolor: '#fafafa', minHeight: '100vh' }}>
-      {/* Debug Info - Remove this in production */}
-      {process.env.NODE_ENV === 'development' && (
-        <Box sx={{ mb: 2, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
-          <Typography variant="subtitle2" color="text.secondary">
-            Debug Info: Orders Array Length: {refreshmentData.length} | Loading: {loading.toString()} | Error: {error || 'None'}
-          </Typography>
-        </Box>
-      )}
-      
       <HeaderBox>
         <Box>
           <Typography variant="h4" component="h1" sx={{ 
@@ -548,21 +579,18 @@ const Refreshment = () => {
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-          <TextField
-            placeholder="Search orders..."
-            variant="outlined"
-            size="small"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon color="action" />
-                </InputAdornment>
-              ),
-            }}
-            sx={{ width: 300 }}
-          />
+          <Tooltip title={showFilters ? "Hide Filters" : "Show Filters"}>
+            <IconButton 
+              onClick={() => setShowFilters(!showFilters)}
+              sx={{ 
+                bgcolor: showFilters ? '#bbdefb' : '#e3f2fd', 
+                color: '#1976d2',
+                '&:hover': { bgcolor: '#bbdefb' }
+              }}
+            >
+              <FilterListIcon />
+            </IconButton>
+          </Tooltip>
           <Tooltip title="Refresh Data">
             <IconButton 
               onClick={refreshData}
@@ -577,6 +605,142 @@ const Refreshment = () => {
           </Tooltip>
         </Box>
       </HeaderBox>
+
+      {/* Filter Section */}
+      {showFilters && (
+        <Paper sx={{ p: 3, mb: 3, borderRadius: 2, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: '#2c3e50' }}>
+              Filter Orders
+            </Typography>
+            <Button
+              startIcon={<ClearIcon />}
+              onClick={handleResetFilters}
+              size="small"
+              sx={{ color: '#757575' }}
+            >
+              Clear All
+            </Button>
+          </Box>
+          
+          <Box sx={{ 
+            display: 'grid', 
+            gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(4, 1fr)' }, 
+            gap: 2 
+          }}>
+            {/* Username/Company Name Search */}
+            <TextField
+              label="Username / Company"
+              placeholder="Search by name..."
+              variant="outlined"
+              size="small"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
+              fullWidth
+            />
+            
+            {/* Date From */}
+            <TextField
+              label="From Date"
+              type="date"
+              variant="outlined"
+              size="small"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              InputLabelProps={{
+                shrink: true,
+              }}
+              fullWidth
+            />
+            
+            {/* Date To */}
+            <TextField
+              label="To Date"
+              type="date"
+              variant="outlined"
+              size="small"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              InputLabelProps={{
+                shrink: true,
+              }}
+              fullWidth
+            />
+            
+            {/* Status Filter */}
+            <TextField
+              label="Status"
+              select
+              variant="outlined"
+              size="small"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              fullWidth
+              SelectProps={{
+                native: true,
+              }}
+            >
+              <option value="All">All Status</option>
+              <option value="Pending">Pending</option>
+              <option value="Confirmed">Confirmed</option>
+              <option value="Rejected">Rejected</option>
+              <option value="Completed">Completed</option>
+            </TextField>
+          </Box>
+          
+          {/* Active Filters Display */}
+          {(searchTerm || dateFrom || dateTo || statusFilter !== 'All') && (
+            <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Typography variant="caption" sx={{ color: '#757575', alignSelf: 'center' }}>
+                Active Filters:
+              </Typography>
+              {searchTerm && (
+                <Chip 
+                  label={`Name: ${searchTerm}`} 
+                  size="small" 
+                  onDelete={() => setSearchTerm('')}
+                  color="primary"
+                  variant="outlined"
+                />
+              )}
+              {dateFrom && (
+                <Chip 
+                  label={`From: ${dateFrom}`} 
+                  size="small" 
+                  onDelete={() => setDateFrom('')}
+                  color="primary"
+                  variant="outlined"
+                />
+              )}
+              {dateTo && (
+                <Chip 
+                  label={`To: ${dateTo}`} 
+                  size="small" 
+                  onDelete={() => setDateTo('')}
+                  color="primary"
+                  variant="outlined"
+                />
+              )}
+              {statusFilter !== 'All' && (
+                <Chip 
+                  label={`Status: ${statusFilter}`} 
+                  size="small" 
+                  onDelete={() => setStatusFilter('All')}
+                  color="primary"
+                  variant="outlined"
+                />
+              )}
+            </Box>
+          )}
+        </Paper>
+      )}
 
       {/* Display grouped orders by user */}
       {Object.keys(groupedData).length === 0 && !loading ? (

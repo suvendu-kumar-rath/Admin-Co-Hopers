@@ -58,8 +58,29 @@ const ResponsiveLayout = ({ children }) => {
           flexGrow: 1,
           marginLeft: isLargeScreen ? '250px' : '0',
           minHeight: '100vh',
+          maxHeight: '100vh',
           transition: 'margin-left 0.3s ease-in-out',
           width: isLargeScreen ? 'calc(100% - 250px)' : '100%',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          // Custom scrollbar styling
+          '&::-webkit-scrollbar': {
+            width: '10px',
+          },
+          '&::-webkit-scrollbar-track': {
+            backgroundColor: '#f1f1f1',
+            borderRadius: '10px',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: '#8EC8D4',
+            borderRadius: '10px',
+            '&:hover': {
+              backgroundColor: '#7BB8C5',
+            },
+          },
+          // Firefox scrollbar
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#8EC8D4 #f1f1f1',
         }}
       >
         {children}
