@@ -47,7 +47,6 @@ import EventBusyIcon from '@mui/icons-material/EventBusy';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { motion } from 'framer-motion';
 import { spacesApi } from '../api';
-import APITester from './APITester';
 
 const MotionBox = motion(Box);
 const MotionPaper = motion(Paper);
@@ -971,19 +970,7 @@ const Inventory = () => {
         </Button>
       </Box>
 
-      {/* Debug Section - Remove this after fixing the 500 error */}
-      <Accordion sx={{ mb: 2, border: '2px solid #ff9800' }}>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ bgcolor: '#fff3e0' }}>
-          <Typography variant="h6" color="warning.main">
-            🔧 Debug 500 Error - API Tester
-          </Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <APITester />
-        </AccordionDetails>
-      </Accordion>
-
-      {/* Table Section */}
+      {/* Table Section */
       <MotionPaper
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -1088,26 +1075,26 @@ const Inventory = () => {
                         ₹{row.price}
                       </Typography>
                     </StyledTableBodyCell>
-                  <StyledTableBodyCell>
-                    <Box display="flex" alignItems="center" gap={isSmall ? 0.5 : 1}>
-                      {/* View icon removed as requested */}
-                      <ActionButton 
-                        actiontype="delete"
-                        onClick={() => handleDeleteClick(row)}
-                        disabled={loading}
-                      >
-                        <DeleteIcon fontSize={isSmall ? "small" : "small"} />
-                      </ActionButton>
-                      <ActionButton 
-                        actiontype="edit"
-                        onClick={() => handleEditModal(row)}
-                        disabled={loading}
-                      >
-                        <EditIcon fontSize={isSmall ? "small" : "small"} />
-                      </ActionButton>
-                    </Box>
-                  </StyledTableBodyCell>
-                </StyledTableRow>
+                    <StyledTableBodyCell>
+                      <Box display="flex" alignItems="center" gap={isSmall ? 0.5 : 1}>
+                        {/* View icon removed as requested */}
+                        <ActionButton 
+                          actiontype="delete"
+                          onClick={() => handleDeleteClick(row)}
+                          disabled={loading}
+                        >
+                          <DeleteIcon fontSize={isSmall ? "small" : "small"} />
+                        </ActionButton>
+                        <ActionButton 
+                          actiontype="edit"
+                          onClick={() => handleEditModal(row)}
+                          disabled={loading}
+                        >
+                          <EditIcon fontSize={isSmall ? "small" : "small"} />
+                        </ActionButton>
+                      </Box>
+                    </StyledTableBodyCell>
+                  </StyledTableRow>
                 ))
               )}
             </TableBody>
@@ -1188,7 +1175,8 @@ const Inventory = () => {
         </Box>
       </MotionPaper>
 
-      {/* Add New Space Modal */}
+      /* Add/Edit Space Modal */}
+       
       <StyledDialog 
         open={openModal} 
         onClose={handleCloseModal} 
