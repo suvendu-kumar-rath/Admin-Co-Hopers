@@ -31,9 +31,6 @@ import {
   Badge,
   Alert,
   Snackbar,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -44,7 +41,6 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { motion } from 'framer-motion';
 import { spacesApi } from '../api';
 
@@ -970,7 +966,7 @@ const Inventory = () => {
         </Button>
       </Box>
 
-      {/* Table Section */
+      {/* Table Section */}
       <MotionPaper
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -1175,7 +1171,7 @@ const Inventory = () => {
         </Box>
       </MotionPaper>
 
-      /* Add/Edit Space Modal */}
+      {/* Add/Edit Space Modal */}
        
       <StyledDialog 
         open={openModal} 

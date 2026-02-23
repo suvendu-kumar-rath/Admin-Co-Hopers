@@ -52,6 +52,26 @@ const SidebarContainer = styled(MotionBox, {
   borderBottomRightRadius: 24,
   zIndex: 1200,
   transition: 'transform 0.3s ease-in-out',
+  overflowY: 'auto',
+  overflowX: 'hidden',
+  // Custom scrollbar styling
+  '&::-webkit-scrollbar': {
+    width: '8px',
+  },
+  '&::-webkit-scrollbar-track': {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: '10px',
+  },
+  '&::-webkit-scrollbar-thumb': {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: '10px',
+    '&:hover': {
+      backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    },
+  },
+  // Firefox scrollbar
+  scrollbarWidth: 'thin',
+  scrollbarColor: 'rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1)',
   [theme.breakpoints.down('lg')]: {
     transform: isopen ? 'translateX(0)' : 'translateX(-100%)',
   },
