@@ -2,12 +2,15 @@ import axios from './axios';
 
 export const refreshmentApi = {
   // Fetch all cafeteria orders
-  fetchOrders: async () => {
+  fetchOrders: async (includeCompany = true) => {
     try {
       const token = localStorage.getItem('authToken');
       console.log('Fetching cafeteria orders...');
       
-      const response = await axios.get('/cafeteria/admin/orders', {
+      const params = new URLSearchParams();
+      params.append('includeCompany', includeCompany);
+      
+      const response = await axios.get(`/cafeteria/admin/orders?${params.toString()}`, {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
@@ -24,12 +27,15 @@ export const refreshmentApi = {
   },
 
   // Get order by ID
-  getOrderById: async (orderId) => {
+  getOrderById: async (orderId, includeCompany = true) => {
     try {
       const token = localStorage.getItem('authToken');
       console.log(`Fetching cafeteria order with ID: ${orderId}`);
       
-      const response = await axios.get(`/cafeteria/admin/orders/${orderId}`, {
+      const params = new URLSearchParams();
+      params.append('includeCompany', includeCompany);
+      
+      const response = await axios.get(`/cafeteria/admin/orders/${orderId}?${params.toString()}`, {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
@@ -72,7 +78,7 @@ export const refreshmentApi = {
   },
 
   // Get orders with filters
-  fetchOrdersWithFilters: async (filters = {}) => {
+  fetchOrdersWithFilters: async (filters = {}, includeCompany = true) => {
     try {
       const token = localStorage.getItem('authToken');
       console.log('Fetching filtered cafeteria orders with filters:', filters);
@@ -84,6 +90,7 @@ export const refreshmentApi = {
       if (filters.status) params.append('status', filters.status);
       if (filters.paymentMethod) params.append('paymentMethod', filters.paymentMethod);
       if (filters.userId) params.append('userId', filters.userId);
+      params.append('includeCompany', includeCompany);
       
       const response = await axios.get(`/cafeteria/admin/orders?${params.toString()}`, {
         headers: {
@@ -102,13 +109,14 @@ export const refreshmentApi = {
   },
 
   // Export orders data
-  exportOrders: async (format = 'csv', filters = {}) => {
+  exportOrders: async (format = 'csv', filters = {}, includeCompany = true) => {
     try {
       const token = localStorage.getItem('authToken');
       console.log(`Exporting cafeteria orders as ${format}...`);
       
       const params = new URLSearchParams();
       params.append('format', format);
+      params.append('includeCompany', includeCompany);
       
       if (filters.startDate) params.append('startDate', filters.startDate);
       if (filters.endDate) params.append('endDate', filters.endDate);
