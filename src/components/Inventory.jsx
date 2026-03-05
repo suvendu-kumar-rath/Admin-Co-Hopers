@@ -336,21 +336,23 @@ const CalendarGrid = styled(Box)({
   gap: '4px',
 });
 
-const CalendarDay = styled(Box)(({ isbooked, isselected, istoday }) => {
+const CalendarDay = styled(Box, {
+  shouldForwardProp: (prop) => !['$isbooked', '$isselected', '$istoday'].includes(prop)
+})(({ $isbooked, $isselected, $istoday }) => {
   let backgroundColor = 'transparent';
   let color = '#374151';
   let border = '1px solid transparent';
   
-  if (istoday) {
+  if ($istoday) {
     border = '2px solid #3B82F6';
   }
   
-  if (isbooked) {
+  if ($isbooked) {
     backgroundColor = '#FEE2E2';
     color = '#DC2626';
   }
   
-  if (isselected) {
+  if ($isselected) {
     backgroundColor = '#10B981';
     color = 'white';
   }
@@ -371,14 +373,16 @@ const CalendarDay = styled(Box)(({ isbooked, isselected, istoday }) => {
     justifyContent: 'center',
     position: 'relative',
     '&:hover': {
-      backgroundColor: isbooked ? '#FEE2E2' : (isselected ? '#047857' : '#F3F4F6'),
+      backgroundColor: $isbooked ? '#FEE2E2' : ($isselected ? '#047857' : '#F3F4F6'),
     },
   };
 });
 
-const DatePickerButton = styled(Button)(({ hasdate }) => ({
-  backgroundColor: hasdate ? '#EBF8FF' : '#F9FAFB',
-  color: hasdate ? '#2563EB' : '#6B7280',
+const DatePickerButton = styled(Button, {
+  shouldForwardProp: (prop) => prop !== '$hasdate'
+})(({ $hasdate }) => ({
+  backgroundColor: $hasdate ? '#EBF8FF' : '#F9FAFB',
+  color: $hasdate ? '#2563EB' : '#6B7280',
   border: '1px solid #E5E7EB',
   borderRadius: '8px',
   padding: '12px 16px',
@@ -386,7 +390,7 @@ const DatePickerButton = styled(Button)(({ hasdate }) => ({
   fontWeight: 500,
   justifyContent: 'flex-start',
   '&:hover': {
-    backgroundColor: hasdate ? '#DBEAFE' : '#F3F4F6',
+    backgroundColor: $hasdate ? '#DBEAFE' : '#F3F4F6',
   },
 }));
 
@@ -443,7 +447,7 @@ const Inventory = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [openModal, setOpenModal] = useState(false);
   const [formData, setFormData] = useState({
-    space_name: '',
+    spaceName: '',
     seater: '',
     availability: 'AVAILABLE',
     roomNumber: '',
@@ -495,6 +499,40 @@ const Inventory = () => {
           console.log('🏠 Room/Cabin found:', { roomNum, cabinNum });
           console.log('🚦 Space availability from API:', space.availability);
           
+          // Normalize spaceImages to always be an array
+          let normalizedImages = [];
+          const rawImages = space.images || space.spaceImages || space.space_images;
+          if (Array.isArray(rawImages)) {
+            normalizedImages = rawImages;
+          } else if (typeof rawImages === 'string') {
+            normalizedImages = [rawImages];
+          } else if (rawImages && typeof rawImages === 'object') {
+            normalizedImages = Object.values(rawImages);
+          }
+          
+          // Normalize availableDates to be a flat array of date strings
+          let normalizedDates = [];
+          const rawDates = space.availableDates || space.available_dates;
+          if (Array.isArray(rawDates)) {
+            // Backend returns [{id: X, date: ["2026-03-1"], ...}, ...]
+            // We need to flatten to just date strings
+            normalizedDates = rawDates.flatMap(dateObj => {
+              if (typeof dateObj === 'string') {
+                return dateObj; // Already a string
+              } else if (dateObj && dateObj.date) {
+                // Extract dates from the date property
+                if (Array.isArray(dateObj.date)) {
+                  return dateObj.date;
+                } else {
+                  return [dateObj.date];
+                }
+              }
+              return [];
+            });
+          } else if (typeof rawDates === 'string') {
+            normalizedDates = [rawDates];
+          }
+          
           return {
             id: space.id,
             roomNumber: roomNum || 'N/A',
@@ -502,10 +540,10 @@ const Inventory = () => {
             date: space.date || new Date().toISOString().split('T')[0],
             availability: space.availability || 'AVAILABLE',
             price: space.price || '0',
-            space_name: space.space_name || space.name || 'Unknown',
+            spaceName: space.spaceName || space.name || 'Unknown',
             seater: space.seater || 1,
-            spaceImages: space.images || space.spaceImages || space.space_images || [],
-            availableDates: space.availableDates || space.available_dates || []
+            spaceImages: normalizedImages,
+            availableDates: normalizedDates
           };
         }) || [];
         
@@ -545,29 +583,124 @@ const Inventory = () => {
   };
 
   const handleEditModal = (item) => {
-    console.log("inside edit modal", item)
+    console.log("=== EDIT MODAL DEBUG ===");
+    console.log("📦 Full item object:", item);
+    console.log("📅 Raw availableDates:", item.availableDates);
+    console.log("📅 Type of availableDates:", typeof item.availableDates);
+    
     setIsEditMode(true);
     setEditingItem(item);
     
+    // Ensure spaceImages is always an array before mapping
+    let imagesArray = [];
+    if (Array.isArray(item.spaceImages)) {
+      imagesArray = item.spaceImages;
+    } else if (typeof item.spaceImages === 'string') {
+      // If it's a single string, convert to array
+      imagesArray = [item.spaceImages];
+    } else if (item.spaceImages && typeof item.spaceImages === 'object') {
+      // If it's an object but not an array, try to extract values
+      imagesArray = Object.values(item.spaceImages);
+    }
+    
     // Convert existing image URLs to proper format for display
-    const existingImages = (item.spaceImages || []).map(img => {
+    const existingImages = imagesArray.map(img => {
       if (typeof img === 'string') {
         return { type: 'url', value: img }; // Mark as existing URL
       }
       return img;
     });
     
+    // Ensure availableDates is always a flat array of date strings in YYYY-MM-DD format
+    let datesArray = [];
+    const rawDates = item.availableDates;
+    
+    console.log("🔍 Processing rawDates...");
+    
+    if (Array.isArray(rawDates)) {
+      console.log("✅ rawDates is an array with length:", rawDates.length);
+      // Flatten if array contains objects with .date or nested arrays
+      datesArray = rawDates.flatMap(dateObj => {
+        console.log("  - Processing date item:", dateObj, "Type:", typeof dateObj);
+        
+        if (typeof dateObj === 'string') {
+          // Normalize date format to YYYY-MM-DD
+          const normalized = normalizeDateString(dateObj);
+          console.log("    → String date normalized:", dateObj, "→", normalized);
+          return normalized;
+        } else if (dateObj && dateObj.date) {
+          if (Array.isArray(dateObj.date)) {
+            console.log("    → Object with date array:", dateObj.date);
+            return dateObj.date.map(d => normalizeDateString(d));
+          } else {
+            console.log("    → Object with date string:", dateObj.date);
+            return [normalizeDateString(dateObj.date)];
+          }
+        }
+        console.log("    → Skipping invalid date item");
+        return [];
+      });
+    } else if (typeof rawDates === 'string') {
+      console.log("✅ rawDates is a string:", rawDates);
+      datesArray = [normalizeDateString(rawDates)];
+    } else if (rawDates && typeof rawDates === 'object') {
+      console.log("✅ rawDates is an object:", rawDates);
+      // If it's an object, try to extract values (could be legacy format)
+      datesArray = Object.values(rawDates).flatMap(val => {
+        if (typeof val === 'string') return normalizeDateString(val);
+        if (Array.isArray(val)) return val.map(d => normalizeDateString(d));
+        if (val && val.date) return Array.isArray(val.date) ? val.date.map(d => normalizeDateString(d)) : [normalizeDateString(val.date)];
+        return [];
+      });
+    } else {
+      console.log("⚠️ rawDates is null/undefined or unexpected type");
+    }
+    
+    // Filter out any invalid dates
+    datesArray = datesArray.filter(d => d && d.match(/^\d{4}-\d{2}-\d{2}$/));
+    
+    console.log("✅ Final processed dates array:", datesArray);
+
     setFormData({
-      space_name: item.space_name,
+      spaceName: item.spaceName,
       availability: item.availability,
       roomNumber: item.roomNumber,
       cabinNumber: item.cabinNumber,
       price: item.price,
       seater: item.seater,                
       spaceImages: existingImages, // Load existing images with type markers
-      availableDates: item.availableDates || [], // Load existing dates
+      availableDates: datesArray, // Always a flat array of date strings
     });
+    
+    console.log("📝 Form data set with availableDates:", datesArray);
+    console.log("=== END EDIT MODAL DEBUG ===");
+    
     setOpenModal(true);
+  };
+  
+  // Helper function to normalize date strings to YYYY-MM-DD format
+  const normalizeDateString = (dateStr) => {
+    if (!dateStr) return '';
+    
+    // If already in YYYY-MM-DD format, return as is
+    if (typeof dateStr === 'string' && dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      return dateStr;
+    }
+    
+    // Try to parse and format the date
+    try {
+      const date = new Date(dateStr);
+      if (!isNaN(date.getTime())) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }
+    } catch (e) {
+      console.error("Failed to parse date:", dateStr, e);
+    }
+    
+    return '';
   };
 
   const handleCloseModal = () => {
@@ -576,7 +709,7 @@ const Inventory = () => {
     setIsEditMode(false);
     setEditingItem(null);
     setFormData({
-      space_name: '',
+      spaceName: '',
       seater: '',
       availability: 'AVAILABLE',
       roomNumber: '',
@@ -759,8 +892,25 @@ const Inventory = () => {
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   const handleSubmit = async () => {
+    // Debug: Log form data before validation
+    console.log('🔍 Form data at submit:', formData);
+    console.log('📋 Field values:', {
+      spaceName: formData.spaceName,
+      seater: formData.seater,
+      roomNumber: formData.roomNumber,
+      cabinNumber: formData.cabinNumber,
+      price: formData.price
+    });
+    
     // Validate required fields first
-    if (!formData.space_name || !formData.seater || !formData.roomNumber || !formData.cabinNumber || !formData.price) {
+    if (!formData.spaceName || !formData.seater || !formData.roomNumber || !formData.cabinNumber || !formData.price) {
+      console.error('❌ Validation failed! Missing fields:', {
+        spaceName: !formData.spaceName ? 'MISSING' : 'OK',
+        seater: !formData.seater ? 'MISSING' : 'OK',
+        roomNumber: !formData.roomNumber ? 'MISSING' : 'OK',
+        cabinNumber: !formData.cabinNumber ? 'MISSING' : 'OK',
+        price: !formData.price ? 'MISSING' : 'OK'
+      });
       setSnackbarMessage('Please fill in all required fields (Space Name, Seater Size, Room Number, Cabin Number, and Price)');
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
@@ -806,7 +956,7 @@ const Inventory = () => {
       .map(img => img.value);
     
     const submitData = {
-      space_name: formData.space_name,
+      spaceName: formData.spaceName,
       seater: formData.seater,
       price: formData.price,
       availability: formData.availability,
@@ -824,18 +974,18 @@ const Inventory = () => {
       if (isEditMode && editingItem) {
         // Update existing item
         await spacesApi.updateSpace(editingItem.id, submitData);
-        setSnackbarMessage(`${formData.space_name} has been successfully updated.`);
+        setSnackbarMessage(`${formData.spaceName} has been successfully updated.`);
       } else {
         // Create new item - try with full data first
         try {
           await spacesApi.create(submitData);
-          setSnackbarMessage(`${formData.space_name} has been successfully added.`);
+          setSnackbarMessage(`${formData.spaceName} has been successfully added.`);
         } catch (fullDataError) {
           console.warn('Full data create failed, trying minimal data:', fullDataError);
           
           // Fallback: try with minimal required data only
           const minimalData = {
-            space_name: formData.space_name,
+            spaceName: formData.spaceName,
             seater: formData.seater,
             price: formData.price,
             availability: formData.availability,
@@ -844,7 +994,7 @@ const Inventory = () => {
           };
           
           await spacesApi.create(minimalData);
-          setSnackbarMessage(`${formData.space_name} has been added (with minimal data).`);
+          setSnackbarMessage(`${formData.spaceName} has been added (with minimal data).`);
         }
       }
       
@@ -861,6 +1011,38 @@ const Inventory = () => {
             : (space.cabin_number !== null && space.cabin_number !== undefined ? String(space.cabin_number) : '');
           
           console.log('🚦 Space availability from API:', space.availability);
+          
+          // Normalize spaceImages to always be an array
+          let normalizedImages = [];
+          const rawImages = space.images || space.spaceImages || space.space_images;
+          if (Array.isArray(rawImages)) {
+            normalizedImages = rawImages;
+          } else if (typeof rawImages === 'string') {
+            normalizedImages = [rawImages];
+          } else if (rawImages && typeof rawImages === 'object') {
+            normalizedImages = Object.values(rawImages);
+          }
+          
+          // Normalize availableDates to be a flat array of date strings
+          let normalizedDates = [];
+          const rawDates = space.availableDates || space.available_dates;
+          if (Array.isArray(rawDates)) {
+            normalizedDates = rawDates.flatMap(dateObj => {
+              if (typeof dateObj === 'string') {
+                return dateObj;
+              } else if (dateObj && dateObj.date) {
+                if (Array.isArray(dateObj.date)) {
+                  return dateObj.date;
+                } else {
+                  return [dateObj.date];
+                }
+              }
+              return [];
+            });
+          } else if (typeof rawDates === 'string') {
+            normalizedDates = [rawDates];
+          }
+          
           return {
             id: space.id,
             roomNumber: roomNum || 'N/A',
@@ -868,10 +1050,10 @@ const Inventory = () => {
             date: space.date || space.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
             availability: space.availability || 'AVAILABLE',
             price: space.price || '0',
-            space_name: space.space_name || space.name || 'Unknown',
+            spaceName: space.spaceName || space.name || 'Unknown',
             seater: space.seater || space.capacity || 1,
-            spaceImages: space.images || space.spaceImages || space.space_images || [],
-            availableDates: space.availableDates || space.available_dates || []
+            spaceImages: normalizedImages,
+            availableDates: normalizedDates
           };
         }) || [];
         setInventoryItems(transformedData);
@@ -1035,7 +1217,7 @@ const Inventory = () => {
                           sx={{ ml: 1 }}
                         />
                         <Typography variant="body2" sx={{ ml: 1, fontWeight: 500 }}>
-                          {row.space_name || `Room ${row.roomNumber}`}
+                          {row.spaceName || `Room ${row.roomNumber}`}
                         </Typography>
                       </Box>
                     </StyledTableBodyCell>
@@ -1340,8 +1522,8 @@ const Inventory = () => {
                 fullWidth
                 label="Space Name*"
                 variant="outlined"
-                value={formData.space_name}
-                onChange={(e) => handleInputChange('space_name', e.target.value)}
+                value={formData.spaceName}
+                onChange={(e) => handleInputChange('spaceName', e.target.value)}
                 placeholder="Enter space name (e.g., Meeting Room A, Conference Hall)"
                 sx={{
                   '& .MuiOutlinedInput-root': {
@@ -1426,7 +1608,7 @@ const Inventory = () => {
               
               <DatePickerButton
                 fullWidth
-                hasdate={formData.availableDates.length > 0}
+                $hasdate={formData.availableDates.length > 0}
                 onClick={() => setShowCalendar(!showCalendar)}
                 startIcon={<CalendarTodayIcon />}
               >
@@ -1473,9 +1655,9 @@ const Inventory = () => {
                     {getDaysInMonth().map((date, index) => (
                       <CalendarDay
                         key={index}
-                        isbooked={date ? isDateBooked(date) : false}
-                        isselected={date ? isDateSelected(date) : false}
-                        istoday={date ? isToday(date) : false}
+                        $isbooked={date ? isDateBooked(date) : false}
+                        $isselected={date ? isDateSelected(date) : false}
+                        $istoday={date ? isToday(date) : false}
                         onClick={() => date && handleDateClick(date)}
                         sx={{
                           cursor: date ? (isDateBooked(date) ? 'not-allowed' : 'pointer') : 'default',

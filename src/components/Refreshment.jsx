@@ -251,7 +251,9 @@ const Refreshment = () => {
           paymentMethod: order.paymentMethod || order.payment_method || order.paymentType || '',
           amount: order.amount || order.totalAmount || order.total_amount || order.price || 0,
           orderDate: order.orderDate || order.order_date || order.createdAt || order.created_at || new Date().toISOString().split('T')[0],
-          status: order.status || order.orderStatus || order.order_status || 'Pending'
+          status: order.status || order.orderStatus || order.order_status || 'Pending',
+          isPersonal: order.isPersonal || false,
+          companyName: order.isPersonal && order.kyc?.companyName ? order.kyc.companyName : (order.companyName || null)
         }));
         
         console.log(`✅ Successfully loaded ${transformedData.length} orders from API`);
@@ -332,7 +334,8 @@ const Refreshment = () => {
         String(item.items || '').toLowerCase().includes(searchLower) ||
         String(item.itemName || '').toLowerCase().includes(searchLower) ||
         String(item.paymentMethod || '').toLowerCase().includes(searchLower) ||
-        String(item.status || '').toLowerCase().includes(searchLower)
+        String(item.status || '').toLowerCase().includes(searchLower) ||
+        String(item.companyName || '').toLowerCase().includes(searchLower)
       );
       
       // Date range filter
@@ -367,18 +370,22 @@ const Refreshment = () => {
           userInfo: {
             username: key,
             cabinNumber: order.cabinNumber && order.cabinNumber !== 'N/A' ? order.cabinNumber : '',
-            roomNumber: order.roomNumber && order.roomNumber !== 'N/A' ? order.roomNumber : ''
+            roomNumber: order.roomNumber && order.roomNumber !== 'N/A' ? order.roomNumber : '',
+            companyName: order.companyName || null
           },
           orders: []
         };
       }
       
-      // Update userInfo with first valid cabin/room if not set yet
+      // Update userInfo with first valid cabin/room/companyName if not set yet
       if (!grouped[key].userInfo.cabinNumber && order.cabinNumber && order.cabinNumber !== 'N/A') {
         grouped[key].userInfo.cabinNumber = order.cabinNumber;
       }
       if (!grouped[key].userInfo.roomNumber && order.roomNumber && order.roomNumber !== 'N/A') {
         grouped[key].userInfo.roomNumber = order.roomNumber;
+      }
+      if (!grouped[key].userInfo.companyName && order.companyName) {
+        grouped[key].userInfo.companyName = order.companyName;
       }
       
       grouped[key].orders.push(order);
@@ -765,6 +772,11 @@ const Refreshment = () => {
                   <Typography variant="h6" fontWeight={700} color="#2c3e50">
                     {username}
                   </Typography>
+                  {userData.userInfo.companyName && (
+                    <Typography variant="body2" sx={{ color: '#1976d2', fontWeight: 600 }}>
+                      Company: {userData.userInfo.companyName}
+                    </Typography>
+                  )}
                   <Typography variant="body2" color="text.secondary">
                     Cabin: {userData.userInfo.cabinNumber || 'N/A'} | Room: {userData.userInfo.roomNumber || 'N/A'}
                   </Typography>

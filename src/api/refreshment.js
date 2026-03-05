@@ -1,5 +1,30 @@
 import axios from './axios';
 
+// Helper function to process orders and include company name
+const processOrdersWithCompanyName = (response) => {
+  if (response.data && Array.isArray(response.data)) {
+    return {
+      ...response,
+      data: response.data.map(order => ({
+        ...order,
+        companyName: order.isPersonal && order.kyc?.companyName ? order.kyc.companyName : null,
+      })),
+    };
+  }
+  
+  if (response.data && response.data.id) {
+    return {
+      ...response,
+      data: {
+        ...response.data,
+        companyName: response.data.isPersonal && response.data.kyc?.companyName ? response.data.kyc.companyName : null,
+      },
+    };
+  }
+  
+  return response;
+};
+
 export const refreshmentApi = {
   // Fetch all cafeteria orders
   fetchOrders: async (includeCompany = true) => {
@@ -17,8 +42,13 @@ export const refreshmentApi = {
         withCredentials: false,
       });
       
-      console.log('✅ Cafeteria orders fetched successfully:', response.data);
-      return response.data;
+      const processedResponse = processOrdersWithCompanyName({
+        ...response,
+        data: response.data.data || response.data,
+      });
+      
+      console.log('✅ Cafeteria orders fetched successfully:', processedResponse.data);
+      return processedResponse.data;
       
     } catch (error) {
       console.error('❌ Failed to fetch cafeteria orders:', error.response?.data || error.message);
@@ -42,8 +72,13 @@ export const refreshmentApi = {
         withCredentials: false,
       });
       
-      console.log('✅ Cafeteria order fetched successfully:', response.data);
-      return response.data;
+      const processedResponse = processOrdersWithCompanyName({
+        ...response,
+        data: response.data.data || response.data,
+      });
+      
+      console.log('✅ Cafeteria order fetched successfully:', processedResponse.data);
+      return processedResponse.data;
       
     } catch (error) {
       console.error('❌ Failed to fetch cafeteria order:', error.response?.data || error.message);
@@ -99,8 +134,13 @@ export const refreshmentApi = {
         withCredentials: false,
       });
       
-      console.log('✅ Filtered cafeteria orders fetched successfully:', response.data);
-      return response.data;
+      const processedResponse = processOrdersWithCompanyName({
+        ...response,
+        data: response.data.data || response.data,
+      });
+      
+      console.log('✅ Filtered cafeteria orders fetched successfully:', processedResponse.data);
+      return processedResponse.data;
       
     } catch (error) {
       console.error('❌ Failed to fetch filtered cafeteria orders:', error.response?.data || error.message);

@@ -1,8 +1,8 @@
 import axios, { baseURL } from './axios';
 
 export const spacesApi = {
-  create: async ({ space_name, seater, price, availability, spaceImages, availableDates, roomNumber, cabinNumber }) => {
-    console.log('Creating space with data:', { space_name, seater, price, availability, spaceImages, availableDates, roomNumber, cabinNumber });
+  create: async ({ spaceName, seater, price, availability, spaceImages, availableDates, roomNumber, cabinNumber }) => {
+    console.log('Creating space with data:', { spaceName, seater, price, availability, spaceImages, availableDates, roomNumber, cabinNumber });
     
     const token = localStorage.getItem('authToken');
     
@@ -15,7 +15,7 @@ export const spacesApi = {
     const formData = new FormData();
     
     // Add all fields with proper names matching backend expectations
-    formData.append('space_name', space_name || 'Unnamed Space');
+    formData.append('spaceName', spaceName || 'Unnamed Space');
     formData.append('roomNumber', String(roomNumber || ''));
     formData.append('cabinNumber', String(cabinNumber || ''));
     formData.append('seater', String(seater || 1));
@@ -78,18 +78,18 @@ export const spacesApi = {
   },
 
   // Update space function
-  updateSpace: async (spaceId, { space_name, seater, price, availability, spaceImages, existingImages, availableDates, roomNumber, cabinNumber }) => {
+  updateSpace: async (spaceId, { spaceName, seater, price, availability, spaceImages, existingImages, availableDates, roomNumber, cabinNumber }) => {
     console.log('🔄 Updating space ID:', spaceId);
-    console.log('📝 Update data received:', { space_name, seater, price, availability, roomNumber, cabinNumber });
+    console.log('📝 Update data received:', { spaceName, seater, price, availability, roomNumber, cabinNumber });
     console.log('🖼️ Images - New:', spaceImages?.length || 0, 'Existing:', existingImages?.length || 0);
     
     const formData = new FormData();
     
     // Try multiple field name variations for space name and seater
-    if (space_name !== undefined && space_name !== null) {
-      formData.append('space_name', String(space_name));
-      formData.append('name', String(space_name)); // Try alternative name
-      console.log('✅ Sending space_name (both space_name and name):', space_name);
+    if (spaceName !== undefined && spaceName !== null) {
+      formData.append('spaceName', String(spaceName));
+      formData.append('name', String(spaceName)); // Try alternative name
+      console.log('✅ Sending spaceName (both spaceName and name):', spaceName);
     }
     
     if (seater !== undefined && seater !== null) {
@@ -219,7 +219,7 @@ export const spacesApi = {
     try {
       console.log('Test 1: Trying JSON approach...');
       const jsonData = {
-        space_name: 'Test Room JSON',
+        spaceName: 'Test Room JSON',
         seater: 2,
         price: 500,
         availability: 'AVAILABLE'
@@ -242,7 +242,7 @@ export const spacesApi = {
       try {
         console.log('Test 2: Trying FormData approach...');
         const formData = new FormData();
-        formData.append('space_name', 'Test Room FormData');
+        formData.append('spaceName', 'Test Room FormData');
         formData.append('seater', '2');
         formData.append('price', '500');
         formData.append('availability', 'AVAILABLE');
