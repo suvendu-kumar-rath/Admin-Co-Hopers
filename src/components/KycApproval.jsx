@@ -283,7 +283,7 @@ const KycApproval = () => {
 
       await pushNotificationsApi.subscribePushTopic({
         token: token,
-        topic: 'kyc-approval-updates',
+        topic: 'all_users',
       });
 
       setPushToken(token);

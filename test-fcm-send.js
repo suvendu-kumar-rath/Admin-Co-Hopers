@@ -45,7 +45,7 @@ try {
 
 async function sendOrderNotification(orderDetails) {
   const message = {
-    topic: 'cafeteria_admin', // The topic your admin dashboard is subscribed to
+    topic: 'cafeteria_updates', // The topic your admin dashboard is subscribed to
     notification: {
       title: `🔔 New Order from ${orderDetails.username}`,
       body: `${orderDetails.username} ordered ${orderDetails.itemName} (₹${orderDetails.amount})`,

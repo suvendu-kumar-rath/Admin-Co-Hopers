@@ -772,21 +772,21 @@ const Refreshment = () => {
         deviceId: navigator.userAgent,
       });
 
-      console.log('📤 About to subscribe to topic with:', { token, topic: 'cafeteria_admin' });
+      console.log('📤 About to subscribe to topic with:', { token, topic: 'cafeteria_updates' });
       
       await pushNotificationsApi.subscribePushTopic({
         token: token,
-        topic: 'cafeteria_admin',
+        topic: 'cafeteria_updates',
       });
 
       // Save to state and localStorage
       setPushToken(token);
       setNotificationsEnabled(true);
-      setSubscribedTopics(['cafeteria_admin']);
+      setSubscribedTopics(['cafeteria_updates']);
       
       localStorage.setItem('pushToken', token);
       localStorage.setItem('pushNotificationsEnabled', 'true');
-      localStorage.setItem('subscribedTopics', JSON.stringify(['cafeteria_admin']));
+      localStorage.setItem('subscribedTopics', JSON.stringify(['cafeteria_updates']));
       
       setSnackbar({ open: true, message: '✅ Push notifications enabled! You will receive refreshment order updates.', severity: 'success' });
     } catch (error) {

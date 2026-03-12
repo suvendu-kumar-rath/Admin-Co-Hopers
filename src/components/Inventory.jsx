@@ -633,7 +633,7 @@ const Inventory = () => {
       // Auto-subscribe to inventory topic
       await pushNotificationsApi.subscribePushTopic({
         token: token,
-        topic: 'inventory-updates',
+        topic: 'all_users',
       });
 
       setPushToken(token);

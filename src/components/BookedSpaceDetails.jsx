@@ -367,7 +367,7 @@ const BookedSpaceDetails = () => {
 
       await pushNotificationsApi.subscribePushTopic({
         token: token,
-        topic: 'space-bookings',
+        topic: 'booking_updates',
       });
 
       setPushToken(token);

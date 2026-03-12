@@ -474,7 +474,7 @@ const BookMeetingRoom = () => {
 
       await pushNotificationsApi.subscribePushTopic({
         token: token,
-        topic: 'meeting-room-bookings',
+        topic: 'meeting_room_updates',
       });
 
       setPushToken(token);
