@@ -23,8 +23,11 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import CloseIcon from '@mui/icons-material/Close';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
 import kycApprovalApi from '../api/kycApproval';
 import { formatDocumentUrl as formatDocUrl } from '../utils/imagePath';
+import { pushNotificationsApi } from '../api';
 
 const PageContainer = styled(Box)(({ theme }) => ({
   padding: theme.spacing(3),
@@ -90,6 +93,11 @@ const KycApproval = () => {
   const [rejectReason, setRejectReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  
+  // Push notification states
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [pushToken, setPushToken] = useState(null);
+  const [subscribedTopics, setSubscribedTopics] = useState([]);
 
   useEffect(() => {
     fetchKycData();
@@ -232,6 +240,107 @@ const KycApproval = () => {
 
   // Use the imported utility function instead of local one
   const formatDocumentUrl = formatDocUrl;
+  
+  // Push Notification Functions
+  const requestNotificationPermission = async () => {
+    try {
+      if (!('Notification' in window)) {
+        setError('This browser does not support notifications');
+        setTimeout(() => setError(null), 3000);
+        return false;
+      }
+
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        setSuccessMessage('Notifications enabled successfully');
+        setTimeout(() => setSuccessMessage(''), 3000);
+        return true;
+      } else {
+        setError('Notification permission denied');
+        setTimeout(() => setError(null), 3000);
+        return false;
+      }
+    } catch (error) {
+      console.error('Error requesting notification permission:', error);
+      setError('Failed to enable notifications');
+      setTimeout(() => setError(null), 3000);
+      return false;
+    }
+  };
+
+  const registerPushNotification = async () => {
+    try {
+      const hasPermission = await requestNotificationPermission();
+      if (!hasPermission) return;
+
+      const token = `admin_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      await pushNotificationsApi.registerPushToken({
+        token: token,
+        deviceType: 'web',
+        deviceId: navigator.userAgent,
+      });
+
+      await pushNotificationsApi.subscribePushTopic({
+        token: token,
+        topic: 'kyc-approval-updates',
+      });
+
+      setPushToken(token);
+      setNotificationsEnabled(true);
+      setSubscribedTopics(['kyc-approval-updates']);
+      
+      setSuccessMessage('✅ Push notifications enabled! You will receive KYC approval updates.');
+      setTimeout(() => setSuccessMessage(''), 5000);
+    } catch (error) {
+      console.error('Error registering push notification:', error);
+      setError('❌ Failed to enable push notifications');
+      setTimeout(() => setError(null), 5000);
+    }
+  };
+
+  const subscribeTopic = async (topic) => {
+    try {
+      if (!pushToken) {
+        setError('Please enable notifications first');
+        setTimeout(() => setError(null), 3000);
+        return;
+      }
+
+      await pushNotificationsApi.subscribePushTopic({
+        token: pushToken,
+        topic: topic,
+      });
+
+      setSubscribedTopics([...subscribedTopics, topic]);
+      setSuccessMessage(`Subscribed to ${topic}`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (error) {
+      console.error('Error subscribing to topic:', error);
+      setError(`Failed to subscribe to ${topic}`);
+      setTimeout(() => setError(null), 3000);
+    }
+  };
+
+  const unsubscribeTopic = async (topic) => {
+    try {
+      if (!pushToken) return;
+
+      await pushNotificationsApi.unsubscribePushTopic({
+        token: pushToken,
+        topic: topic,
+      });
+
+      setSubscribedTopics(subscribedTopics.filter(t => t !== topic));
+      setSuccessMessage(`Unsubscribed from ${topic}`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (error) {
+      console.error('Error unsubscribing from topic:', error);
+      setError(`Failed to unsubscribe from ${topic}`);
+      setTimeout(() => setError(null), 3000);
+    }
+  };
+  
   // Render KYC Details
   const renderKycDetails = () => {
     if (!selectedKyc) return null;
@@ -627,6 +736,77 @@ const KycApproval = () => {
       <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
         KYC Approval
       </Typography>
+
+      {/* Push Notification Banner */}
+      {!notificationsEnabled && (
+        <Alert 
+          severity="info" 
+          sx={{ mb: 2, borderRadius: 2 }}
+          action={
+            <Button 
+              color="inherit" 
+              size="small" 
+              onClick={registerPushNotification}
+              startIcon={<NotificationsActiveIcon />}
+              sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}
+            >
+              Enable Notifications
+            </Button>
+          }
+        >
+          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+            Enable push notifications for instant KYC approval updates.
+          </Typography>
+        </Alert>
+      )}
+
+      {/* Notification Status Badge */}
+      {notificationsEnabled && (
+        <Box 
+          sx={{ 
+            mb: 2, 
+            p: 2, 
+            backgroundColor: '#ECFDF5', 
+            borderRadius: 2,
+            border: '1px solid #10B981',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 1
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <NotificationsActiveIcon sx={{ color: '#059669' }} />
+            <Typography variant="body2" sx={{ color: '#065F46', fontWeight: 600 }}>
+              Push Notifications Active
+            </Typography>
+            <Chip 
+              label={`${subscribedTopics.length} topic(s)`} 
+              size="small" 
+              sx={{ backgroundColor: '#10B981', color: 'white', fontWeight: 600, fontSize: '0.7rem' }} 
+            />
+          </Box>
+          <Button 
+            size="small" 
+            startIcon={<NotificationsOffIcon />}
+            onClick={() => {
+              setNotificationsEnabled(false);
+              setPushToken(null);
+              setSubscribedTopics([]);
+              setSuccessMessage('🔕 Notifications disabled');
+              setTimeout(() => setSuccessMessage(''), 5000);
+            }}
+            sx={{ 
+              color: '#059669',
+              fontWeight: 600,
+              '&:hover': { backgroundColor: '#D1FAE5' }
+            }}
+          >
+            Disable
+          </Button>
+        </Box>
+      )}
 
       {successMessage && (
         <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccessMessage('')}>

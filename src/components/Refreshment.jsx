@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -37,8 +37,12 @@ import {
   FilterList as FilterListIcon,
   Clear as ClearIcon
 } from '@mui/icons-material';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
 import { styled } from '@mui/material/styles';
 import refreshmentApi from '../api/refreshment';
+import { pushNotificationsApi } from '../api';
+import { onMessageListener } from '../config/firebase';
 
 const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
   marginTop: theme.spacing(3),
@@ -145,6 +149,96 @@ const Refreshment = () => {
   const [dateTo, setDateTo] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [showFilters, setShowFilters] = useState(false);
+  
+  // Push notification states - Load from localStorage
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
+    return localStorage.getItem('pushNotificationsEnabled') === 'true';
+  });
+  const [pushToken, setPushToken] = useState(() => {
+    return localStorage.getItem('pushToken') || null;
+  });
+  const [subscribedTopics, setSubscribedTopics] = useState(() => {
+    const saved = localStorage.getItem('subscribedTopics');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [lastRefreshTime, setLastRefreshTime] = useState(null);
+
+  // Ref to track known order IDs (survives re-renders without triggering them)
+  const knownOrderIdsRef = useRef(new Set());
+  const isFirstLoadRef = useRef(true);
+  const fetchRef = useRef(null); // always points to latest fetchRefreshmentOrders
+
+  // Notification sound function
+  const playNotificationSound = useCallback(() => {
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      
+      // Play two-tone beep for attention
+      const playTone = (freq, startTime, duration) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.value = freq;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.4, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+      };
+
+      const now = audioCtx.currentTime;
+      playTone(880, now, 0.15);        // High beep
+      playTone(1100, now + 0.18, 0.15); // Higher beep
+      playTone(880, now + 0.36, 0.3);   // Sustained beep
+
+      console.log('🔊 Notification sound played');
+    } catch (err) {
+      console.warn('Sound playback failed:', err);
+    }
+  }, []);
+
+  // Show new-order notification popup
+  const showNewOrderAlert = useCallback((newOrders) => {
+    if (newOrders.length === 0) return;
+
+    playNotificationSound();
+
+    const firstOrder = newOrders[0];
+    const title = newOrders.length === 1
+      ? `🔔 New Order from ${firstOrder.username}`
+      : `🔔 ${newOrders.length} New Orders Received!`;
+    const body = newOrders.length === 1
+      ? `${firstOrder.username} ordered ${firstOrder.itemName || 'an item'} (₹${firstOrder.amount})`
+      : newOrders.map(o => `${o.username}: ${o.itemName || 'item'}`).join(', ');
+
+    // In-app snackbar notification
+    setSnackbar({
+      open: true,
+      message: `${title} — ${body}`,
+      severity: 'info'
+    });
+
+    // Browser notification popup (if permission granted)
+    if (Notification.permission === 'granted') {
+      try {
+        const notif = new Notification(title, {
+          body: body,
+          icon: '/logo192.png',
+          badge: '/logo192.png',
+          tag: `new-order-${Date.now()}`,
+          requireInteraction: true,
+          vibrate: [200, 100, 200]
+        });
+        notif.onclick = () => { window.focus(); notif.close(); };
+        console.log('✅ Browser notification shown for new orders');
+      } catch (e) {
+        console.warn('Browser notification failed:', e);
+      }
+    }
+
+    console.log(`🔔 Notified admin about ${newOrders.length} new order(s):`, newOrders.map(o => o.id));
+  }, [playNotificationSound]);
 
   // Sample data - replace this with API call
   const sampleData = [
@@ -211,12 +305,69 @@ const Refreshment = () => {
   ];
 
   useEffect(() => {
+    console.log('%c🚀 REFRESHMENT PAGE LOADED — New order detection ACTIVE', 'background:#1976d2;color:white;padding:4px 12px;border-radius:4px;font-size:14px');
+    console.log('📋 Build timestamp:', new Date().toISOString());
+    console.log('📋 Known order IDs:', knownOrderIdsRef.current.size);
+    
     fetchRefreshmentOrders();
+    
+    // Auto-request notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().then(perm => {
+        console.log('📋 Notification permission:', perm);
+      });
+    }
+
+    // Expose test function on window for debugging from browser console
+    window.__testOrderNotification = () => {
+      console.log('%c🧪 TEST: Triggering fake new-order notification...', 'color:orange;font-weight:bold');
+      showNewOrderAlert([{
+        id: 'test-' + Date.now(),
+        username: 'Test User',
+        itemName: 'Cappuccino',
+        amount: 150
+      }]);
+    };
+    console.log('💡 TIP: Run window.__testOrderNotification() in console to test notification sound + popup');
+
+    return () => { delete window.__testOrderNotification; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-refresh orders every 15 seconds to catch new orders quickly
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      console.log('🔄 Auto-refreshing orders...');
+      fetchRef.current(); // always calls the latest version
+    }, 15000); // 15 seconds
+
+    return () => clearInterval(intervalId);
   }, []);
+
+  // Listen for push notifications (FCM) and refresh immediately
+  useEffect(() => {
+    console.log('🎧 Setting up FCM notification listener for Refreshment page...');
+    console.log('⚠️ NOTE: FCM only works if the BACKEND sends messages via Firebase Admin SDK');
+    
+    const unsubscribe = onMessageListener((payload) => {
+      console.log('🔔 FCM Notification received on Refreshment page:', payload);
+      fetchRef.current();
+      playNotificationSound();
+      setSnackbar({ 
+        open: true, 
+        message: `🔔 ${payload.notification?.title || 'New order received'}`, 
+        severity: 'info' 
+      });
+    });
+
+    return () => {
+      console.log('🔕 Cleaning up notification listener for Refreshment page');
+      if (unsubscribe) unsubscribe();
+    };
+  }, [playNotificationSound]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchRefreshmentOrders = async () => {
     try {
-      setLoading(true);
+      setLoading(prev => isFirstLoadRef.current ? true : prev); // Only show spinner on first load
       setError(null);
       
       console.log('🔄 Fetching cafeteria orders...');
@@ -226,15 +377,21 @@ const Refreshment = () => {
         const response = await refreshmentApi.fetchOrders();
         
         // Handle different response structures from your API
-        let ordersData = response.data || response.orders || response || [];
+        let ordersData = response;
+        
+        // If the response is wrapped (e.g. { data: [...] } or { orders: [...] })
+        if (response && !Array.isArray(response)) {
+          ordersData = response.data || response.orders || [];
+        }
         
         // Ensure it's an array
         if (!Array.isArray(ordersData)) {
+          console.warn('⚠️ ordersData is not an array, got:', typeof ordersData, ordersData);
           ordersData = [];
         }
         
-        console.log('📊 Raw API response:', response);
-        console.log('📋 Processed orders data:', ordersData);
+        console.log('📊 API returned type:', typeof response, Array.isArray(response) ? '(array)' : '');
+        console.log(`📋 Processing ${ordersData.length} orders. First order sample:`, ordersData[0]);
         
         // Transform API data to match component structure
         const transformedData = ordersData.map(order => ({
@@ -257,7 +414,29 @@ const Refreshment = () => {
         }));
         
         console.log(`✅ Successfully loaded ${transformedData.length} orders from API`);
-        console.log('📸 Sample order data:', transformedData[0]);
+        
+        // === NEW ORDER DETECTION ===
+        const validOrders = transformedData.filter(o => o.id != null && o.id !== '');
+        
+        if (isFirstLoadRef.current) {
+          // First load — just record all existing order IDs, don't notify
+          validOrders.forEach(order => knownOrderIdsRef.current.add(String(order.id)));
+          isFirstLoadRef.current = false;
+          console.log(`📋 First load: recorded ${knownOrderIdsRef.current.size} existing order IDs:`, [...knownOrderIdsRef.current]);
+        } else {
+          // Subsequent loads — detect new orders
+          const newOrders = validOrders.filter(order => !knownOrderIdsRef.current.has(String(order.id)));
+          
+          if (newOrders.length > 0) {
+            console.log(`🆕 Detected ${newOrders.length} NEW order(s)!`, newOrders.map(o => ({ id: o.id, user: o.username, item: o.itemName })));
+            showNewOrderAlert(newOrders);
+            // Add new IDs to known set
+            newOrders.forEach(order => knownOrderIdsRef.current.add(String(order.id)));
+          } else {
+            console.log(`✅ Refreshed ${validOrders.length} orders — no new orders detected`);
+          }
+        }
+        // === END NEW ORDER DETECTION ===
         
         // Merge with localStorage updates for persistence
         const localUpdates = JSON.parse(localStorage.getItem('refreshmentOrderUpdates') || '{}');
@@ -271,6 +450,7 @@ const Refreshment = () => {
         
         setRefreshmentData(finalData);
         setFilteredData(finalData);
+        setLastRefreshTime(new Date());
         
       } catch (apiError) {
         console.error('❌ API call failed:', apiError);
@@ -289,6 +469,7 @@ const Refreshment = () => {
         // Fallback to sample data if API is not available
         setRefreshmentData(updatedSampleData);
         setFilteredData(updatedSampleData);
+        setLastRefreshTime(new Date());
         
         setSnackbar({
           open: true,
@@ -320,6 +501,9 @@ const Refreshment = () => {
       setLoading(false);
     }
   };
+
+  // Keep fetchRef always pointing to the latest function (must be after definition)
+  fetchRef.current = fetchRefreshmentOrders;
 
   useEffect(() => {
     // Filter data based on search term and date range with null-safe operations
@@ -542,6 +726,154 @@ const Refreshment = () => {
     setSnackbar(prev => ({ ...prev, open: false }));
   };
 
+  // Push Notification Functions
+  const requestNotificationPermission = async () => {
+    try {
+      if (!('Notification' in window)) {
+        setSnackbar({ open: true, message: 'This browser does not support notifications', severity: 'error' });
+        return false;
+      }
+
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        setSnackbar({ open: true, message: 'Notifications enabled successfully', severity: 'success' });
+        return true;
+      } else {
+        setSnackbar({ open: true, message: 'Notification permission denied', severity: 'warning' });
+        return false;
+      }
+    } catch (error) {
+      console.error('Error requesting notification permission:', error);
+      setSnackbar({ open: true, message: 'Failed to enable notifications', severity: 'error' });
+      return false;
+    }
+  };
+
+  const registerPushNotification = async () => {
+    try {
+      const hasPermission = await requestNotificationPermission();
+      if (!hasPermission) return;
+
+      // Get real FCM token from Firebase
+      setSnackbar({ open: true, message: 'Getting push notification token...', severity: 'info' });
+      
+      const token = await pushNotificationsApi.getFCMToken();
+      
+      if (!token) {
+        throw new Error('Failed to get FCM token. Please ensure Firebase is configured correctly.');
+      }
+      
+      console.log('✅ Got FCM Token:', token);
+      console.log('Token length:', token.length, 'Type:', typeof token);
+      
+      await pushNotificationsApi.registerPushToken({
+        token: token,
+        deviceType: 'web',
+        deviceId: navigator.userAgent,
+      });
+
+      console.log('📤 About to subscribe to topic with:', { token, topic: 'cafeteria_admin' });
+      
+      await pushNotificationsApi.subscribePushTopic({
+        token: token,
+        topic: 'cafeteria_admin',
+      });
+
+      // Save to state and localStorage
+      setPushToken(token);
+      setNotificationsEnabled(true);
+      setSubscribedTopics(['cafeteria_admin']);
+      
+      localStorage.setItem('pushToken', token);
+      localStorage.setItem('pushNotificationsEnabled', 'true');
+      localStorage.setItem('subscribedTopics', JSON.stringify(['cafeteria_admin']));
+      
+      setSnackbar({ open: true, message: '✅ Push notifications enabled! You will receive refreshment order updates.', severity: 'success' });
+    } catch (error) {
+      console.error('Error registering push notification:', error);
+      
+      // Use the custom error message if available
+      let errorMessage = error.userMessage || error.message || '❌ Failed to enable push notifications.';
+      
+      // Check if it's a Firebase configuration error
+      if (error.message && error.message.includes('Firebase')) {
+        errorMessage = '⚠️ Firebase is not configured. Please add your Firebase credentials to enable push notifications.';
+      }
+      
+      // For 403 errors, show a warning instead of error
+      const severity = error.response?.status === 403 ? 'warning' : 'error';
+      
+      setSnackbar({ 
+        open: true, 
+        message: errorMessage, 
+        severity: severity 
+      });
+      
+      // Reset notification state on error
+      setNotificationsEnabled(false);
+      setPushToken(null);
+      setSubscribedTopics([]);
+      
+      localStorage.removeItem('pushToken');
+      localStorage.removeItem('pushNotificationsEnabled');
+      localStorage.removeItem('subscribedTopics');
+    }
+  };
+
+  const subscribeTopic = async (topic) => {
+    try {
+      if (!pushToken) {
+        setSnackbar({ open: true, message: 'Please enable notifications first', severity: 'warning' });
+        return;
+      }
+
+      await pushNotificationsApi.subscribePushTopic({
+        token: pushToken,
+        topic: topic,
+      });
+
+      setSubscribedTopics([...subscribedTopics, topic]);
+      setSnackbar({ open: true, message: `Subscribed to ${topic}`, severity: 'success' });
+    } catch (error) {
+      console.error('Error subscribing to topic:', error);
+      const errorMessage = error.userMessage || `Failed to subscribe to ${topic}`;
+      const severity = error.response?.status === 403 ? 'warning' : 'error';
+      setSnackbar({ open: true, message: errorMessage, severity: severity });
+    }
+  };
+
+  const unsubscribeTopic = async (topic) => {
+    try {
+      if (!pushToken) return;
+
+      await pushNotificationsApi.unsubscribePushTopic({
+        token: pushToken,
+        topic: topic,
+      });
+
+      const newTopics = subscribedTopics.filter(t => t !== topic);
+      setSubscribedTopics(newTopics);
+      
+      // If no topics left, disable notifications completely
+      if (newTopics.length === 0) {
+        setNotificationsEnabled(false);
+        setPushToken(null);
+        localStorage.removeItem('pushToken');
+        localStorage.removeItem('pushNotificationsEnabled');
+        localStorage.removeItem('subscribedTopics');
+      } else {
+        localStorage.setItem('subscribedTopics', JSON.stringify(newTopics));
+      }
+      
+      setSnackbar({ open: true, message: '🔕 Notifications disabled successfully', severity: 'success' });
+    } catch (error) {
+      console.error('Error unsubscribing from topic:', error);
+      const errorMessage = error.userMessage || '❌ Failed to disable notifications';
+      const severity = error.response?.status === 403 ? 'warning' : 'error';
+      setSnackbar({ open: true, message: errorMessage, severity: severity });
+    }
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -584,6 +916,20 @@ const Refreshment = () => {
           <Typography variant="body1" color="text.secondary">
             Manage and track all refreshment orders from members
           </Typography>
+          {lastRefreshTime && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+              <Chip 
+                label="🔄 Auto-refresh: ON"
+                size="small"
+                color="success"
+                variant="outlined"
+                sx={{ fontSize: '0.7rem', height: 22 }}
+              />
+              <Typography variant="caption" color="text.secondary">
+                Last updated: {lastRefreshTime.toLocaleTimeString()}
+              </Typography>
+            </Box>
+          )}
         </Box>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
           <Tooltip title={showFilters ? "Hide Filters" : "Show Filters"}>
@@ -612,6 +958,79 @@ const Refreshment = () => {
           </Tooltip>
         </Box>
       </HeaderBox>
+
+      {/* Push Notification Banner */}
+      {!notificationsEnabled && (
+        <Alert 
+          severity="info" 
+          sx={{ mb: 2, borderRadius: 2 }}
+          action={
+            <Button 
+              color="inherit" 
+              size="small" 
+              onClick={registerPushNotification}
+              startIcon={<NotificationsActiveIcon />}
+              sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}
+            >
+              Enable Notifications
+            </Button>
+          }
+        >
+          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+            Enable push notifications for instant refreshment order updates.
+          </Typography>
+        </Alert>
+      )}
+
+      {/* Notification Status Badge */}
+      {notificationsEnabled && (
+        <Box 
+          sx={{ 
+            mb: 2, 
+            p: 2, 
+            backgroundColor: '#ECFDF5', 
+            borderRadius: 2,
+            border: '1px solid #10B981',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 1
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <NotificationsActiveIcon sx={{ color: '#059669' }} />
+            <Typography variant="body2" sx={{ color: '#065F46', fontWeight: 600 }}>
+              Push Notifications Active
+            </Typography>
+            <Chip 
+              label={`${subscribedTopics.length} topic(s)`} 
+              size="small" 
+              sx={{ backgroundColor: '#10B981', color: 'white', fontWeight: 600, fontSize: '0.7rem' }} 
+            />
+          </Box>
+          <Button 
+            size="small" 
+            startIcon={<NotificationsOffIcon />}
+            onClick={() => {
+              setNotificationsEnabled(false);
+              setPushToken(null);
+              setSubscribedTopics([]);
+              localStorage.removeItem('pushToken');
+              localStorage.removeItem('pushNotificationsEnabled');
+              localStorage.removeItem('subscribedTopics');
+              setSnackbar({ open: true, message: 'Notifications disabled', severity: 'info' });
+            }}
+            sx={{ 
+              color: '#059669',
+              fontWeight: 600,
+              '&:hover': { backgroundColor: '#D1FAE5' }
+            }}
+          >
+            Disable
+          </Button>
+        </Box>
+      )}
 
       {/* Filter Section */}
       {showFilters && (
@@ -1080,15 +1499,21 @@ const Refreshment = () => {
       {/* Snackbar for notifications */}
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={6000}
+        autoHideDuration={8000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        sx={{ zIndex: 9999 }}
       >
         <Alert
           onClose={handleCloseSnackbar}
           severity={snackbar.severity}
           variant="filled"
-          sx={{ width: '100%' }}
+          sx={{ 
+            width: '100%', 
+            minWidth: '320px',
+            fontSize: '0.95rem',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+          }}
         >
           {snackbar.message}
         </Alert>

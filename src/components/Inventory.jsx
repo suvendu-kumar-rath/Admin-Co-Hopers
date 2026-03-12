@@ -41,8 +41,10 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
 import { motion } from 'framer-motion';
-import { spacesApi } from '../api';
+import { spacesApi, pushNotificationsApi } from '../api';
 
 const MotionBox = motion(Box);
 const MotionPaper = motion(Paper);
@@ -468,6 +470,11 @@ const Inventory = () => {
   
   const [showCalendar, setShowCalendar] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  
+  // Push notification states
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [pushToken, setPushToken] = useState(null);
+  const [subscribedTopics, setSubscribedTopics] = useState([]);
 
   // Responsive hooks
   const theme = useTheme();
@@ -574,6 +581,121 @@ const Inventory = () => {
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
+  };
+
+  // Push Notification Functions
+  const requestNotificationPermission = async () => {
+    try {
+      if (!('Notification' in window)) {
+        setSnackbarMessage('This browser does not support notifications');
+        setSnackbarSeverity('error');
+        setSnackbarOpen(true);
+        return false;
+      }
+
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        setSnackbarMessage('Notifications enabled successfully');
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
+        return true;
+      } else {
+        setSnackbarMessage('Notification permission denied');
+        setSnackbarSeverity('warning');
+        setSnackbarOpen(true);
+        return false;
+      }
+    } catch (error) {
+      console.error('Error requesting notification permission:', error);
+      setSnackbarMessage('Failed to enable notifications');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+      return false;
+    }
+  };
+
+  const registerPushNotification = async () => {
+    try {
+      const hasPermission = await requestNotificationPermission();
+      if (!hasPermission) return;
+
+      // Generate a unique token (in production, you'd use FCM or similar)
+      // For demo purposes, we'll create a dummy token
+      const token = `admin_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Register the token with the backend
+      await pushNotificationsApi.registerPushToken({
+        token: token,
+        deviceType: 'web',
+        deviceId: navigator.userAgent,
+      });
+
+      // Auto-subscribe to inventory topic
+      await pushNotificationsApi.subscribePushTopic({
+        token: token,
+        topic: 'inventory-updates',
+      });
+
+      setPushToken(token);
+      setNotificationsEnabled(true);
+      setSubscribedTopics(['inventory-updates']);
+      
+      setSnackbarMessage('✅ Push notifications enabled! Subscribed to inventory updates.');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error('Error registering push notification:', error);
+      setSnackbarMessage('❌ Failed to enable push notifications');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    }
+  };
+
+  const subscribeTopic = async (topic) => {
+    try {
+      if (!pushToken) {
+        setSnackbarMessage('Please enable notifications first');
+        setSnackbarSeverity('warning');
+        setSnackbarOpen(true);
+        return;
+      }
+
+      await pushNotificationsApi.subscribePushTopic({
+        token: pushToken,
+        topic: topic,
+      });
+
+      setSubscribedTopics([...subscribedTopics, topic]);
+      setSnackbarMessage(`Subscribed to ${topic}`);
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error('Error subscribing to topic:', error);
+      setSnackbarMessage(`Failed to subscribe to ${topic}`);
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    }
+  };
+
+  const unsubscribeTopic = async (topic) => {
+    try {
+      if (!pushToken) return;
+
+      await pushNotificationsApi.unsubscribePushTopic({
+        token: pushToken,
+        topic: topic,
+      });
+
+      setSubscribedTopics(subscribedTopics.filter(t => t !== topic));
+      setSnackbarMessage(`Unsubscribed from ${topic}`);
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error('Error unsubscribing from topic:', error);
+      setSnackbarMessage(`Failed to unsubscribe from ${topic}`);
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    }
   };
 
   const handleOpenModal = () => {
@@ -1147,6 +1269,94 @@ const Inventory = () => {
           {isSmall ? 'Add Space' : 'Add New Space'}
         </Button>
       </Box>
+
+      {/* Push Notification Banner */}
+      {!notificationsEnabled && (
+        <Alert 
+          severity="info" 
+          sx={{ 
+            mb: 2, 
+            borderRadius: '8px',
+            '& .MuiAlert-message': {
+              width: '100%'
+            }
+          }}
+          action={
+            <Button 
+              color="inherit" 
+              size="small" 
+              onClick={registerPushNotification}
+              startIcon={<NotificationsActiveIcon />}
+              sx={{ 
+                fontWeight: 600,
+                whiteSpace: 'nowrap'
+              }}
+            >
+              Enable Notifications
+            </Button>
+          }
+        >
+          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+            Stay updated! Enable push notifications to receive instant updates on inventory changes.
+          </Typography>
+        </Alert>
+      )}
+
+      {/* Notification Status Badge */}
+      {notificationsEnabled && (
+        <Box 
+          sx={{ 
+            mb: 2, 
+            p: 2, 
+            backgroundColor: '#ECFDF5', 
+            borderRadius: '8px',
+            border: '1px solid #10B981',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 1
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <NotificationsActiveIcon sx={{ color: '#059669' }} />
+            <Typography variant="body2" sx={{ color: '#065F46', fontWeight: 600 }}>
+              Push Notifications Active
+            </Typography>
+            <Chip 
+              label={`${subscribedTopics.length} topic(s)`} 
+              size="small" 
+              sx={{ 
+                backgroundColor: '#10B981', 
+                color: 'white',
+                fontWeight: 600,
+                fontSize: '0.7rem'
+              }} 
+            />
+          </Box>
+          <Button 
+            size="small" 
+            startIcon={<NotificationsOffIcon />}
+            onClick={() => {
+              setNotificationsEnabled(false);
+              setPushToken(null);
+              setSubscribedTopics([]);
+              setSnackbarMessage('Notifications disabled');
+              setSnackbarSeverity('info');
+              setSnackbarOpen(true);
+            }}
+            sx={{ 
+              color: '#059669',
+              fontWeight: 600,
+              '&:hover': {
+                backgroundColor: '#D1FAE5'
+              }
+            }}
+          >
+            Disable
+          </Button>
+        </Box>
+      )}
 
       {/* Table Section */}
       <MotionPaper

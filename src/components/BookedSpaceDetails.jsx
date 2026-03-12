@@ -33,8 +33,11 @@ import {
   Email as EmailIcon,
   Phone as PhoneIcon,
 } from '@mui/icons-material';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
 import { styled } from '@mui/material/styles';
 import { bookingsApi } from '../api/bookings';
+import { pushNotificationsApi } from '../api';
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   fontWeight: 'bold',
@@ -86,6 +89,11 @@ const BookedSpaceDetails = () => {
   const [processingBookingId, setProcessingBookingId] = useState(null);
   const [imageLoadError, setImageLoadError] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
+  
+  // Push notification states
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [pushToken, setPushToken] = useState(null);
+  const [subscribedTopics, setSubscribedTopics] = useState([]);
 
   // Mock data for demonstration - replace with actual API call
   const mockBookings = [
@@ -321,6 +329,95 @@ const BookedSpaceDetails = () => {
     setPage(0);
   };
 
+  // Push Notification Functions
+  const requestNotificationPermission = async () => {
+    try {
+      if (!('Notification' in window)) {
+        setSnackbar({ open: true, message: 'This browser does not support notifications', severity: 'error' });
+        return false;
+      }
+
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        setSnackbar({ open: true, message: 'Notifications enabled successfully', severity: 'success' });
+        return true;
+      } else {
+        setSnackbar({ open: true, message: 'Notification permission denied', severity: 'warning' });
+        return false;
+      }
+    } catch (error) {
+      console.error('Error requesting notification permission:', error);
+      setSnackbar({ open: true, message: 'Failed to enable notifications', severity: 'error' });
+      return false;
+    }
+  };
+
+  const registerPushNotification = async () => {
+    try {
+      const hasPermission = await requestNotificationPermission();
+      if (!hasPermission) return;
+
+      const token = `admin_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      await pushNotificationsApi.registerPushToken({
+        token: token,
+        deviceType: 'web',
+        deviceId: navigator.userAgent,
+      });
+
+      await pushNotificationsApi.subscribePushTopic({
+        token: token,
+        topic: 'space-bookings',
+      });
+
+      setPushToken(token);
+      setNotificationsEnabled(true);
+      setSubscribedTopics(['space-bookings']);
+      
+      setSnackbar({ open: true, message: '✅ Push notifications enabled! You will receive space booking updates.', severity: 'success' });
+    } catch (error) {
+      console.error('Error registering push notification:', error);
+      setSnackbar({ open: true, message: '❌ Failed to enable push notifications', severity: 'error' });
+    }
+  };
+
+  const subscribeTopic = async (topic) => {
+    try {
+      if (!pushToken) {
+        setSnackbar({ open: true, message: 'Please enable notifications first', severity: 'warning' });
+        return;
+      }
+
+      await pushNotificationsApi.subscribePushTopic({
+        token: pushToken,
+        topic: topic,
+      });
+
+      setSubscribedTopics([...subscribedTopics, topic]);
+      setSnackbar({ open: true, message: `Subscribed to ${topic}`, severity: 'success' });
+    } catch (error) {
+      console.error('Error subscribing to topic:', error);
+      setSnackbar({ open: true, message: `Failed to subscribe to ${topic}`, severity: 'error' });
+    }
+  };
+
+  const unsubscribeTopic = async (topic) => {
+    try {
+      if (!pushToken) return;
+
+      await pushNotificationsApi.unsubscribePushTopic({
+        token: pushToken,
+        topic: topic,
+      });
+
+      setSubscribedTopics(subscribedTopics.filter(t => t !== topic));
+      setSnackbar({ open: true, message: '🔕 Notifications disabled successfully', severity: 'success' });
+    } catch (error) {
+      console.error('Error unsubscribing from topic:', error);
+      setSnackbar({ open: true, message: '❌ Failed to disable notifications', severity: 'error' });
+    }
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -342,6 +439,76 @@ const BookedSpaceDetails = () => {
       <Typography variant="h4" component="h1" gutterBottom sx={{ color: '#333', mb: 3 }}>
         Booked Space Details
       </Typography>
+
+      {/* Push Notification Banner */}
+      {!notificationsEnabled && (
+        <Alert 
+          severity="info" 
+          sx={{ mb: 2, borderRadius: 2 }}
+          action={
+            <Button 
+              color="inherit" 
+              size="small" 
+              onClick={registerPushNotification}
+              startIcon={<NotificationsActiveIcon />}
+              sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}
+            >
+              Enable Notifications
+            </Button>
+          }
+        >
+          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+            Enable push notifications for instant space booking updates.
+          </Typography>
+        </Alert>
+      )}
+
+      {/* Notification Status Badge */}
+      {notificationsEnabled && (
+        <Box 
+          sx={{ 
+            mb: 2, 
+            p: 2, 
+            backgroundColor: '#ECFDF5', 
+            borderRadius: 2,
+            border: '1px solid #10B981',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 1
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <NotificationsActiveIcon sx={{ color: '#059669' }} />
+            <Typography variant="body2" sx={{ color: '#065F46', fontWeight: 600 }}>
+              Push Notifications Active
+            </Typography>
+            <Chip 
+              label={`${subscribedTopics.length} topic(s)`} 
+              size="small" 
+              sx={{ backgroundColor: '#10B981', color: 'white', fontWeight: 600, fontSize: '0.7rem' }} 
+            />
+          </Box>
+          <Button 
+            size="small" 
+            startIcon={<NotificationsOffIcon />}
+            onClick={() => {
+              setNotificationsEnabled(false);
+              setPushToken(null);
+              setSubscribedTopics([]);
+              setSnackbar({ open: true, message: 'Notifications disabled', severity: 'info' });
+            }}
+            sx={{ 
+              color: '#059669',
+              fontWeight: 600,
+              '&:hover': { backgroundColor: '#D1FAE5' }
+            }}
+          >
+            Disable
+          </Button>
+        </Box>
+      )}
 
       {/* Search Bar */}
       <Box sx={{ mb: 3 }}>
