@@ -129,6 +129,32 @@ const ActionButton = styled(Button)(({ theme }) => ({
 }));
 
 const Refreshment = () => {
+    // Toggle payment status handler
+    const handlePaymentStatusToggle = (orderId, currentStatus) => {
+      const newStatus = currentStatus === 'Paid' ? 'Not Paid' : 'Paid';
+      // Save to localStorage for persistence
+      const localUpdates = JSON.parse(localStorage.getItem('refreshmentOrderUpdates') || '{}');
+      localUpdates[orderId] = { ...localUpdates[orderId], paymentStatus: newStatus };
+      localStorage.setItem('refreshmentOrderUpdates', JSON.stringify(localUpdates));
+      // Update local state
+      setRefreshmentData(prevData =>
+        prevData.map(order => {
+          const id = order.id || order._id || order.orderId;
+          return id == orderId ? { ...order, paymentStatus: newStatus } : order;
+        })
+      );
+      setFilteredData(prevData =>
+        prevData.map(order => {
+          const id = order.id || order._id || order.orderId;
+          return id == orderId ? { ...order, paymentStatus: newStatus } : order;
+        })
+      );
+      setSnackbar({
+        open: true,
+        message: `Payment status updated to ${newStatus}`,
+        severity: 'success'
+      });
+    };
   const [refreshmentData, setRefreshmentData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [groupedData, setGroupedData] = useState({});
@@ -874,6 +900,33 @@ const Refreshment = () => {
     }
   };
 
+  // Export to Excel
+  const handleExportExcel = () => {
+    // Dynamically import xlsx library
+    import('xlsx').then(XLSX => {
+      // Prepare data for export
+      const exportData = filteredData.map(order => ({
+        'Order ID': order.id,
+        'Username': order.username,
+        'Cabin Number': order.cabinNumber,
+        'Room Number': order.roomNumber,
+        'Item Name': order.itemName,
+        'Quantity': order.quantity,
+        'Order Type': order.orderType,
+        'Special Instructions': order.specialInstructions,
+        'Payment Method': order.paymentMethod,
+        'Payment Status': order.paymentStatus || 'Not Paid',
+        'Amount': order.amount,
+        'Order Date': order.orderDate,
+        'Status': order.status
+      }));
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Refreshment Orders');
+      XLSX.writeFile(workbook, 'refreshment_orders.xlsx');
+    });
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -932,6 +985,17 @@ const Refreshment = () => {
           )}
         </Box>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <Tooltip title="Export to Excel">
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<DownloadIcon />}
+              onClick={handleExportExcel}
+              sx={{ fontWeight: 600 }}
+            >
+              Export
+            </Button>
+          </Tooltip>
           <Tooltip title={showFilters ? "Hide Filters" : "Show Filters"}>
             <IconButton 
               onClick={() => setShowFilters(!showFilters)}
@@ -1217,6 +1281,7 @@ const Refreshment = () => {
                     <TableCell>Order ID</TableCell>
                     <TableCell>Item Details</TableCell>
                     <TableCell>Payment Screenshot</TableCell>
+                    <TableCell>Payment Status</TableCell>
                     <TableCell>Amount</TableCell>
                     <TableCell>Order Date</TableCell>
                     <TableCell align="center">Status / Actions</TableCell>
@@ -1231,152 +1296,142 @@ const Refreshment = () => {
                         </Typography>
                       </TableCell>
                       <TableCell>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="caption" sx={{ fontWeight: 600, color: '#555' }}>
-                        Item:
-                      </Typography>
-                      <Typography 
-                        variant="body2" 
-                        fontWeight={500}
-                        sx={{ 
-                          maxWidth: 180, 
-                          overflow: 'hidden', 
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}
-                      >
-                        {row.itemName || 'N/A'}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="caption" sx={{ fontWeight: 600, color: '#555' }}>
-                        Qty:
-                      </Typography>
-                      <Chip 
-                        label={row.quantity || 0} 
-                        size="small" 
-                        sx={{ height: 20, bgcolor: '#e8f5e9', color: '#2e7d32' }}
-                      />
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="caption" sx={{ fontWeight: 600, color: '#555' }}>
-                        Type:
-                      </Typography>
-                      <Chip 
-                        label={row.orderType || 'N/A'} 
-                        size="small" 
-                        sx={{ height: 20, bgcolor: '#e3f2fd', color: '#1565c0' }}
-                      />
-                    </Box>
-                    {row.specialInstructions && (
-                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                        <Typography variant="caption" sx={{ fontWeight: 600, color: '#555' }}>
-                          Notes:
-                        </Typography>
-                        <Typography 
-                          variant="caption" 
-                          sx={{ 
-                            maxWidth: 150, 
-                            overflow: 'hidden', 
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            fontStyle: 'italic',
-                            color: '#757575'
-                          }}
-                          title={row.specialInstructions}
+                        {/* Item Details restored */}
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#555' }}>
+                              Item:
+                            </Typography>
+                            <Typography 
+                              variant="body2" 
+                              fontWeight={500}
+                              sx={{ 
+                                maxWidth: 180, 
+                                overflow: 'hidden', 
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              {row.itemName || 'N/A'}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#555' }}>
+                              Qty:
+                            </Typography>
+                            <Chip 
+                              label={row.quantity || 0} 
+                              size="small" 
+                              sx={{ height: 20, bgcolor: '#e8f5e9', color: '#2e7d32' }}
+                            />
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#555' }}>
+                              Type:
+                            </Typography>
+                            <Chip 
+                              label={row.orderType || 'N/A'} 
+                              size="small" 
+                              sx={{ height: 20, bgcolor: '#e3f2fd', color: '#1565c0' }}
+                            />
+                          </Box>
+                          {row.specialInstructions && (
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                              <Typography variant="caption" sx={{ fontWeight: 600, color: '#555' }}>
+                                Notes:
+                              </Typography>
+                              <Typography 
+                                variant="caption" 
+                                sx={{ 
+                                  maxWidth: 150, 
+                                  overflow: 'hidden', 
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  fontStyle: 'italic',
+                                  color: '#757575'
+                                }}
+                                title={row.specialInstructions}
+                              >
+                                {row.specialInstructions}
+                              </Typography>
+                            </Box>
+                          )}
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        {/* Payment Screenshot restored */}
+                        {row.paymentScreenshot ? (
+                          <Tooltip title="Click to view payment screenshot">
+                            <IconButton
+                              onClick={(e) => handleViewScreenshot(row.paymentScreenshot, e)}
+                              sx={{ p: 0 }}
+                            >
+                              <Avatar
+                                src={row.paymentScreenshot}
+                                alt="Payment Screenshot"
+                                variant="rounded"
+                                sx={{ 
+                                  width: 50, 
+                                  height: 50, 
+                                  cursor: 'pointer',
+                                  '&:hover': { opacity: 0.8 }
+                                }}
+                              />
+                            </IconButton>
+                          </Tooltip>
+                        ) : (
+                          <Tooltip title="No payment screenshot">
+                            <Avatar
+                              alt="No Screenshot"
+                              variant="rounded"
+                              sx={{ 
+                                width: 50, 
+                                height: 50, 
+                                bgcolor: '#f5f5f5',
+                                color: '#9e9e9e'
+                              }}
+                            >
+                              N/A
+                            </Avatar>
+                          </Tooltip>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {/* Payment Status as toggle button */}
+                        <Button
+                          variant="contained"
+                          color={row.paymentStatus === 'Paid' ? 'success' : 'warning'}
+                          size="small"
+                          sx={{ fontWeight: 600 }}
+                          onClick={() => handlePaymentStatusToggle(row.id, row.paymentStatus)}
                         >
-                          {row.specialInstructions}
+                          {row.paymentStatus === 'Paid' ? 'Paid' : 'Not Paid'}
+                        </Button>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={600} color="success.main">
+                          ₹{row.amount}
                         </Typography>
-                      </Box>
-                    )}
-                  </Box>
-                </TableCell>
-                <TableCell>
-                  {row.paymentScreenshot ? (
-                    <Tooltip title="Click to view payment screenshot">
-                      <IconButton
-                        onClick={(e) => handleViewScreenshot(row.paymentScreenshot, e)}
-                        sx={{ p: 0 }}
-                      >
-                        <Avatar
-                          src={row.paymentScreenshot}
-                          alt="Payment Screenshot"
-                          variant="rounded"
-                          sx={{ 
-                            width: 50, 
-                            height: 50, 
-                            cursor: 'pointer',
-                            '&:hover': { opacity: 0.8 }
-                          }}
-                        />
-                      </IconButton>
-                    </Tooltip>
-                  ) : (
-                    <Tooltip title="No payment screenshot">
-                      <Avatar
-                        alt="No Screenshot"
-                        variant="rounded"
-                        sx={{ 
-                          width: 50, 
-                          height: 50, 
-                          bgcolor: '#f5f5f5',
-                          color: '#9e9e9e'
-                        }}
-                      >
-                        N/A
-                      </Avatar>
-                    </Tooltip>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2" fontWeight={600} color="success.main">
-                    ₹{row.amount}
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2" color="text.secondary">
-                    {row.orderDate}
-                  </Typography>
-                </TableCell>
-                <TableCell align="center">
-                  {row.status === 'Confirmed' ? (
-                    <StatusChip
-                      label="Confirmed"
-                      status="Confirmed"
-                      size="small"
-                    />
-                  ) : row.status === 'Rejected' ? (
-                    <StatusChip
-                      label="Rejected"
-                      status="Rejected"
-                      size="small"
-                    />
-                  ) : (
-                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                      <ActionButton
-                        variant="contained"
-                        color="success"
-                        size="small"
-                        startIcon={processingOrderId === row.id ? <CircularProgress size={16} /> : <CheckIcon />}
-                        onClick={() => handleStatusUpdate(row.id, 'Confirmed')}
-                        disabled={processingOrderId === row.id}
-                      >
-                        Accept
-                      </ActionButton>
-                      <ActionButton
-                        variant="contained"
-                        color="error"
-                        size="small"
-                        startIcon={processingOrderId === row.id ? <CircularProgress size={16} /> : <CancelIcon />}
-                        onClick={() => handleStatusUpdate(row.id, 'Rejected')}
-                        disabled={processingOrderId === row.id}
-                      >
-                        Reject
-                      </ActionButton>
-                    </Box>
-                  )}
-                </TableCell>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary">
+                          {row.orderDate}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        <TextField
+                          select
+                          variant="outlined"
+                          size="small"
+                          value={row.status}
+                          onChange={e => handleStatusUpdate(row.id, e.target.value)}
+                          sx={{ minWidth: 120, fontWeight: 600 }}
+                        >
+                          <MenuItem value="Confirmed">Accept</MenuItem>
+                          <MenuItem value="Pending">Pending</MenuItem>
+                          <MenuItem value="Rejected">Reject</MenuItem>
+                        </TextField>
+                      </TableCell>
                     </StyledTableRow>
                   ))}
                 </TableBody>
