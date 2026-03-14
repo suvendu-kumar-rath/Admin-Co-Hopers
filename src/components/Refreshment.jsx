@@ -423,9 +423,9 @@ const Refreshment = () => {
         // Transform API data to match component structure
         const transformedData = ordersData.map(order => ({
           id: order.id || order._id || order.orderId,
-          cabinNumber: order.cabinNumber || order.cabin_number || order.spaceNumber || '',
+          cabinNumber: order.cabinNumber || order.cabin_number || (order.space && order.space.cabinNumber) || order.spaceNumber || '',
           username: (order.user && order.user.username) || order.username || order.user_name || order.customerName || order.name || 'N/A',
-          roomNumber: order.roomNumber || order.room_number || order.spaceId || '',
+          roomNumber: order.roomNumber || order.room_number || (order.space && order.space.roomNumber) || order.spaceId || '',
           // Store individual item details for structured display
           itemName: order.itemName || 'N/A',
           quantity: order.quantity || 0,
@@ -911,6 +911,8 @@ const Refreshment = () => {
         'Username': order.username,
         'Cabin Number': order.cabinNumber,
         'Room Number': order.roomNumber,
+        'Company Name': order.companyName || '',
+        'Personal': order.isPersonal ? 'Yes' : 'No',
         'Item Name': order.itemName,
         'Quantity': order.quantity,
         'Order Type': order.orderType,
@@ -1299,6 +1301,14 @@ const Refreshment = () => {
                       <TableCell>
                         {/* Item Details restored */}
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                                {row.isPersonal && (
+                                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                    <Typography variant="caption" sx={{ fontWeight: 600, color: '#555' }}>
+                                                      Personal:
+                                                    </Typography>
+                                                    <Chip label="Yes" size="small" color="primary" sx={{ height: 20 }} />
+                                                  </Box>
+                                                )}
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Typography variant="caption" sx={{ fontWeight: 600, color: '#555' }}>
                               Item:
