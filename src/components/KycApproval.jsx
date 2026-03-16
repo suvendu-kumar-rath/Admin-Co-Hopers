@@ -380,21 +380,22 @@ const KycApproval = () => {
             </Grid>
           )}
           
-          {selectedKyc.name && (
+          {/* Prefer user segment for name, email, mobile */}
+          {(selectedKyc.user?.username || selectedKyc.name) && (
             <Grid item xs={12} sm={6}>
               <Typography variant="body2" color="text.secondary">Name</Typography>
               <Typography variant="body1" sx={{ fontWeight: 500 }}>{selectedKyc.name}</Typography>
             </Grid>
           )}
           
-          {selectedKyc.email && (
+          {(selectedKyc.user?.email || selectedKyc.email) && (
             <Grid item xs={12} sm={6}>
               <Typography variant="body2" color="text.secondary">Email</Typography>
               <Typography variant="body1" sx={{ fontWeight: 500 }}>{selectedKyc.email}</Typography>
             </Grid>
           )}
           
-          {selectedKyc.mobile && (
+          {(selectedKyc.user?.mobile || selectedKyc.mobile) && (
             <Grid item xs={12} sm={6}>
               <Typography variant="body2" color="text.secondary">Mobile</Typography>
               <Typography variant="body1" sx={{ fontWeight: 500 }}>{selectedKyc.mobile}</Typography>
@@ -845,9 +846,9 @@ const KycApproval = () => {
                 <TableRow key={kyc.id} hover>
                   <TableCell>{index + 1}</TableCell>
                   <TableCell>{kyc.userId || 'N/A'}</TableCell>
-                  <TableCell>{kyc.name || 'N/A'}</TableCell>
-                  <TableCell>{kyc.email || 'N/A'}</TableCell>
-                  <TableCell>{kyc.mobile || 'N/A'}</TableCell>
+                  <TableCell>{kyc.user?.username || kyc.name || 'N/A'}</TableCell>
+                  <TableCell>{kyc.user?.email || kyc.email || 'N/A'}</TableCell>
+                  <TableCell>{kyc.user?.mobile || kyc.mobile || 'N/A'}</TableCell>
                   <TableCell align="center">
                     <IconButton
                       color="primary"

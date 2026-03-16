@@ -86,14 +86,20 @@ export const refreshmentApi = {
     }
   },
 
-  // Update order status (if needed)
-  updateOrderStatus: async (orderId, status) => {
+  // Update order status and paid flag
+  // status: 'Confirmed' | 'Pending' | 'Cancelled'
+  // paid: 'Yes' | 'No'
+  updateOrderStatus: async (orderId, { status, paid }) => {
     try {
       const token = localStorage.getItem('authToken');
-      console.log(`Updating order ${orderId} status to:`, status);
+      console.log(`Updating order ${orderId} status to:`, status, 'and paid to:', paid);
       
-      const response = await axios.put(`/cafeteria/admin/orders/${orderId}`, 
-        { status },
+      const payload = {};
+      if (status !== undefined) payload.status = status;
+      if (paid !== undefined) payload.paid = paid;
+      
+      const response = await axios.put(`/cafeteria/admin/orders/${orderId}`,
+        payload,
         {
           headers: {
             'Content-Type': 'application/json',
@@ -103,16 +109,16 @@ export const refreshmentApi = {
         }
       );
       
-      console.log('✅ Order status updated successfully:', response.data);
+      console.log('✅ Order status/paid updated successfully:', response.data);
       return response.data;
       
     } catch (error) {
-      console.error('❌ Failed to update order status:', error.response?.data || error.message);
+      console.error('❌ Failed to update order status/paid:', error.response?.data || error.message);
       throw error;
     }
   },
 
-  // Get orders with filters
+  // Get orders with filters (now supports paid)
   fetchOrdersWithFilters: async (filters = {}, includeCompany = true) => {
     try {
       const token = localStorage.getItem('authToken');
@@ -123,6 +129,7 @@ export const refreshmentApi = {
       if (filters.startDate) params.append('startDate', filters.startDate);
       if (filters.endDate) params.append('endDate', filters.endDate);
       if (filters.status) params.append('status', filters.status);
+      if (filters.paid) params.append('paid', filters.paid);
       if (filters.paymentMethod) params.append('paymentMethod', filters.paymentMethod);
       if (filters.userId) params.append('userId', filters.userId);
       params.append('includeCompany', includeCompany);
@@ -148,7 +155,7 @@ export const refreshmentApi = {
     }
   },
 
-  // Export orders data
+  // Export orders data (now supports paid)
   exportOrders: async (format = 'csv', filters = {}, includeCompany = true) => {
     try {
       const token = localStorage.getItem('authToken');
@@ -161,6 +168,7 @@ export const refreshmentApi = {
       if (filters.startDate) params.append('startDate', filters.startDate);
       if (filters.endDate) params.append('endDate', filters.endDate);
       if (filters.status) params.append('status', filters.status);
+      if (filters.paid) params.append('paid', filters.paid);
       
       const response = await axios.get(`/cafeteria/admin/orders/export?${params.toString()}`, {
         headers: {
