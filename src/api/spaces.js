@@ -192,7 +192,6 @@ export const spacesApi = {
   fetchSpaceById: async (spaceId) => {
     console.log('Fetching space by ID:', spaceId);
     const token = localStorage.getItem('authToken');
-    
     try {
       const response = await axios.get(`${baseURL}/spaces/spaces/${spaceId}`, {
         headers: {
@@ -200,10 +199,50 @@ export const spacesApi = {
         },
         withCredentials: false,
       });
-      
-      console.log('✅ Space fetched successfully:', response.data);
-      return response.data;
-      
+      const data = response.data?.data || response.data;
+      // Handle images field
+      let images = data.images;
+      if (typeof images === 'string') {
+        try {
+          images = JSON.parse(images);
+        } catch (e) {
+          images = [];
+        }
+      } else if (Array.isArray(images) && typeof images[0] === 'string' && images[0].startsWith('[')) {
+        try {
+          images = JSON.parse(images[0]);
+        } catch (e) {
+          images = [];
+        }
+      }
+      // Handle availableDates field
+      let availableDates = data.availableDates;
+      if (typeof availableDates === 'string') {
+        try {
+          availableDates = JSON.parse(availableDates);
+        } catch (e) {
+          availableDates = [];
+        }
+      } else if (Array.isArray(availableDates) && typeof availableDates[0] === 'string' && availableDates[0].startsWith('[')) {
+        try {
+          availableDates = JSON.parse(availableDates[0]);
+        } catch (e) {
+          availableDates = [];
+        }
+      } else if (Array.isArray(availableDates)) {
+        // Flatten if availableDates is array of objects with date property
+        availableDates = availableDates.flatMap(ad => Array.isArray(ad.date) ? ad.date : []);
+      }
+      const processedData = {
+        ...data,
+        images,
+        availableDates,
+      };
+      console.log('✅ Space fetched and processed:', processedData);
+      return {
+        ...response.data,
+        data: processedData,
+      };
     } catch (error) {
       console.error('❌ Failed to fetch space:', error.response?.data || error.message);
       throw error;
@@ -292,6 +331,90 @@ export const spacesApi = {
       console.log('✅ GET successful, endpoint exists:', getResponse.status);
     } catch (getError) {
       console.error('❌ GET failed:', getError.response?.status, getError.response?.data);
+    }
+  },
+};
+
+export const utilitiesApi = {
+  // Fetch all utilities
+  fetchUtilities: async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await axios.get(`${baseURL}/utilities`, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        withCredentials: false,
+      });
+      console.log('✅ Utilities fetched:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Failed to fetch utilities:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // Add a new utility
+  addUtility: async ({ name, category, price, description, availability }) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await axios.post(
+        `${baseURL}/utilities`,
+        { name, category, price: Number(price), description, availability },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          withCredentials: false,
+        }
+      );
+      console.log('✅ Utility added:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Failed to add utility:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // Delete a utility
+  deleteUtility: async (utilityId) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await axios.delete(`${baseURL}/utilities/${utilityId}`, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        withCredentials: false,
+      });
+      console.log('✅ Utility deleted:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Failed to delete utility:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+  
+  // Update a utility
+  updateUtility: async (utilityId, { name, category, price, description, availability }) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await axios.put(
+        `${baseURL}/utilities/${utilityId}`,
+        { name, category, price: Number(price), description, availability },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          withCredentials: false,
+        }
+      );
+      console.log('✅ Utility updated:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Failed to update utility:', error.response?.data || error.message);
+      throw error;
     }
   },
 };

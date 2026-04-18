@@ -31,6 +31,8 @@ import {
   Badge,
   Alert,
   Snackbar,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -43,8 +45,12 @@ import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
+import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
+import InventoryIcon from '@mui/icons-material/Inventory';
+import PrintIcon from '@mui/icons-material/Print';
+import BuildCircleIcon from '@mui/icons-material/BuildCircle';
 import { motion } from 'framer-motion';
-import { spacesApi, pushNotificationsApi } from '../api';
+import { spacesApi, pushNotificationsApi, meetingRoomApi, utilitiesApi } from '../api';
 
 const MotionBox = motion(Box);
 const MotionPaper = motion(Paper);
@@ -476,6 +482,51 @@ const Inventory = () => {
   const [pushToken, setPushToken] = useState(null);
   const [subscribedTopics, setSubscribedTopics] = useState([]);
 
+  // Tab state
+  const [activeTab, setActiveTab] = useState(0);
+
+  // Meeting Room states
+  const [meetingRooms, setMeetingRooms] = useState([]);
+  const [loadingRooms, setLoadingRooms] = useState(false);
+  const [meetingRoomModal, setMeetingRoomModal] = useState(false);
+  const [isEditRoomMode, setIsEditRoomMode] = useState(false);
+  const [editingRoom, setEditingRoom] = useState(null);
+  const [meetingRoomDeleteDialog, setMeetingRoomDeleteDialog] = useState(false);
+  const [roomToDelete, setRoomToDelete] = useState(null);
+  const [roomPage, setRoomPage] = useState(0);
+  const [roomRowsPerPage, setRoomRowsPerPage] = useState(10);
+  const [roomImageFile, setRoomImageFile] = useState(null);
+  const [roomFormData, setRoomFormData] = useState({
+    name: '',
+    capacityType: '',
+    hourlyRate: '',
+    dayRate: '',
+    memberHourlyRate: '',
+    memberDayRate: '',
+    description: '',
+    openTime: '',
+    closeTime: '',
+    status: true,
+  });
+
+  // Utilities states
+  const [utilities, setUtilities] = useState([]);
+  const [loadingUtilities, setLoadingUtilities] = useState(false);
+  const [utilityModal, setUtilityModal] = useState(false);
+  const [isEditUtilityMode, setIsEditUtilityMode] = useState(false);
+  const [editingUtility, setEditingUtility] = useState(null);
+  const [utilityDeleteDialog, setUtilityDeleteDialog] = useState(false);
+  const [utilityToDelete, setUtilityToDelete] = useState(null);
+  const [utilityPage, setUtilityPage] = useState(0);
+  const [utilityRowsPerPage, setUtilityRowsPerPage] = useState(10);
+  const [utilityFormData, setUtilityFormData] = useState({
+    name: '',
+    category: 'Printing',
+    price: '',
+    availability: 'Available',
+    description: '',
+  });
+
   // Responsive hooks
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -493,8 +544,6 @@ const Inventory = () => {
         
         // Transform API response to match expected format
         const transformedData = response.data?.map(space => {
-          console.log('🔍 Processing space:', space);
-          
           // Properly handle roomNumber and cabinNumber - check for null/undefined, not falsy
           const roomNum = space.roomNumber !== null && space.roomNumber !== undefined 
             ? String(space.roomNumber) 
@@ -502,44 +551,76 @@ const Inventory = () => {
           const cabinNum = space.cabinNumber !== null && space.cabinNumber !== undefined 
             ? String(space.cabinNumber) 
             : (space.cabin_number !== null && space.cabin_number !== undefined ? String(space.cabin_number) : '');
-          
-          console.log('🏠 Room/Cabin found:', { roomNum, cabinNum });
-          console.log('🚦 Space availability from API:', space.availability);
-          
+
           // Normalize spaceImages to always be an array
           let normalizedImages = [];
-          const rawImages = space.images || space.spaceImages || space.space_images;
-          if (Array.isArray(rawImages)) {
-            normalizedImages = rawImages;
-          } else if (typeof rawImages === 'string') {
-            normalizedImages = [rawImages];
+          let rawImages = space.images || space.spaceImages || space.space_images;
+          if (typeof rawImages === 'string') {
+            try {
+              const parsed = JSON.parse(rawImages);
+              if (Array.isArray(parsed)) {
+                normalizedImages = parsed;
+              } else {
+                normalizedImages = [rawImages];
+              }
+            } catch {
+              normalizedImages = [rawImages];
+            }
+          } else if (Array.isArray(rawImages)) {
+            // Handle stringified array in first element
+            if (typeof rawImages[0] === 'string' && rawImages[0].startsWith('[')) {
+              try {
+                normalizedImages = JSON.parse(rawImages[0]);
+              } catch {
+                normalizedImages = rawImages;
+              }
+            } else {
+              normalizedImages = rawImages;
+            }
           } else if (rawImages && typeof rawImages === 'object') {
             normalizedImages = Object.values(rawImages);
           }
-          
+
           // Normalize availableDates to be a flat array of date strings
           let normalizedDates = [];
-          const rawDates = space.availableDates || space.available_dates;
-          if (Array.isArray(rawDates)) {
-            // Backend returns [{id: X, date: ["2026-03-1"], ...}, ...]
-            // We need to flatten to just date strings
-            normalizedDates = rawDates.flatMap(dateObj => {
-              if (typeof dateObj === 'string') {
-                return dateObj; // Already a string
-              } else if (dateObj && dateObj.date) {
-                // Extract dates from the date property
-                if (Array.isArray(dateObj.date)) {
-                  return dateObj.date;
-                } else {
-                  return [dateObj.date];
-                }
+          let rawDates = space.availableDates || space.available_dates;
+          if (typeof rawDates === 'string') {
+            try {
+              const parsed = JSON.parse(rawDates);
+              if (Array.isArray(parsed)) {
+                normalizedDates = parsed;
+              } else {
+                normalizedDates = [rawDates];
               }
-              return [];
-            });
-          } else if (typeof rawDates === 'string') {
-            normalizedDates = [rawDates];
+            } catch {
+              normalizedDates = [rawDates];
+            }
+          } else if (Array.isArray(rawDates)) {
+            // Handle stringified array in first element
+            if (typeof rawDates[0] === 'string' && rawDates[0].startsWith('[')) {
+              try {
+                normalizedDates = JSON.parse(rawDates[0]);
+              } catch {
+                normalizedDates = rawDates;
+              }
+            } else {
+              // Backend returns [{id: X, date: ["2026-03-1"], ...}, ...]
+              // We need to flatten to just date strings
+              normalizedDates = rawDates.flatMap(dateObj => {
+                if (typeof dateObj === 'string') {
+                  return dateObj;
+                } else if (dateObj && dateObj.date) {
+                  if (Array.isArray(dateObj.date)) {
+                    return dateObj.date;
+                  } else {
+                    return [dateObj.date];
+                  }
+                }
+                return [];
+              });
+            }
           }
-          
+
           return {
             id: space.id,
             roomNumber: roomNum || 'N/A',
@@ -573,6 +654,15 @@ const Inventory = () => {
 
     fetchInventoryData();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 1) {
+      fetchMeetingRooms();
+    }
+    if (activeTab === 2) {
+      fetchUtilities();
+    }
+  }, [activeTab]);
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -927,6 +1017,261 @@ const Inventory = () => {
     setSnackbarOpen(false);
   };
 
+  // ---- Meeting Room Handlers ----
+
+  const fetchMeetingRooms = async () => {
+    setLoadingRooms(true);
+    try {
+      const response = await meetingRoomApi.fetchRooms();
+      const rooms = Array.isArray(response) ? response : (response?.data || []);
+      setMeetingRooms(rooms);
+    } catch (error) {
+      console.error('Error fetching meeting rooms:', error);
+      setMeetingRooms([]);
+    } finally {
+      setLoadingRooms(false);
+    }
+  };
+
+  const defaultRoomFormData = {
+    name: '',
+    capacityType: '',
+    hourlyRate: '',
+    dayRate: '',
+    memberHourlyRate: '',
+    memberDayRate: '',
+    description: '',
+    openTime: '',
+    closeTime: '',
+    status: true,
+  };
+
+  const handleOpenRoomModal = () => {
+    setIsEditRoomMode(false);
+    setEditingRoom(null);
+    setRoomFormData(defaultRoomFormData);
+    setRoomImageFile(null);
+    setMeetingRoomModal(true);
+  };
+
+  const handleEditRoomModal = (room) => {
+    setIsEditRoomMode(true);
+    setEditingRoom(room);
+    setRoomFormData({
+      name: room.name || '',
+      capacityType: room.capacityType || '',
+      hourlyRate: room.hourlyRate || '',
+      dayRate: room.dayRate || '',
+      memberHourlyRate: room.memberHourlyRate || '',
+      memberDayRate: room.memberDayRate || '',
+      description: room.description || '',
+      openTime: room.openTime || '',
+      closeTime: room.closeTime || '',
+      status: room.status === true || room.status === 'true' || room.status === 1,
+    });
+    setRoomImageFile(null);
+    setMeetingRoomModal(true);
+  };
+
+  const handleCloseRoomModal = () => {
+    setMeetingRoomModal(false);
+    setIsEditRoomMode(false);
+    setEditingRoom(null);
+    setRoomFormData(defaultRoomFormData);
+    setRoomImageFile(null);
+  };
+
+  const handleRoomInputChange = (field, value) => {
+    setRoomFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleRoomImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) setRoomImageFile(file);
+  };
+
+  const handleRoomSubmit = async () => {
+    if (!roomFormData.name || !roomFormData.capacityType || !roomFormData.hourlyRate || !roomFormData.dayRate) {
+      setSnackbarMessage('Please fill in all required fields (Name, Capacity Type, Hourly Rate, Day Rate)');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+      return;
+    }
+    setLoadingRooms(true);
+    try {
+      if (isEditRoomMode && editingRoom) {
+        const result = await meetingRoomApi.updateRoom(editingRoom.id || editingRoom._id, { ...roomFormData, image: roomImageFile });
+        const updatedRoom = result?.data || result;
+        // Replace room in local state purely with API response — no merging with stale local data
+        setMeetingRooms(prev =>
+          prev.map(r =>
+            (r.id || r._id) === (editingRoom.id || editingRoom._id)
+              ? updatedRoom
+              : r
+          )
+        );
+        setSnackbarMessage(`${roomFormData.name} updated successfully.`);
+      } else {
+        await meetingRoomApi.addRoomType({ ...roomFormData, image: roomImageFile });
+        setSnackbarMessage(`${roomFormData.name} added successfully.`);
+        await fetchMeetingRooms();
+      }
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+      handleCloseRoomModal();
+    } catch (error) {
+      console.error('Meeting room submit error:', error);
+      const errMsg = error.response?.data?.message || (isEditRoomMode ? 'Failed to update room.' : 'Failed to add room.');
+      setSnackbarMessage(errMsg);
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    } finally {
+      setLoadingRooms(false);
+    }
+  };
+
+  const handleRoomDeleteClick = (room) => {
+    setRoomToDelete(room);
+    setMeetingRoomDeleteDialog(true);
+  };
+
+  const handleRoomDeleteConfirm = async () => {
+    if (!roomToDelete) return;
+    setLoadingRooms(true);
+    try {
+      await meetingRoomApi.deleteRoom(roomToDelete.id || roomToDelete._id);
+      // Remove deleted room from local state directly — avoids re-fetch which returns wrong status format
+      setMeetingRooms(prev => prev.filter(r => (r.id || r._id) !== (roomToDelete.id || roomToDelete._id)));
+      setSnackbarMessage(`Room ${roomToDelete.name || roomToDelete.roomNumber} deleted successfully.`);
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error('Room delete error:', error);
+      setSnackbarMessage('Failed to delete room. Please try again.');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    } finally {
+      setLoadingRooms(false);
+      setMeetingRoomDeleteDialog(false);
+      setRoomToDelete(null);
+    }
+  };
+
+  const handleRoomDeleteCancel = () => {
+    setMeetingRoomDeleteDialog(false);
+    setRoomToDelete(null);
+  };
+
+  // ---- Utility Handlers ----
+  const defaultUtilityFormData = { name: '', category: '', price: '', availability: 'Available', description: '' };
+
+  const fetchUtilities = async () => {
+    setLoadingUtilities(true);
+    try {
+      const response = await utilitiesApi.fetchUtilities();
+      const data = Array.isArray(response) ? response : (response?.data || []);
+      setUtilities(data);
+    } catch (error) {
+      console.error('Error fetching utilities:', error);
+      setUtilities([]);
+    } finally {
+      setLoadingUtilities(false);
+    }
+  };
+
+  const handleOpenUtilityModal = () => {
+    setIsEditUtilityMode(false);
+    setEditingUtility(null);
+    setUtilityFormData(defaultUtilityFormData);
+    setUtilityModal(true);
+  };
+
+  const handleEditUtilityModal = (utility) => {
+    setIsEditUtilityMode(true);
+    setEditingUtility(utility);
+    setUtilityFormData({
+      name: utility.name || '',
+      category: utility.category || '',
+      price: utility.price || '',
+      availability: utility.availability || 'Available',
+      description: utility.description || '',
+    });
+    setUtilityModal(true);
+  };
+
+  const handleCloseUtilityModal = () => {
+    setUtilityModal(false);
+    setIsEditUtilityMode(false);
+    setEditingUtility(null);
+    setUtilityFormData(defaultUtilityFormData);
+  };
+
+  const handleUtilityInputChange = (field, value) => {
+    setUtilityFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleUtilitySubmit = async () => {
+    if (!utilityFormData.name || !utilityFormData.price) {
+      setSnackbarMessage('Please fill in all required fields (Name and Price)');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+      return;
+    }
+    setLoadingUtilities(true);
+    try {
+      if (isEditUtilityMode && editingUtility) {
+        await utilitiesApi.updateUtility(editingUtility.id, utilityFormData);
+        setSnackbarMessage(`${utilityFormData.name} updated successfully.`);
+      } else {
+        await utilitiesApi.addUtility(utilityFormData);
+        setSnackbarMessage(`${utilityFormData.name} added successfully.`);
+      }
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+      handleCloseUtilityModal();
+      await fetchUtilities();
+    } catch (error) {
+      console.error('Utility submit error:', error);
+      const errMsg = error.response?.data?.message || `Failed to ${isEditUtilityMode ? 'update' : 'add'} utility. Please try again.`;
+      setSnackbarMessage(errMsg);
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    } finally {
+      setLoadingUtilities(false);
+    }
+  };
+
+  const handleUtilityDeleteClick = (utility) => {
+    setUtilityToDelete(utility);
+    setUtilityDeleteDialog(true);
+  };
+
+  const handleUtilityDeleteConfirm = async () => {
+    if (!utilityToDelete) return;
+    setLoadingUtilities(true);
+    try {
+      await utilitiesApi.deleteUtility(utilityToDelete.id);
+      setSnackbarMessage(`${utilityToDelete.name} deleted successfully.`);
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+      await fetchUtilities();
+    } catch (error) {
+      console.error('Utility delete error:', error);
+      setSnackbarMessage('Failed to delete utility. Please try again.');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    } finally {
+      setLoadingUtilities(false);
+      setUtilityDeleteDialog(false);
+      setUtilityToDelete(null);
+    }
+  };
+
+  const handleUtilityDeleteCancel = () => {
+    setUtilityDeleteDialog(false);
+    setUtilityToDelete(null);
+  };
+
   // Calendar helper functions
   const formatDate = (date) => {
     // Use local date without timezone offset to avoid one-day-before issue
@@ -1124,47 +1469,78 @@ const Inventory = () => {
       try {
         const response = await spacesApi.fetchSpaces();
         const transformedData = response.data?.map(space => {
-          // Properly handle roomNumber and cabinNumber - check for null/undefined, not falsy
           const roomNum = space.roomNumber !== null && space.roomNumber !== undefined 
             ? String(space.roomNumber) 
             : (space.room_number !== null && space.room_number !== undefined ? String(space.room_number) : '');
           const cabinNum = space.cabinNumber !== null && space.cabinNumber !== undefined 
             ? String(space.cabinNumber) 
             : (space.cabin_number !== null && space.cabin_number !== undefined ? String(space.cabin_number) : '');
-          
-          console.log('🚦 Space availability from API:', space.availability);
-          
+
           // Normalize spaceImages to always be an array
           let normalizedImages = [];
-          const rawImages = space.images || space.spaceImages || space.space_images;
-          if (Array.isArray(rawImages)) {
-            normalizedImages = rawImages;
-          } else if (typeof rawImages === 'string') {
-            normalizedImages = [rawImages];
+          let rawImages = space.images || space.spaceImages || space.space_images;
+          if (typeof rawImages === 'string') {
+            try {
+              const parsed = JSON.parse(rawImages);
+              if (Array.isArray(parsed)) {
+                normalizedImages = parsed;
+              } else {
+                normalizedImages = [rawImages];
+              }
+            } catch {
+              normalizedImages = [rawImages];
+            }
+          } else if (Array.isArray(rawImages)) {
+            if (typeof rawImages[0] === 'string' && rawImages[0].startsWith('[')) {
+              try {
+                normalizedImages = JSON.parse(rawImages[0]);
+              } catch {
+                normalizedImages = rawImages;
+              }
+            } else {
+              normalizedImages = rawImages;
+            }
           } else if (rawImages && typeof rawImages === 'object') {
             normalizedImages = Object.values(rawImages);
           }
-          
+
           // Normalize availableDates to be a flat array of date strings
           let normalizedDates = [];
-          const rawDates = space.availableDates || space.available_dates;
-          if (Array.isArray(rawDates)) {
-            normalizedDates = rawDates.flatMap(dateObj => {
-              if (typeof dateObj === 'string') {
-                return dateObj;
-              } else if (dateObj && dateObj.date) {
-                if (Array.isArray(dateObj.date)) {
-                  return dateObj.date;
-                } else {
-                  return [dateObj.date];
-                }
+          let rawDates = space.availableDates || space.available_dates;
+          if (typeof rawDates === 'string') {
+            try {
+              const parsed = JSON.parse(rawDates);
+              if (Array.isArray(parsed)) {
+                normalizedDates = parsed;
+              } else {
+                normalizedDates = [rawDates];
               }
-              return [];
-            });
-          } else if (typeof rawDates === 'string') {
-            normalizedDates = [rawDates];
+            } catch {
+              normalizedDates = [rawDates];
+            }
+          } else if (Array.isArray(rawDates)) {
+            if (typeof rawDates[0] === 'string' && rawDates[0].startsWith('[')) {
+              try {
+                normalizedDates = JSON.parse(rawDates[0]);
+              } catch {
+                normalizedDates = rawDates;
+              }
+            } else {
+              normalizedDates = rawDates.flatMap(dateObj => {
+                if (typeof dateObj === 'string') {
+                  return dateObj;
+                } else if (dateObj && dateObj.date) {
+                  if (Array.isArray(dateObj.date)) {
+                    return dateObj.date;
+                  } else {
+                    return [dateObj.date];
+                  }
+                }
+                return [];
+              });
+            }
           }
-          
+
           return {
             id: space.id,
             roomNumber: roomNum || 'N/A',
@@ -1235,7 +1611,7 @@ const Inventory = () => {
         display="flex" 
         justifyContent="space-between" 
         alignItems="center" 
-        mb={3}
+        mb={2}
         flexDirection={{ xs: 'column', sm: 'row' }}
         gap={{ xs: 2, sm: 0 }}
       >
@@ -1249,29 +1625,90 @@ const Inventory = () => {
         >
           Inventory
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={!isSmall && <AddIcon />}
-          onClick={handleOpenModal}
-          size={isMobile ? "small" : "medium"}
+        {activeTab === 0 && (
+          <Button
+            variant="contained"
+            startIcon={!isSmall && <AddIcon />}
+            onClick={handleOpenModal}
+            size={isMobile ? "small" : "medium"}
+            sx={{
+              backgroundColor: '#4F46E5',
+              borderRadius: '8px',
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: { xs: '0.75rem', sm: '0.875rem' },
+              padding: { xs: '6px 12px', sm: '8px 16px' },
+              '&:hover': {
+                backgroundColor: '#4338CA',
+              },
+            }}
+          >
+            {isSmall ? 'Add Space' : 'Add New Space'}
+          </Button>
+        )}
+        {activeTab === 1 && (
+          <Button
+            variant="contained"
+            startIcon={!isSmall && <AddIcon />}
+            onClick={handleOpenRoomModal}
+            size={isMobile ? "small" : "medium"}
+            sx={{
+              backgroundColor: '#4F46E5',
+              borderRadius: '8px',
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: { xs: '0.75rem', sm: '0.875rem' },
+              padding: { xs: '6px 12px', sm: '8px 16px' },
+              '&:hover': {
+                backgroundColor: '#4338CA',
+              },
+            }}
+          >
+            {isSmall ? 'Add Room' : 'Add Meeting Room'}
+          </Button>
+        )}
+        {activeTab === 2 && (
+          <Button
+            variant="contained"
+            startIcon={!isSmall && <AddIcon />}
+            onClick={handleOpenUtilityModal}
+            size={isMobile ? "small" : "medium"}
+            sx={{
+              backgroundColor: '#4F46E5',
+              borderRadius: '8px',
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: { xs: '0.75rem', sm: '0.875rem' },
+              padding: { xs: '6px 12px', sm: '8px 16px' },
+              '&:hover': {
+                backgroundColor: '#4338CA',
+              },
+            }}
+          >
+            {isSmall ? 'Add Utility' : 'Add Utility'}
+          </Button>
+        )}
+      </Box>
+
+      {/* Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+        <Tabs
+          value={activeTab}
+          onChange={(_, newValue) => setActiveTab(newValue)}
           sx={{
-            backgroundColor: '#4F46E5',
-            borderRadius: '8px',
-            textTransform: 'none',
-            fontWeight: 600,
-            fontSize: { xs: '0.75rem', sm: '0.875rem' },
-            padding: { xs: '6px 12px', sm: '8px 16px' },
-            '&:hover': {
-              backgroundColor: '#4338CA',
-            },
+            '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, fontSize: '0.95rem' },
+            '& .Mui-selected': { color: '#4F46E5' },
+            '& .MuiTabs-indicator': { backgroundColor: '#4F46E5' },
           }}
         >
-          {isSmall ? 'Add Space' : 'Add New Space'}
-        </Button>
+          <Tab icon={<InventoryIcon fontSize="small" />} iconPosition="start" label="Spaces" />
+          <Tab icon={<MeetingRoomIcon fontSize="small" />} iconPosition="start" label="Meeting Rooms" />
+          <Tab icon={<PrintIcon fontSize="small" />} iconPosition="start" label="Utilities" />
+        </Tabs>
       </Box>
 
       {/* Push Notification Banner */}
-      {!notificationsEnabled && (
+      {activeTab === 0 && !notificationsEnabled && (
         <Alert 
           severity="info" 
           sx={{ 
@@ -1303,7 +1740,7 @@ const Inventory = () => {
       )}
 
       {/* Notification Status Badge */}
-      {notificationsEnabled && (
+      {activeTab === 0 && notificationsEnabled && (
         <Box 
           sx={{ 
             mb: 2, 
@@ -1359,6 +1796,7 @@ const Inventory = () => {
       )}
 
       {/* Table Section */}
+      {activeTab === 0 && (
       <MotionPaper
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -1562,6 +2000,534 @@ const Inventory = () => {
           </Box>
         </Box>
       </MotionPaper>
+      )} {/* end activeTab === 0 */}
+
+      {/* Meeting Rooms Tab */}
+      {activeTab === 1 && (
+        <MotionPaper
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+        >
+          <TableContainer_Styled>
+            <Table sx={{ minWidth: isMobile ? '700px' : 'auto' }}>
+              <TableHead>
+                <TableRow>
+                  <StyledTableCell>#</StyledTableCell>
+                  <StyledTableCell>IMAGE</StyledTableCell>
+                  <StyledTableCell>NAME</StyledTableCell>
+                  <StyledTableCell>CAPACITY TYPE</StyledTableCell>
+                  <StyledTableCell>HOURLY RATE</StyledTableCell>
+                  <StyledTableCell>DAY RATE</StyledTableCell>
+                  <StyledTableCell>TIMINGS</StyledTableCell>
+                  <StyledTableCell>STATUS</StyledTableCell>
+                  <StyledTableCell>ACTION</StyledTableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {loadingRooms ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <StyledTableRow key={`rm-skel-${i}`}>
+                      {Array.from({ length: 9 }).map((__, j) => (
+                        <StyledTableBodyCell key={j}>Loading...</StyledTableBodyCell>
+                      ))}
+                    </StyledTableRow>
+                  ))
+                ) : meetingRooms.length === 0 ? (
+                  <StyledTableRow>
+                    <StyledTableBodyCell colSpan={9} align="center">
+                      <Typography variant="body2" color="textSecondary">
+                        No meeting rooms found. Click "Add Meeting Room" to get started.
+                      </Typography>
+                    </StyledTableBodyCell>
+                  </StyledTableRow>
+                ) : (
+                  meetingRooms
+                    .slice(roomPage * roomRowsPerPage, roomPage * roomRowsPerPage + roomRowsPerPage)
+                    .map((room, index) => {
+                      const baseImgURL = (process.env.REACT_APP_API_URL || 'http://localhost:3001/api').replace(/\/api$/, '');
+                      const imgSrc = room.image
+                        ? (room.image.startsWith('http') ? room.image : `${baseImgURL}/${room.image.replace(/^\//, '')}`)
+                        : null;
+                      return (
+                        <StyledTableRow key={room.id || index}>
+                          <StyledTableBodyCell>{roomPage * roomRowsPerPage + index + 1}</StyledTableBodyCell>
+                          <StyledTableBodyCell>
+                            {imgSrc ? (
+                              <Avatar
+                                src={imgSrc}
+                                variant="rounded"
+                                sx={{ width: 48, height: 48, borderRadius: '8px' }}
+                              />
+                            ) : (
+                              <Avatar variant="rounded" sx={{ width: 48, height: 48, borderRadius: '8px', backgroundColor: '#EEF2FF' }}>
+                                <MeetingRoomIcon sx={{ color: '#4F46E5' }} />
+                              </Avatar>
+                            )}
+                          </StyledTableBodyCell>
+                          <StyledTableBodyCell>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              {room.name || room.roomNumber || '—'}
+                            </Typography>
+                          </StyledTableBodyCell>
+                          <StyledTableBodyCell>
+                            <Chip
+                              label={room.capacityType || '—'}
+                              size="small"
+                              sx={{ backgroundColor: '#EEF2FF', color: '#4F46E5', fontWeight: 600, fontSize: '0.75rem', borderRadius: '6px' }}
+                            />
+                          </StyledTableBodyCell>
+                          <StyledTableBodyCell>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              ₹{room.hourlyRate ?? room.price ?? '—'}/hr
+                            </Typography>
+                          </StyledTableBodyCell>
+                          <StyledTableBodyCell>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              ₹{room.dayRate ?? '—'}/day
+                            </Typography>
+                          </StyledTableBodyCell>
+                          <StyledTableBodyCell>
+                            <Typography variant="body2" color="textSecondary">
+                              {room.openTime && room.closeTime ? `${room.openTime} – ${room.closeTime}` : '—'}
+                            </Typography>
+                          </StyledTableBodyCell>
+                          <StyledTableBodyCell>
+                            <Chip
+                              label={room.status === true || room.status === 'true' || room.status === 1 ? 'Active' : 'Inactive'}
+                              size="small"
+                              sx={{
+                                backgroundColor: (room.status === true || room.status === 'true' || room.status === 1) ? '#D1FAE5' : '#FEE2E2',
+                                color: (room.status === true || room.status === 'true' || room.status === 1) ? '#065F46' : '#991B1B',
+                                fontWeight: 600,
+                                fontSize: '0.75rem',
+                                borderRadius: '6px',
+                              }}
+                            />
+                          </StyledTableBodyCell>
+                          <StyledTableBodyCell>
+                            <Box display="flex" alignItems="center" gap={isSmall ? 0.5 : 1}>
+                              <ActionButton
+                                actiontype="edit"
+                                onClick={() => handleEditRoomModal(room)}
+                                disabled={loadingRooms}
+                              >
+                                <EditIcon fontSize="small" />
+                              </ActionButton>
+                              <ActionButton
+                                actiontype="delete"
+                                onClick={() => handleRoomDeleteClick(room)}
+                                disabled={loadingRooms}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </ActionButton>
+                            </Box>
+                          </StyledTableBodyCell>
+                        </StyledTableRow>
+                      );
+                    })
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer_Styled>
+          <Box
+            display="flex"
+            justifyContent="flex-end"
+            alignItems="center"
+            p={{ xs: 1, sm: 2 }}
+            sx={{ borderTop: '1px solid #E5E7EB' }}
+          >
+            <TablePagination
+              component="div"
+              count={meetingRooms.length}
+              page={roomPage}
+              onPageChange={(_, p) => setRoomPage(p)}
+              rowsPerPage={roomRowsPerPage}
+              onRowsPerPageChange={(e) => { setRoomRowsPerPage(parseInt(e.target.value, 10)); setRoomPage(0); }}
+              rowsPerPageOptions={[5, 10, 25]}
+              showFirstButton
+              showLastButton
+              sx={{
+                '& .MuiTablePagination-toolbar': { minHeight: 'auto', paddingLeft: 0, paddingRight: 0 },
+              }}
+            />
+          </Box>
+        </MotionPaper>
+      )} {/* end activeTab === 1 */}
+
+      {/* Utilities Tab */}
+      {activeTab === 2 && (
+        <MotionPaper
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+        >
+          <TableContainer_Styled>
+            <Table sx={{ minWidth: isMobile ? '650px' : 'auto' }}>
+              <TableHead>
+                <TableRow>
+                  <StyledTableCell>#</StyledTableCell>
+                  <StyledTableCell>UTILITY NAME</StyledTableCell>
+                  <StyledTableCell>CATEGORY</StyledTableCell>
+                  <StyledTableCell>PRICE</StyledTableCell>
+                  <StyledTableCell>AVAILABILITY</StyledTableCell>
+                  <StyledTableCell>DESCRIPTION</StyledTableCell>
+                  <StyledTableCell>ACTION</StyledTableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {loadingUtilities ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <StyledTableRow key={`util-skel-${i}`}>
+                      {Array.from({ length: 7 }).map((__, j) => (
+                        <StyledTableBodyCell key={j}>Loading...</StyledTableBodyCell>
+                      ))}
+                    </StyledTableRow>
+                  ))
+                ) : utilities.length === 0 ? (
+                  <StyledTableRow>
+                    <StyledTableBodyCell colSpan={7} align="center">
+                      <Typography variant="body2" color="textSecondary">
+                        No utilities found. Click "Add Utility" to get started.
+                      </Typography>
+                    </StyledTableBodyCell>
+                  </StyledTableRow>
+                ) : (
+                  utilities
+                    .slice(utilityPage * utilityRowsPerPage, utilityPage * utilityRowsPerPage + utilityRowsPerPage)
+                    .map((utility, index) => (
+                      <StyledTableRow key={utility.id}>
+                        <StyledTableBodyCell>{utilityPage * utilityRowsPerPage + index + 1}</StyledTableBodyCell>
+                        <StyledTableBodyCell>
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <PrintIcon sx={{ color: '#4F46E5', fontSize: 20 }} />
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              {utility.name}
+                            </Typography>
+                          </Box>
+                        </StyledTableBodyCell>
+                        <StyledTableBodyCell>
+                          <Chip
+                            label={utility.category}
+                            size="small"
+                            sx={{
+                              backgroundColor: '#EEF2FF',
+                              color: '#4F46E5',
+                              fontWeight: 600,
+                              fontSize: '0.75rem',
+                              borderRadius: '6px',
+                            }}
+                          />
+                        </StyledTableBodyCell>
+                        <StyledTableBodyCell>
+                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                            ₹{utility.price}
+                          </Typography>
+                        </StyledTableBodyCell>
+                        <StyledTableBodyCell>
+                          <Chip
+                            label={utility.availability || '—'}
+                            size="small"
+                            sx={{
+                              backgroundColor: utility.availability === 'Available' ? '#D1FAE5' : '#FEE2E2',
+                              color: utility.availability === 'Available' ? '#065F46' : '#991B1B',
+                              fontWeight: 600,
+                              fontSize: '0.75rem',
+                              borderRadius: '6px',
+                            }}
+                          />
+                        </StyledTableBodyCell>
+                        <StyledTableBodyCell>
+                          <Typography
+                            variant="body2"
+                            color="textSecondary"
+                            sx={{ maxWidth: 180, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                          >
+                            {utility.description}
+                          </Typography>
+                        </StyledTableBodyCell>
+                        <StyledTableBodyCell>
+                          <Box display="flex" alignItems="center" gap={isSmall ? 0.5 : 1}>
+                            <ActionButton
+                              actiontype="edit"
+                              onClick={() => handleEditUtilityModal(utility)}
+                            >
+                              <EditIcon fontSize="small" />
+                            </ActionButton>
+                            <ActionButton
+                              actiontype="delete"
+                              onClick={() => handleUtilityDeleteClick(utility)}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </ActionButton>
+                          </Box>
+                        </StyledTableBodyCell>
+                      </StyledTableRow>
+                    ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer_Styled>
+          <Box
+            display="flex"
+            justifyContent="flex-end"
+            alignItems="center"
+            p={{ xs: 1, sm: 2 }}
+            sx={{ borderTop: '1px solid #E5E7EB' }}
+          >
+            <TablePagination
+              component="div"
+              count={utilities.length}
+              page={utilityPage}
+              onPageChange={(_, p) => setUtilityPage(p)}
+              rowsPerPage={utilityRowsPerPage}
+              onRowsPerPageChange={(e) => { setUtilityRowsPerPage(parseInt(e.target.value, 10)); setUtilityPage(0); }}
+              rowsPerPageOptions={[5, 10, 25]}
+              showFirstButton
+              showLastButton
+              sx={{
+                '& .MuiTablePagination-toolbar': { minHeight: 'auto', paddingLeft: 0, paddingRight: 0 },
+              }}
+            />
+          </Box>
+        </MotionPaper>
+      )} {/* end activeTab === 2 */}
+
+      {/* Add/Edit Meeting Room Modal */}
+      <StyledDialog
+        open={meetingRoomModal}
+        onClose={handleCloseRoomModal}
+        maxWidth="sm"
+        fullWidth
+        BackdropProps={{
+          sx: { backdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.25)' },
+        }}
+      >
+        <StyledDialogTitle>
+          {isEditRoomMode ? `Edit ${editingRoom?.name}` : 'Add Meeting Room'}
+          <IconButton onClick={handleCloseRoomModal} sx={{ color: '#6B7280', '&:hover': { backgroundColor: '#F3F4F6' } }}>
+            <CloseIcon />
+          </IconButton>
+        </StyledDialogTitle>
+        <DialogContent sx={{ padding: '0 24px 24px' }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 3, color: '#374151' }}>
+            Room Details
+          </Typography>
+          <Grid container spacing={2}>
+            {/* Room Image Upload */}
+            <Grid item xs={12}>
+              <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>Room Image</Typography>
+              <input
+                accept="image/*"
+                style={{ display: 'none' }}
+                id="room-image-upload"
+                type="file"
+                onChange={handleRoomImageChange}
+              />
+              <label htmlFor="room-image-upload">
+                <UploadArea component="span">
+                  {roomImageFile ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
+                      <img
+                        src={URL.createObjectURL(roomImageFile)}
+                        alt="Room preview"
+                        style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8 }}
+                      />
+                      <Typography variant="body2" sx={{ color: '#374151' }}>{roomImageFile.name}</Typography>
+                    </Box>
+                  ) : (
+                    <>
+                      <CloudUploadIcon sx={{ fontSize: 24, color: '#6B7280', mb: 0.5 }} />
+                      <Typography variant="body2" sx={{ color: '#6B7280' }}>Click to upload room image</Typography>
+                    </>
+                  )}
+                </UploadArea>
+              </label>
+            </Grid>
+
+            {/* Name */}
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Room Name*"
+                variant="outlined"
+                value={roomFormData.name}
+                onChange={(e) => handleRoomInputChange('name', e.target.value)}
+                placeholder="e.g., Board Room, Conference Hall"
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+              />
+            </Grid>
+
+            {/* Capacity Type */}
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Capacity Type*"
+                variant="outlined"
+                value={roomFormData.capacityType}
+                onChange={(e) => handleRoomInputChange('capacityType', e.target.value)}
+                placeholder="e.g., 16-20 seater"
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+              />
+            </Grid>
+
+            {/* Rates */}
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                label="Hourly Rate (₹)*"
+                variant="outlined"
+                type="number"
+                value={roomFormData.hourlyRate}
+                onChange={(e) => handleRoomInputChange('hourlyRate', e.target.value)}
+                placeholder="e.g., 1000"
+                inputProps={{ min: 0 }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                label="Day Rate (₹)*"
+                variant="outlined"
+                type="number"
+                value={roomFormData.dayRate}
+                onChange={(e) => handleRoomInputChange('dayRate', e.target.value)}
+                placeholder="e.g., 7000"
+                inputProps={{ min: 0 }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                label="Member Hourly Rate (₹)"
+                variant="outlined"
+                type="number"
+                value={roomFormData.memberHourlyRate}
+                onChange={(e) => handleRoomInputChange('memberHourlyRate', e.target.value)}
+                placeholder="e.g., 300"
+                inputProps={{ min: 0 }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                label="Member Day Rate (₹)"
+                variant="outlined"
+                type="number"
+                value={roomFormData.memberDayRate}
+                onChange={(e) => handleRoomInputChange('memberDayRate', e.target.value)}
+                placeholder="e.g., 200"
+                inputProps={{ min: 0 }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+              />
+            </Grid>
+
+            {/* Timings */}
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                label="Open Time"
+                variant="outlined"
+                value={roomFormData.openTime}
+                onChange={(e) => handleRoomInputChange('openTime', e.target.value)}
+                placeholder="e.g., 09:00 Am"
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                label="Close Time"
+                variant="outlined"
+                value={roomFormData.closeTime}
+                onChange={(e) => handleRoomInputChange('closeTime', e.target.value)}
+                placeholder="e.g., 06:30 Pm"
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+              />
+            </Grid>
+
+            {/* Description */}
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Description"
+                variant="outlined"
+                multiline
+                rows={3}
+                value={roomFormData.description}
+                onChange={(e) => handleRoomInputChange('description', e.target.value)}
+                placeholder="Describe this meeting room..."
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+              />
+            </Grid>
+
+            {/* Status */}
+            <Grid item xs={12}>
+              <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>Status*</Typography>
+              <Box>
+                {[{ label: 'Active', value: true }, { label: 'Inactive', value: false }].map(({ label, value }) => (
+                  <Button
+                    key={label}
+                    onClick={() => handleRoomInputChange('status', value)}
+                    sx={{
+                      mr: 1,
+                      mb: 1,
+                      borderRadius: '6px',
+                      fontWeight: 600,
+                      fontSize: '12px',
+                      textTransform: 'uppercase',
+                      border: 'none',
+                      backgroundColor: roomFormData.status === value
+                        ? (value ? '#10B981' : '#EF4444')
+                        : (value ? '#ECFDF5' : '#FEE2E2'),
+                      color: roomFormData.status === value
+                        ? 'white'
+                        : (value ? '#059669' : '#DC2626'),
+                      '&:hover': {
+                        backgroundColor: value ? '#047857' : '#B91C1C',
+                        color: 'white',
+                      },
+                    }}
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </Box>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ padding: '0 24px 24px', justifyContent: 'center' }}>
+          <SubmitButton onClick={handleRoomSubmit} disabled={loadingRooms}>
+            {loadingRooms ? (isEditRoomMode ? 'Updating...' : 'Adding...') : (isEditRoomMode ? 'Update Room' : 'Add Room')}
+          </SubmitButton>
+        </DialogActions>
+      </StyledDialog>
+
+      {/* Delete Meeting Room Confirmation */}
+      <Dialog open={meetingRoomDeleteDialog} onClose={handleRoomDeleteCancel} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>Confirm Delete</Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            Are you sure you want to delete <strong>{roomToDelete?.name || roomToDelete?.roomNumber}</strong>?
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button onClick={handleRoomDeleteCancel} variant="outlined" sx={{ textTransform: 'none' }} disabled={loadingRooms}>
+            Cancel
+          </Button>
+          <Button onClick={handleRoomDeleteConfirm} variant="contained" color="error" sx={{ textTransform: 'none' }} disabled={loadingRooms}>
+            {loadingRooms ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Add/Edit Space Modal */}
        
@@ -2000,6 +2966,135 @@ const Inventory = () => {
             disabled={loading}
           >
             {loading ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Add/Edit Utility Modal */}
+      <StyledDialog
+        open={utilityModal}
+        onClose={handleCloseUtilityModal}
+        maxWidth="sm"
+        fullWidth
+        BackdropProps={{
+          sx: { backdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.25)' },
+        }}
+      >
+        <StyledDialogTitle>
+          {isEditUtilityMode ? `Edit ${editingUtility?.name}` : 'Add Utility'}
+          <IconButton onClick={handleCloseUtilityModal} sx={{ color: '#6B7280', '&:hover': { backgroundColor: '#F3F4F6' } }}>
+            <CloseIcon />
+          </IconButton>
+        </StyledDialogTitle>
+        <DialogContent sx={{ padding: '0 24px 24px' }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 3, color: '#374151' }}>
+            Utility Details
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Utility Name*"
+                variant="outlined"
+                value={utilityFormData.name}
+                onChange={(e) => handleUtilityInputChange('name', e.target.value)}
+                placeholder="e.g., B&W Printing, Color Printing, Scanning"
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <FormControl fullWidth>
+                <InputLabel>Category*</InputLabel>
+                <Select
+                  value={utilityFormData.category}
+                  label="Category*"
+                  onChange={(e) => handleUtilityInputChange('category', e.target.value)}
+                  sx={{ borderRadius: '8px' }}
+                >
+                  {['Printing', 'Scanning', 'Finishing', 'Stationery', 'Other'].map((cat) => (
+                    <MenuItem key={cat} value={cat}>{cat}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                label="Price (₹)*"
+                variant="outlined"
+                type="number"
+                value={utilityFormData.price}
+                onChange={(e) => handleUtilityInputChange('price', e.target.value)}
+                placeholder="e.g., 500"
+                inputProps={{ min: 0 }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Description"
+                variant="outlined"
+                multiline
+                rows={2}
+                value={utilityFormData.description}
+                onChange={(e) => handleUtilityInputChange('description', e.target.value)}
+                placeholder="Brief description of this utility"
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>Availability*</Typography>
+              <Box>
+                {[{ label: 'Available', value: 'Available' }, { label: 'Not Available', value: 'Not Available' }].map(({ label, value }) => (
+                  <Button
+                    key={value}
+                    onClick={() => handleUtilityInputChange('availability', value)}
+                    sx={{
+                      mr: 1, mb: 1, borderRadius: '6px', fontWeight: 600,
+                      fontSize: '12px', textTransform: 'uppercase', border: 'none',
+                      backgroundColor: utilityFormData.availability === value
+                        ? (value === 'Available' ? '#10B981' : '#EF4444')
+                        : (value === 'Available' ? '#ECFDF5' : '#FEE2E2'),
+                      color: utilityFormData.availability === value
+                        ? 'white'
+                        : (value === 'Available' ? '#059669' : '#DC2626'),
+                      '&:hover': { backgroundColor: value === 'Available' ? '#047857' : '#B91C1C', color: 'white' },
+                    }}
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </Box>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ padding: '0 24px 24px', justifyContent: 'center' }}>
+          <SubmitButton onClick={handleUtilitySubmit} disabled={loadingUtilities}>
+            {loadingUtilities ? (isEditUtilityMode ? 'Updating...' : 'Adding...') : (isEditUtilityMode ? 'Update Utility' : 'Add Utility')}
+          </SubmitButton>
+        </DialogActions>
+      </StyledDialog>
+
+      {/* Delete Utility Confirmation */}
+      <Dialog open={utilityDeleteDialog} onClose={handleUtilityDeleteCancel} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>Confirm Delete</Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            Are you sure you want to delete <strong>{utilityToDelete?.name}</strong>?
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button onClick={handleUtilityDeleteCancel} variant="outlined" sx={{ textTransform: 'none' }}>
+            Cancel
+          </Button>
+          <Button onClick={handleUtilityDeleteConfirm} variant="contained" color="error" sx={{ textTransform: 'none' }}>
+            Delete
           </Button>
         </DialogActions>
       </Dialog>
