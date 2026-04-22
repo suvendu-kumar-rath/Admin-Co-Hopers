@@ -353,28 +353,28 @@ const KycApproval = () => {
         
         <Grid container spacing={2}>
           {selectedKyc.id && (
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Typography variant="body2" color="text.secondary">KYC ID</Typography>
               <Typography variant="body1" sx={{ fontWeight: 500 }}>{selectedKyc.id}</Typography>
             </Grid>
           )}
           
           {selectedKyc.userId && (
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Typography variant="body2" color="text.secondary">User ID</Typography>
               <Typography variant="body1" sx={{ fontWeight: 500 }}>{selectedKyc.userId}</Typography>
             </Grid>
           )}
           
           {selectedKyc.bookingId && (
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Typography variant="body2" color="text.secondary">Booking ID</Typography>
               <Typography variant="body1" sx={{ fontWeight: 500 }}>{selectedKyc.bookingId}</Typography>
             </Grid>
           )}
           
           {selectedKyc.documentType && (
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Typography variant="body2" color="text.secondary">Document Type</Typography>
               <Chip label={selectedKyc.documentType} color="primary" size="small" />
             </Grid>
@@ -382,49 +382,49 @@ const KycApproval = () => {
           
           {/* Prefer user segment for name, email, mobile */}
           {(selectedKyc.user?.username || selectedKyc.name) && (
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Typography variant="body2" color="text.secondary">Name</Typography>
               <Typography variant="body1" sx={{ fontWeight: 500 }}>{selectedKyc.name}</Typography>
             </Grid>
           )}
           
           {(selectedKyc.user?.email || selectedKyc.email) && (
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Typography variant="body2" color="text.secondary">Email</Typography>
               <Typography variant="body1" sx={{ fontWeight: 500 }}>{selectedKyc.email}</Typography>
             </Grid>
           )}
           
           {(selectedKyc.user?.mobile || selectedKyc.mobile) && (
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Typography variant="body2" color="text.secondary">Mobile</Typography>
               <Typography variant="body1" sx={{ fontWeight: 500 }}>{selectedKyc.mobile}</Typography>
             </Grid>
           )}
           
           {selectedKyc.gstNumber && (
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Typography variant="body2" color="text.secondary">GST Number</Typography>
               <Typography variant="body1" sx={{ fontWeight: 500 }}>{selectedKyc.gstNumber}</Typography>
             </Grid>
           )}
           
           {selectedKyc.companyName && (
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Typography variant="body2" color="text.secondary">Company Name</Typography>
               <Typography variant="body1" sx={{ fontWeight: 500 }}>{selectedKyc.companyName}</Typography>
             </Grid>
           )}
           
           {selectedKyc.directorName && (
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Typography variant="body2" color="text.secondary">Director Name</Typography>
               <Typography variant="body1" sx={{ fontWeight: 500 }}>{selectedKyc.directorName}</Typography>
             </Grid>
           )}
           
           {selectedKyc.din && (
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Typography variant="body2" color="text.secondary">DIN</Typography>
               <Typography variant="body1" sx={{ fontWeight: 500 }}>{selectedKyc.din}</Typography>
             </Grid>
@@ -438,7 +438,7 @@ const KycApproval = () => {
           </Typography>
           <Grid container spacing={2}>
             {selectedKyc.idFront && (
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>ID Front</Typography>
                 <Box
                   component="img"
@@ -458,7 +458,7 @@ const KycApproval = () => {
             )}
             
             {selectedKyc.idBack && (
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>ID Back</Typography>
                 <Box
                   component="img"
@@ -478,7 +478,7 @@ const KycApproval = () => {
             )}
             
             {selectedKyc.pan && (
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>PAN Card</Typography>
                 <Box
                   component="img"
@@ -498,7 +498,7 @@ const KycApproval = () => {
             )}
             
             {selectedKyc.photo && (
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Photo</Typography>
                 <Box
                   component="img"
@@ -518,7 +518,7 @@ const KycApproval = () => {
             )}
             
             {selectedKyc.paymentScreenshot && (
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Payment Screenshot</Typography>
                 <Box
                   component="img"
@@ -538,7 +538,7 @@ const KycApproval = () => {
             )}
             
             {selectedKyc.companyPAN && (
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Company PAN</Typography>
                 <Box
                   component="img"
@@ -558,7 +558,7 @@ const KycApproval = () => {
             )}
             
             {selectedKyc.certificateOfIncorporation && (
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Certificate of Incorporation</Typography>
                 <Box
                   component="img"
@@ -578,7 +578,7 @@ const KycApproval = () => {
             )}
             
             {selectedKyc.directorPAN && (
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Director PAN</Typography>
                 <Box
                   component="img"
@@ -598,7 +598,7 @@ const KycApproval = () => {
             )}
             
             {selectedKyc.directorPhoto && (
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Director Photo</Typography>
                 <Box
                   component="img"
@@ -618,7 +618,7 @@ const KycApproval = () => {
             )}
             
             {selectedKyc.directorIdFront && (
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Director ID Front</Typography>
                 <Box
                   component="img"
@@ -638,7 +638,7 @@ const KycApproval = () => {
             )}
             
             {selectedKyc.directorIdBack && (
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Director ID Back</Typography>
                 <Box
                   component="img"
@@ -658,7 +658,7 @@ const KycApproval = () => {
             )}
             
             {selectedKyc.directorPaymentProof && (
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Director Payment Proof</Typography>
                 <Box
                   component="img"
@@ -678,7 +678,7 @@ const KycApproval = () => {
             )}
             
             {selectedKyc.gstCertificate && (
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>GST Certificate</Typography>
                 <Box
                   component="img"
@@ -698,7 +698,7 @@ const KycApproval = () => {
             )}
             
             {selectedKyc.addressProof && (
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Address Proof</Typography>
                 <Box
                   component="img"

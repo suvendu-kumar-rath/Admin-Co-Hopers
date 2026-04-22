@@ -49,8 +49,9 @@ import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import PrintIcon from '@mui/icons-material/Print';
 import BuildCircleIcon from '@mui/icons-material/BuildCircle';
+import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
 import { motion } from 'framer-motion';
-import { spacesApi, pushNotificationsApi, meetingRoomApi, utilitiesApi } from '../api';
+import { spacesApi, pushNotificationsApi, meetingRoomApi, utilitiesApi, cafeteriaApi } from '../api';
 
 const MotionBox = motion(Box);
 const MotionPaper = motion(Paper);
@@ -527,6 +528,22 @@ const Inventory = () => {
     description: '',
   });
 
+  // Cafeteria states
+  const [cafeteriaItems, setCafeteriaItems] = useState([]);
+  const [loadingCafeteria, setLoadingCafeteria] = useState(false);
+  const [cafeteriaModal, setCafeteriaModal] = useState(false);
+  const [isEditCafeteriaMode, setIsEditCafeteriaMode] = useState(false);
+  const [editingCafeteriaItem, setEditingCafeteriaItem] = useState(null);
+  const [cafeteriaDeleteDialog, setCafeteriaDeleteDialog] = useState(false);
+  const [cafeteriaItemToDelete, setCafeteriaItemToDelete] = useState(null);
+  const [cafeteriaPage, setCafeteriaPage] = useState(0);
+  const [cafeteriaRowsPerPage, setCafeteriaRowsPerPage] = useState(10);
+  const [cafeteriaFormData, setCafeteriaFormData] = useState({
+    item: '',
+    category: '',
+    price: '',
+  });
+
   // Responsive hooks
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -661,6 +678,9 @@ const Inventory = () => {
     }
     if (activeTab === 2) {
       fetchUtilities();
+    }
+    if (activeTab === 3) {
+      fetchCafeteriaItems();
     }
   }, [activeTab]);
 
@@ -1272,6 +1292,114 @@ const Inventory = () => {
     setUtilityToDelete(null);
   };
 
+  // ---- Cafeteria Handlers ----
+  const defaultCafeteriaFormData = { item: '', category: '', price: '' };
+
+  const fetchCafeteriaItems = async () => {
+    setLoadingCafeteria(true);
+    try {
+      const response = await cafeteriaApi.fetchItems();
+      const data = Array.isArray(response) ? response : (response?.data || []);
+      setCafeteriaItems(data);
+    } catch (error) {
+      console.error('Error fetching cafeteria items:', error);
+      setCafeteriaItems([]);
+    } finally {
+      setLoadingCafeteria(false);
+    }
+  };
+
+  const handleOpenCafeteriaModal = () => {
+    setIsEditCafeteriaMode(false);
+    setEditingCafeteriaItem(null);
+    setCafeteriaFormData(defaultCafeteriaFormData);
+    setCafeteriaModal(true);
+  };
+
+  const handleEditCafeteriaModal = (item) => {
+    setIsEditCafeteriaMode(true);
+    setEditingCafeteriaItem(item);
+    setCafeteriaFormData({
+      item: item.item || '',
+      category: item.category || '',
+      price: item.price || '',
+    });
+    setCafeteriaModal(true);
+  };
+
+  const handleCloseCafeteriaModal = () => {
+    setCafeteriaModal(false);
+    setIsEditCafeteriaMode(false);
+    setEditingCafeteriaItem(null);
+    setCafeteriaFormData(defaultCafeteriaFormData);
+  };
+
+  const handleCafeteriaInputChange = (field, value) => {
+    setCafeteriaFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleCafeteriaSubmit = async () => {
+    if (!cafeteriaFormData.item || !cafeteriaFormData.category || !cafeteriaFormData.price) {
+      setSnackbarMessage('Please fill in all required fields (Item, Category, and Price)');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+      return;
+    }
+    setLoadingCafeteria(true);
+    try {
+      if (isEditCafeteriaMode && editingCafeteriaItem) {
+        await cafeteriaApi.updateItem(editingCafeteriaItem.id, cafeteriaFormData);
+        setSnackbarMessage(`${cafeteriaFormData.item} updated successfully.`);
+      } else {
+        await cafeteriaApi.addItem(cafeteriaFormData);
+        setSnackbarMessage(`${cafeteriaFormData.item} added to cafeteria successfully.`);
+      }
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+      handleCloseCafeteriaModal();
+      await fetchCafeteriaItems();
+    } catch (error) {
+      console.error('Cafeteria submit error:', error);
+      const errMsg = error.response?.data?.message || (isEditCafeteriaMode ? 'Failed to update cafeteria item. Please try again.' : 'Failed to add cafeteria item. Please try again.');
+      setSnackbarMessage(errMsg);
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    } finally {
+      setLoadingCafeteria(false);
+    }
+  };
+
+  const handleCafeteriaDeleteClick = (item) => {
+    setCafeteriaItemToDelete(item);
+    setCafeteriaDeleteDialog(true);
+  };
+
+  const handleCafeteriaDeleteConfirm = async () => {
+    if (!cafeteriaItemToDelete) return;
+    setLoadingCafeteria(true);
+    try {
+      await cafeteriaApi.deleteItem(cafeteriaItemToDelete.id);
+      setSnackbarMessage(`${cafeteriaItemToDelete.name} deleted successfully.`);
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+      await fetchCafeteriaItems();
+    } catch (error) {
+      console.error('Cafeteria delete error:', error);
+      setSnackbarMessage('Failed to delete cafeteria item. Please try again.');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    } finally {
+      setLoadingCafeteria(false);
+      setCafeteriaDeleteDialog(false);
+      setCafeteriaItemToDelete(null);
+    }
+  };
+
+  const handleCafeteriaDeleteCancel = () => {
+    setCafeteriaDeleteDialog(false);
+    setCafeteriaItemToDelete(null);
+  };
+
   // Calendar helper functions
   const formatDate = (date) => {
     // Use local date without timezone offset to avoid one-day-before issue
@@ -1688,6 +1816,27 @@ const Inventory = () => {
             {isSmall ? 'Add Utility' : 'Add Utility'}
           </Button>
         )}
+        {activeTab === 3 && (
+          <Button
+            variant="contained"
+            startIcon={!isSmall && <AddIcon />}
+            onClick={handleOpenCafeteriaModal}
+            size={isMobile ? "small" : "medium"}
+            sx={{
+              backgroundColor: '#4F46E5',
+              borderRadius: '8px',
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: { xs: '0.75rem', sm: '0.875rem' },
+              padding: { xs: '6px 12px', sm: '8px 16px' },
+              '&:hover': {
+                backgroundColor: '#4338CA',
+              },
+            }}
+          >
+            {isSmall ? 'Add Item' : 'Add Cafeteria Item'}
+          </Button>
+        )}
       </Box>
 
       {/* Tabs */}
@@ -1704,6 +1853,7 @@ const Inventory = () => {
           <Tab icon={<InventoryIcon fontSize="small" />} iconPosition="start" label="Spaces" />
           <Tab icon={<MeetingRoomIcon fontSize="small" />} iconPosition="start" label="Meeting Rooms" />
           <Tab icon={<PrintIcon fontSize="small" />} iconPosition="start" label="Utilities" />
+          <Tab icon={<RestaurantMenuIcon fontSize="small" />} iconPosition="start" label="Cafeteria" />
         </Tabs>
       </Box>
 
@@ -2292,6 +2442,122 @@ const Inventory = () => {
           </Box>
         </MotionPaper>
       )} {/* end activeTab === 2 */}
+
+      {/* Cafeteria Tab */}
+      {activeTab === 3 && (
+        <MotionPaper
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+        >
+          <TableContainer_Styled>
+            <Table sx={{ minWidth: isMobile ? '500px' : 'auto' }}>
+              <TableHead>
+                <TableRow>
+                  <StyledTableCell>#</StyledTableCell>
+                  <StyledTableCell>ITEM NAME</StyledTableCell>
+                  <StyledTableCell>CATEGORY</StyledTableCell>
+                  <StyledTableCell>PRICE</StyledTableCell>
+                  <StyledTableCell>ACTION</StyledTableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {loadingCafeteria ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <StyledTableRow key={`caf-skel-${i}`}>
+                      {Array.from({ length: 5 }).map((__, j) => (
+                        <StyledTableBodyCell key={j}>Loading...</StyledTableBodyCell>
+                      ))}
+                    </StyledTableRow>
+                  ))
+                ) : cafeteriaItems.length === 0 ? (
+                  <StyledTableRow>
+                    <StyledTableBodyCell colSpan={5} align="center">
+                      <Typography variant="body2" color="textSecondary">
+                        No cafeteria items found. Click "Add Cafeteria Item" to get started.
+                      </Typography>
+                    </StyledTableBodyCell>
+                  </StyledTableRow>
+                ) : (
+                  cafeteriaItems
+                    .slice(cafeteriaPage * cafeteriaRowsPerPage, cafeteriaPage * cafeteriaRowsPerPage + cafeteriaRowsPerPage)
+                    .map((item, index) => (
+                      <StyledTableRow key={item.id || index}>
+                        <StyledTableBodyCell>{cafeteriaPage * cafeteriaRowsPerPage + index + 1}</StyledTableBodyCell>
+                        <StyledTableBodyCell>
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <RestaurantMenuIcon sx={{ color: '#F59E0B', fontSize: 20 }} />
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              {item.item}
+                            </Typography>
+                          </Box>
+                        </StyledTableBodyCell>
+                        <StyledTableBodyCell>
+                          <Chip
+                            label={item.category}
+                            size="small"
+                            sx={{
+                              backgroundColor: '#FEF3C7',
+                              color: '#92400E',
+                              fontWeight: 600,
+                              fontSize: '0.75rem',
+                              borderRadius: '6px',
+                            }}
+                          />
+                        </StyledTableBodyCell>
+                        <StyledTableBodyCell>
+                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                            ₹{item.price}
+                          </Typography>
+                        </StyledTableBodyCell>
+                        <StyledTableBodyCell>
+                          <Box display="flex" alignItems="center" gap={isSmall ? 0.5 : 1}>
+                            <ActionButton
+                              actiontype="edit"
+                              onClick={() => handleEditCafeteriaModal(item)}
+                              disabled={loadingCafeteria}
+                            >
+                              <EditIcon fontSize="small" />
+                            </ActionButton>
+                            <ActionButton
+                              actiontype="delete"
+                              onClick={() => handleCafeteriaDeleteClick(item)}
+                              disabled={loadingCafeteria}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </ActionButton>
+                          </Box>
+                        </StyledTableBodyCell>
+                      </StyledTableRow>
+                    ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer_Styled>
+          <Box
+            display="flex"
+            justifyContent="flex-end"
+            alignItems="center"
+            p={{ xs: 1, sm: 2 }}
+            sx={{ borderTop: '1px solid #E5E7EB' }}
+          >
+            <TablePagination
+              component="div"
+              count={cafeteriaItems.length}
+              page={cafeteriaPage}
+              onPageChange={(_, p) => setCafeteriaPage(p)}
+              rowsPerPage={cafeteriaRowsPerPage}
+              onRowsPerPageChange={(e) => { setCafeteriaRowsPerPage(parseInt(e.target.value, 10)); setCafeteriaPage(0); }}
+              rowsPerPageOptions={[5, 10, 25]}
+              showFirstButton
+              showLastButton
+              sx={{
+                '& .MuiTablePagination-toolbar': { minHeight: 'auto', paddingLeft: 0, paddingRight: 0 },
+              }}
+            />
+          </Box>
+        </MotionPaper>
+      )} {/* end activeTab === 3 */}
 
       {/* Add/Edit Meeting Room Modal */}
       <StyledDialog
@@ -3095,6 +3361,94 @@ const Inventory = () => {
           </Button>
           <Button onClick={handleUtilityDeleteConfirm} variant="contained" color="error" sx={{ textTransform: 'none' }}>
             Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Add Cafeteria Item Modal */}
+      <StyledDialog
+        open={cafeteriaModal}
+        onClose={handleCloseCafeteriaModal}
+        maxWidth="sm"
+        fullWidth
+        BackdropProps={{
+          sx: { backdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.25)' },
+        }}
+      >
+        <StyledDialogTitle>
+          {isEditCafeteriaMode ? `Edit ${editingCafeteriaItem?.item}` : 'Add Cafeteria Item'}
+          <IconButton onClick={handleCloseCafeteriaModal} sx={{ color: '#6B7280', '&:hover': { backgroundColor: '#F3F4F6' } }}>
+            <CloseIcon />
+          </IconButton>
+        </StyledDialogTitle>
+        <DialogContent sx={{ padding: '0 24px 24px' }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 3, color: '#374151' }}>
+            Cafeteria Item Details
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Item*"
+                variant="outlined"
+                value={cafeteriaFormData.item}
+                onChange={(e) => handleCafeteriaInputChange('item', e.target.value)}
+                placeholder="e.g., Latte, Veg Sandwich"
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                label="Category*"
+                variant="outlined"
+                value={cafeteriaFormData.category}
+                onChange={(e) => handleCafeteriaInputChange('category', e.target.value)}
+                placeholder="e.g., Beverages, Snacks, Meals"
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                label="Price (₹)*"
+                variant="outlined"
+                type="number"
+                value={cafeteriaFormData.price}
+                onChange={(e) => handleCafeteriaInputChange('price', e.target.value)}
+                placeholder="e.g., 50"
+                inputProps={{ min: 0 }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ padding: '0 24px 24px', justifyContent: 'center' }}>
+          <SubmitButton onClick={handleCafeteriaSubmit} disabled={loadingCafeteria}>
+            {loadingCafeteria ? (isEditCafeteriaMode ? 'Updating...' : 'Adding...') : (isEditCafeteriaMode ? 'Update Item' : 'Add Item')}
+          </SubmitButton>
+        </DialogActions>
+      </StyledDialog>
+
+      {/* Delete Cafeteria Item Confirmation */}
+      <Dialog open={cafeteriaDeleteDialog} onClose={handleCafeteriaDeleteCancel} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>Confirm Delete</Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            Are you sure you want to delete <strong>{cafeteriaItemToDelete?.item}</strong>?
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button onClick={handleCafeteriaDeleteCancel} variant="outlined" sx={{ textTransform: 'none' }} disabled={loadingCafeteria}>
+            Cancel
+          </Button>
+          <Button onClick={handleCafeteriaDeleteConfirm} variant="contained" color="error" sx={{ textTransform: 'none' }} disabled={loadingCafeteria}>
+            {loadingCafeteria ? 'Deleting...' : 'Delete'}
           </Button>
         </DialogActions>
       </Dialog>

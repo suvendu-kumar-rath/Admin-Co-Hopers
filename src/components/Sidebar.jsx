@@ -17,6 +17,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
 import StarIcon from '@mui/icons-material/Star';
+import GroupIcon from '@mui/icons-material/Group';
 import HistoryIcon from '@mui/icons-material/History';
 import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
@@ -220,6 +221,7 @@ const Sidebar = () => {
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
     { text: 'Space Bookings', icon: <PeopleIcon />, path: '/users' },
     { text: 'Active members', icon: <StarIcon />, path: '/active-members' },
+    { text: 'Active Visitors', icon: <GroupIcon />, path: '/visitors' },
     { text: 'Past members', icon: <HistoryIcon />, path: '/past-members' },
     { text: 'KYC Approval', icon: <VerifiedUserIcon />, path: '/kyc-approval' },
     { text: 'Inventory', icon: <InventoryIcon />, path: '/inventory' },

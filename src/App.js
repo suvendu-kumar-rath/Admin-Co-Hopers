@@ -6,6 +6,7 @@ import Header from './components/Header.jsx';
 import Dashboard from './components/Dashboard.jsx';
 import User from './components/User.jsx';
 import ActiveMembers from './components/Active members.jsx';
+import Visitors from './components/Visitors.jsx';
 import BookMeetingRoom from './components/BookMeetingRoom.jsx';
 import Login from './components/Login.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
@@ -278,6 +279,16 @@ function App() {
                   <ResponsiveLayout>
                     <Header />
                     <ActiveMembers />
+                  </ResponsiveLayout>
+                </SidebarProvider>
+              } />
+              
+              <Route path="/visitors" element={
+                <SidebarProvider>
+                  <Sidebar />
+                  <ResponsiveLayout>
+                    <Header />
+                    <Visitors />
                   </ResponsiveLayout>
                 </SidebarProvider>
               } />
