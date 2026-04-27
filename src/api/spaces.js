@@ -336,7 +336,48 @@ export const spacesApi = {
 };
 
 export const utilitiesApi = {
-  // Fetch all utilities
+  // Fetch all utility orders (admin)
+  fetchOrders: async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await axios.get(`${baseURL}/utilities/admin/orders`, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        withCredentials: false,
+      });
+      console.log('✅ Utility orders fetched:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Failed to fetch utility orders:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // Update utility order status
+  updateOrderStatus: async (orderId, status) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await axios.put(
+        `${baseURL}/utilities/admin/orders/${orderId}/status`,
+        { status },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          withCredentials: false,
+        }
+      );
+      console.log('✅ Utility order status updated:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Failed to update utility order status:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // Fetch all utilities (catalog)
   fetchUtilities: async () => {
     try {
       const token = localStorage.getItem('authToken');

@@ -13,6 +13,7 @@ import ProtectedRoute from './components/ProtectedRoute.jsx';
 import PastMembers from './components/PastMembers.jsx';
 import Inventory from './components/Inventory.jsx';
 import Refreshment from './components/Refreshment.jsx';
+import Utilities from './components/Utilities.jsx';
 import AppVersionManagement from './components/AppVersionManagement.jsx';
 import KycApproval from './components/KycApproval.jsx';
 import { onMessageListener } from './config/firebase';
@@ -339,6 +340,16 @@ function App() {
                   <ResponsiveLayout>
                     <Header />
                     <Refreshment />
+                  </ResponsiveLayout>
+                </SidebarProvider>
+              } />
+
+              <Route path="/utilities" element={
+                <SidebarProvider>
+                  <Sidebar />
+                  <ResponsiveLayout>
+                    <Header />
+                    <Utilities />
                   </ResponsiveLayout>
                 </SidebarProvider>
               } />

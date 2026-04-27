@@ -26,6 +26,7 @@ import SystemUpdateAltIcon from '@mui/icons-material/SystemUpdateAlt';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 
 import InventoryIcon from '@mui/icons-material/Inventory';
+import ElectricalServicesIcon from '@mui/icons-material/ElectricalServices';
 import CoHopersLogo from '../assets/images/BoldTribe Logo-3.png';
 import { motion } from 'framer-motion';
 
@@ -227,6 +228,7 @@ const Sidebar = () => {
     { text: 'Inventory', icon: <InventoryIcon />, path: '/inventory' },
     { text: 'Book Meeting Room', icon: <MeetingRoomIcon />, path: '/book-meeting' },
     { text: 'Refreshment', icon: <RestaurantMenuIcon />, path: '/refreshment' },
+    { text: 'Utilities', icon: <ElectricalServicesIcon />, path: '/utilities' },
     { text: 'App Version', icon: <SystemUpdateAltIcon />, path: '/app-version' },
   ];
 
