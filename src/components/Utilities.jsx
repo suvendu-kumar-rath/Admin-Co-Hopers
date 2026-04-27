@@ -95,7 +95,7 @@ const Utilities = () => {
   const handlePaymentStatusToggle = (orderId, currentStatus) => {
     const newStatus = currentStatus === 'Paid' ? 'Not Paid' : 'Paid';
     const localUpdates = JSON.parse(localStorage.getItem('utilitiesOrderUpdates') || '{}');
-    localUpdates[orderId] = { ...localUpdates[orderId], paymentStatus: newStatus };
+    localUpdates[orderId] = { ...localUpdates[orderId], paymentStatus: newStatus, paymentStatusManuallySet: true };
     localStorage.setItem('utilitiesOrderUpdates', JSON.stringify(localUpdates));
     setUtilitiesData(prevData =>
       prevData.map(order => {
@@ -128,6 +128,7 @@ const Utilities = () => {
   const [processingOrderId, setProcessingOrderId] = useState(null);
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedImageTitle, setSelectedImageTitle] = useState('Image');
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState(null);
@@ -158,13 +159,22 @@ const Utilities = () => {
         id: order.id || order._id || order.orderId,
         cabinNumber: order.cabinNumber || order.cabin_number || (order.space && order.space.cabinNumber) || order.spaceNumber || '',
         username: (order.user && order.user.username) || order.username || order.user_name || order.customerName || order.name || 'N/A',
+        userEmail: (order.user && order.user.email) || order.email || '',
+        userMobile: (order.user && order.user.mobile) || order.mobile || '',
         roomNumber: order.roomNumber || order.room_number || (order.space && order.space.roomNumber) || order.spaceId || '',
-        itemName: order.itemName || order.utilityName || order.name || 'N/A',
+        itemName: (order.utility && order.utility.name) || order.itemName || order.utilityName || 'N/A',
+        utilityCategory: (order.utility && order.utility.category) || '',
         quantity: order.quantity || 0,
-        orderType: order.orderType || order.type || 'N/A',
+        printType: order.printType || order.orderType || order.type || 'N/A',
+        colorMode: order.colorMode || '',
+        paperSize: order.paperSize || '',
+        orientation: order.orientation || '',
+        doubleSided: order.doubleSided || false,
         specialInstructions: order.specialInstructions || order.notes || '',
         paymentScreenshot: order.paymentScreenshot || order.payment_screenshot || order.receiptImage || '',
-        paymentMethod: order.paymentMethod || order.payment_method || order.paymentType || '',
+        printFile: order.printFile || '',
+        utrNumber: order.utrNumber || '',
+        paymentStatus: order.paid || order.paymentStatus || '',
         amount: order.amount || order.totalAmount || order.total_amount || order.price || 0,
         orderDate: order.orderDate || order.order_date || order.createdAt || order.created_at || new Date().toISOString().split('T')[0],
         status: order.status || order.orderStatus || 'Pending',
@@ -176,7 +186,13 @@ const Utilities = () => {
       const localUpdates = JSON.parse(localStorage.getItem('utilitiesOrderUpdates') || '{}');
       const finalData = transformedData.map(order => {
         const orderId = order.id;
-        return localUpdates[orderId] ? { ...order, ...localUpdates[orderId] } : order;
+        if (localUpdates[orderId]) {
+          // Only apply override if admin manually toggled; don't override API-supplied paid status
+          const overrides = { ...localUpdates[orderId] };
+          if (!overrides.paymentStatusManuallySet) delete overrides.paymentStatus;
+          return { ...order, ...overrides };
+        }
+        return order;
       });
 
       setUtilitiesData(finalData);
@@ -202,7 +218,8 @@ const Utilities = () => {
         String(item.cabinNumber || '').toLowerCase().includes(searchLower) ||
         String(item.roomNumber || '').toLowerCase().includes(searchLower) ||
         String(item.itemName || '').toLowerCase().includes(searchLower) ||
-        String(item.paymentMethod || '').toLowerCase().includes(searchLower) ||
+        String(item.utilityCategory || '').toLowerCase().includes(searchLower) ||
+        String(item.utrNumber || '').toLowerCase().includes(searchLower) ||
         String(item.status || '').toLowerCase().includes(searchLower) ||
         String(item.companyName || '').toLowerCase().includes(searchLower)
       );
@@ -319,7 +336,15 @@ const Utilities = () => {
     setSelectedRow(null);
   };
 
-  const handleViewScreenshot = (screenshotUrl, event) => {
+  const resolveFileUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    let baseURL = process.env.REACT_APP_API_URL || 'https://api.boldtribe.in/api';
+    baseURL = baseURL.replace(/\/api$/, '');
+    return url.startsWith('/') ? `${baseURL}${url}` : `${baseURL}/${url}`;
+  };
+
+  const handleViewScreenshot = (screenshotUrl, event, title = 'Image') => {
     if (event) {
       event.stopPropagation();
       event.preventDefault();
@@ -327,32 +352,43 @@ const Utilities = () => {
     if (screenshotUrl && screenshotUrl.trim() !== '') {
       setImageError(false);
       setImageLoading(true);
-      let fullImageUrl = screenshotUrl;
-      if (screenshotUrl && !screenshotUrl.startsWith('http')) {
-        let baseURL = process.env.REACT_APP_API_URL || 'https://api.boldtribe.in/api';
-        baseURL = baseURL.replace(/\/api$/, '');
-        fullImageUrl = screenshotUrl.startsWith('/') ? `${baseURL}${screenshotUrl}` : `${baseURL}/${screenshotUrl}`;
-      }
-      setSelectedImage(fullImageUrl);
+      setSelectedImage(resolveFileUrl(screenshotUrl));
+      setSelectedImageTitle(title);
       setImageDialogOpen(true);
       setTimeout(() => handleMenuClose(), 100);
     } else {
       setSnackbar({
         open: true,
-        message: 'No screenshot URL available',
+        message: 'No file URL available',
         severity: 'warning'
       });
     }
   };
 
-  const handleDownloadScreenshot = (screenshotUrl, username) => {
-    const link = document.createElement('a');
-    link.href = screenshotUrl;
-    link.download = `payment_${username}_${Date.now()}.jpg`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleDownloadScreenshot = async (screenshotUrl, username) => {
     handleMenuClose();
+    await handleDownloadFile(screenshotUrl, `payment_${username}_${Date.now()}.jpg`);
+  };
+
+  const handleDownloadFile = async (fileUrl, filename) => {
+    const fullUrl = resolveFileUrl(fileUrl);
+    const name = filename || `file_${Date.now()}`;
+    try {
+      const response = await fetch(fullUrl);
+      if (!response.ok) throw new Error('Network response was not ok');
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      // Fallback: open in new tab if fetch fails (e.g. CORS)
+      window.open(fullUrl, '_blank', 'noopener,noreferrer');
+    }
   };
 
   const refreshData = () => {
@@ -644,8 +680,9 @@ const Utilities = () => {
                   <TableRow>
                     <TableCell>Order ID</TableCell>
                     <TableCell>Item Details</TableCell>
+                    <TableCell>Print File</TableCell>
                     <TableCell>Payment Screenshot</TableCell>
-                    <TableCell>Payment Status</TableCell>
+                    <TableCell>UTR / Payment</TableCell>
                     <TableCell>Amount</TableCell>
                     <TableCell>Order Date</TableCell>
                     <TableCell align="center">Status / Actions</TableCell>
@@ -671,7 +708,7 @@ const Utilities = () => {
                           )}
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Typography variant="caption" sx={{ fontWeight: 600, color: '#555' }}>
-                              Item:
+                              Utility:
                             </Typography>
                             <Typography
                               variant="body2"
@@ -682,10 +719,23 @@ const Utilities = () => {
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap'
                               }}
+                              title={row.itemName}
                             >
                               {row.itemName || 'N/A'}
                             </Typography>
                           </Box>
+                          {row.utilityCategory && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography variant="caption" sx={{ fontWeight: 600, color: '#555' }}>
+                                Category:
+                              </Typography>
+                              <Chip
+                                label={row.utilityCategory}
+                                size="small"
+                                sx={{ height: 20, bgcolor: '#ede7f6', color: '#512da8' }}
+                              />
+                            </Box>
+                          )}
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Typography variant="caption" sx={{ fontWeight: 600, color: '#555' }}>
                               Qty:
@@ -696,16 +746,48 @@ const Utilities = () => {
                               sx={{ height: 20, bgcolor: '#e8f5e9', color: '#2e7d32' }}
                             />
                           </Box>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#555' }}>
-                              Type:
-                            </Typography>
-                            <Chip
-                              label={row.orderType || 'N/A'}
-                              size="small"
-                              sx={{ height: 20, bgcolor: '#e3f2fd', color: '#1565c0' }}
-                            />
-                          </Box>
+                          {row.printType && row.printType !== 'N/A' && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography variant="caption" sx={{ fontWeight: 600, color: '#555' }}>
+                                Print Type:
+                              </Typography>
+                              <Chip
+                                label={row.printType}
+                                size="small"
+                                sx={{ height: 20, bgcolor: '#e3f2fd', color: '#1565c0' }}
+                              />
+                            </Box>
+                          )}
+                          {row.colorMode && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography variant="caption" sx={{ fontWeight: 600, color: '#555' }}>
+                                Color:
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {row.colorMode}
+                              </Typography>
+                            </Box>
+                          )}
+                          {row.paperSize && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography variant="caption" sx={{ fontWeight: 600, color: '#555' }}>
+                                Paper:
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {row.paperSize}{row.orientation ? ` · ${row.orientation}` : ''}
+                              </Typography>
+                            </Box>
+                          )}
+                          {typeof row.doubleSided === 'boolean' && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography variant="caption" sx={{ fontWeight: 600, color: '#555' }}>
+                                Double Sided:
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {row.doubleSided ? 'Yes' : 'No'}
+                              </Typography>
+                            </Box>
+                          )}
                           {row.specialInstructions && (
                             <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
                               <Typography variant="caption" sx={{ fontWeight: 600, color: '#555' }}>
@@ -729,53 +811,99 @@ const Utilities = () => {
                           )}
                         </Box>
                       </TableCell>
+                      {/* Print File column */}
+                      <TableCell>
+                        {row.printFile ? (
+                          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                            <Tooltip title="View print file">
+                              <IconButton
+                                onClick={(e) => handleViewScreenshot(row.printFile, e, 'Print File')}
+                                sx={{ p: 0 }}
+                              >
+                                <Avatar
+                                  src={resolveFileUrl(row.printFile)}
+                                  alt="Print File"
+                                  variant="rounded"
+                                  sx={{ width: 50, height: 50, cursor: 'pointer', '&:hover': { opacity: 0.8 } }}
+                                />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Download print file">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleDownloadFile(row.printFile, `print_file_${row.id}`)}
+                                sx={{ color: '#1976d2' }}
+                              >
+                                <DownloadIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">N/A</Typography>
+                        )}
+                      </TableCell>
+                      {/* Payment Screenshot column */}
                       <TableCell>
                         {row.paymentScreenshot ? (
-                          <Tooltip title="Click to view payment screenshot">
-                            <IconButton
-                              onClick={(e) => handleViewScreenshot(row.paymentScreenshot, e)}
-                              sx={{ p: 0 }}
-                            >
-                              <Avatar
-                                src={row.paymentScreenshot}
-                                alt="Payment Screenshot"
-                                variant="rounded"
-                                sx={{
-                                  width: 50,
-                                  height: 50,
-                                  cursor: 'pointer',
-                                  '&:hover': { opacity: 0.8 }
-                                }}
-                              />
-                            </IconButton>
-                          </Tooltip>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                            <Tooltip title="Click to view payment screenshot">
+                              <IconButton
+                                onClick={(e) => handleViewScreenshot(row.paymentScreenshot, e, 'Payment Screenshot')}
+                                sx={{ p: 0 }}
+                              >
+                                <Avatar
+                                  src={resolveFileUrl(row.paymentScreenshot)}
+                                  alt="Payment Screenshot"
+                                  variant="rounded"
+                                  sx={{
+                                    width: 50,
+                                    height: 50,
+                                    cursor: 'pointer',
+                                    '&:hover': { opacity: 0.8 }
+                                  }}
+                                />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Download payment screenshot">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleDownloadFile(row.paymentScreenshot, `payment_screenshot_${row.id}.jpg`)}
+                                sx={{ color: '#1976d2' }}
+                              >
+                                <DownloadIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
                         ) : (
                           <Tooltip title="No payment screenshot">
                             <Avatar
                               alt="No Screenshot"
                               variant="rounded"
-                              sx={{
-                                width: 50,
-                                height: 50,
-                                bgcolor: '#f5f5f5',
-                                color: '#9e9e9e'
-                              }}
+                              sx={{ width: 50, height: 50, bgcolor: '#f5f5f5', color: '#9e9e9e' }}
                             >
                               N/A
                             </Avatar>
                           </Tooltip>
                         )}
                       </TableCell>
+                      {/* UTR / Payment Status column */}
                       <TableCell>
-                        <Button
-                          variant="contained"
-                          color={row.paymentStatus === 'Paid' ? 'success' : 'warning'}
-                          size="small"
-                          sx={{ fontWeight: 600 }}
-                          onClick={() => handlePaymentStatusToggle(row.id, row.paymentStatus)}
-                        >
-                          {row.paymentStatus === 'Paid' ? 'Paid' : 'Not Paid'}
-                        </Button>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                          {row.utrNumber && (
+                            <Typography variant="caption" sx={{ fontWeight: 600, color: '#555' }}>
+                              UTR: <span style={{ color: '#1976d2' }}>{row.utrNumber}</span>
+                            </Typography>
+                          )}
+                          <Button
+                            variant="contained"
+                            color={row.paymentStatus === 'Paid' ? 'success' : 'warning'}
+                            size="small"
+                            sx={{ fontWeight: 600 }}
+                            onClick={() => handlePaymentStatusToggle(row.id, row.paymentStatus)}
+                          >
+                            {row.paymentStatus === 'Paid' ? 'Paid' : row.paymentStatus || 'Pending'}
+                          </Button>
+                        </Box>
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" fontWeight={600} color="success.main">
@@ -838,12 +966,7 @@ const Utilities = () => {
         fullWidth
       >
         <DialogTitle>
-          Payment Screenshot
-          {selectedImage && (
-            <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 1 }}>
-              {selectedImage}
-            </Typography>
-          )}
+          {selectedImageTitle}
         </DialogTitle>
         <DialogContent>
           <Box sx={{
@@ -869,7 +992,7 @@ const Utilities = () => {
             {selectedImage && (
               <img
                 src={selectedImage}
-                alt="Payment Screenshot"
+                alt={selectedImageTitle}
                 crossOrigin="anonymous"
                 style={{
                   maxWidth: '100%',
@@ -892,6 +1015,15 @@ const Utilities = () => {
           </Box>
         </DialogContent>
         <DialogActions>
+          {selectedImage && !imageError && (
+            <Button
+              startIcon={<DownloadIcon />}
+              variant="outlined"
+              onClick={() => handleDownloadFile(selectedImage, `${selectedImageTitle.replace(/\s+/g, '_').toLowerCase()}_${Date.now()}`)}
+            >
+              Download
+            </Button>
+          )}
           <Button onClick={() => {
             setImageDialogOpen(false);
             setSelectedImage(null);

@@ -3,6 +3,7 @@ import axiosInstance from './axios';
 // API endpoints for members management
 const ENDPOINTS = {
   ACTIVE_MEMBERS: '/admin/active-members',
+  PAST_MEMBERS: '/admin/past-members',
 };
 
 export const membersApi = {
@@ -19,6 +20,26 @@ export const membersApi = {
       // Enhanced error handling
       if (error.response) {
         const errorMessage = error.response.data?.message || 'Failed to fetch active members';
+        throw new Error(`${errorMessage} (Status: ${error.response.status})`);
+      } else if (error.request) {
+        throw new Error('Network error: Unable to reach the server');
+      } else {
+        throw new Error('Request failed: ' + error.message);
+      }
+    }
+  },
+
+  // Fetch all past members
+  fetchPastMembers: async () => {
+    try {
+      console.log('Fetching past members from API...');
+      const response = await axiosInstance.get(ENDPOINTS.PAST_MEMBERS);
+      console.log('Past members API response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching past members:', error);
+      if (error.response) {
+        const errorMessage = error.response.data?.message || 'Failed to fetch past members';
         throw new Error(`${errorMessage} (Status: ${error.response.status})`);
       } else if (error.request) {
         throw new Error('Network error: Unable to reach the server');

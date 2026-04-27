@@ -1,7 +1,8 @@
-import React, { useState } from "react";
-import { Box, Typography, Modal, Button, IconButton } from '@mui/material';
+import React, { useState, useEffect } from "react";
+import { Box, Typography, Modal, Button, CircularProgress } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import { membersApi } from '../api/members';
 
 const ModalContent = styled(Box)({
   position: 'absolute',
@@ -18,210 +19,30 @@ const ModalContent = styled(Box)({
   overflow: 'auto',
 });
 
-const pastMembersData = [
-  {
-    id: 1,
-    name: "Ann Culhane",
-    phone: "5684236526",
-    address: "Lorem ipsum elit. Nulla...",
-    spaceType: "Private Office",
-    start: "1 JAN 2025",
-    end: "1 JAN 2025",
-    unit: "605",
-    amount: "5158",
-    mail: "sbdhbi@136gmail.com",
-    contactDetails: "Phone: 5684236526, Email: sbdhbi@136gmail.com",
-    kyc: {
-      status: 'Verified',
-      idType: 'Passport',
-      idNumber: 'P1234567',
-      dateOfBirth: '1990-05-15',
-      nationality: 'American',
-      occupation: 'Software Engineer',
-      verificationDate: '2024-12-15'
-    }
-  },
-  {
-    id: 2,
-    name: "Ahmad Rosser",
-    phone: "5684236527",
-    address: "Lorem ipsum elit. Nulla...",
-    spaceType: "Shared Desk",
-    start: "1 JAN 2025",
-    end: "1 JAN 2025",
-    unit: "605",
-    amount: "5158",
-    mail: "sbdhbi@136gmail.com",
-    contactDetails: "Phone: 5684236527, Email: sbdhbi@136gmail.com",
-    kyc: {
-      status: 'Verified',
-      idType: 'Driver License',
-      idNumber: 'DL987654',
-      dateOfBirth: '1988-03-22',
-      nationality: 'Canadian',
-      occupation: 'Designer',
-      verificationDate: '2024-11-20'
-    }
-  },
-  {
-    id: 3,
-    name: "Zain Calzoni",
-    phone: "5684236528",
-    address: "Lorem ipsum elit. Nulla...",
-    spaceType: "Hot Desk",
-    start: "1 JAN 2025",
-    end: "1 JAN 2025",
-    unit: "605",
-    amount: "5158",
-    mail: "sbdhbi@136gmail.com",
-    contactDetails: "Phone: 5684236528, Email: sbdhbi@136gmail.com",
-    kyc: {
-      status: 'Verified',
-      idType: 'National ID',
-      idNumber: 'NID456789',
-      dateOfBirth: '1992-11-08',
-      nationality: 'British',
-      occupation: 'Marketing Manager',
-      verificationDate: '2024-10-15'
-    }
-  },
-  {
-    id: 4,
-    name: "Leo Stanton",
-    phone: "5684236529",
-    address: "Lorem ipsum elit. Nulla...",
-    spaceType: "Meeting Room",
-    start: "1 JAN 2025",
-    end: "1 JAN 2025",
-    unit: "605",
-    amount: "5158",
-    mail: "sbdhbi@136gmail.com",
-    contactDetails: "Phone: 5684236529, Email: sbdhbi@136gmail.com",
-    kyc: {
-      status: 'Verified',
-      idType: 'Passport',
-      idNumber: 'P7654321',
-      dateOfBirth: '1985-07-12',
-      nationality: 'Australian',
-      occupation: 'Consultant',
-      verificationDate: '2024-09-22'
-    }
-  },
-  {
-    id: 5,
-    name: "Kaiya Vetrov",
-    phone: "5684236530",
-    address: "Lorem ipsum elit. Nulla...",
-    spaceType: "Private Office",
-    start: "1 JAN 2025",
-    end: "1 JAN 2025",
-    unit: "605",
-    amount: "5158",
-    mail: "sbdhbi@136gmail.com",
-    contactDetails: "Phone: 5684236530, Email: sbdhbi@136gmail.com",
-    kyc: {
-      status: 'Verified',
-      idType: 'Driver License',
-      idNumber: 'DL123456',
-      dateOfBirth: '1993-09-25',
-      nationality: 'German',
-      occupation: 'Data Analyst',
-      verificationDate: '2024-11-05'
-    }
-  },
-  {
-    id: 6,
-    name: "Ryan Westervelt",
-    phone: "5684236531",
-    address: "Lorem ipsum elit. Nulla...",
-    spaceType: "Shared Desk",
-    start: "1 JAN 2025",
-    end: "1 JAN 2025",
-    unit: "605",
-    amount: "5158",
-    mail: "sbdhbi@136gmail.com",
-    contactDetails: "Phone: 5684236531, Email: sbdhbi@136gmail.com",
-    kyc: {
-      status: 'Verified',
-      idType: 'Passport',
-      idNumber: 'P9876543',
-      dateOfBirth: '1991-12-03',
-      nationality: 'French',
-      occupation: 'Product Manager',
-      verificationDate: '2024-08-18'
-    }
-  },
-  {
-    id: 7,
-    name: "Corey Stanton",
-    phone: "5684236532",
-    address: "Lorem ipsum elit. Nulla...",
-    spaceType: "Hot Desk",
-    start: "1 JAN 2025",
-    end: "1 JAN 2025",
-    unit: "605",
-    amount: "5158",
-    mail: "sbdhbi@136gmail.com",
-    contactDetails: "Phone: 5684236532, Email: sbdhbi@136gmail.com",
-    kyc: {
-      status: 'Verified',
-      idType: 'National ID',
-      idNumber: 'NID789123',
-      dateOfBirth: '1989-04-17',
-      nationality: 'Spanish',
-      occupation: 'Web Developer',
-      verificationDate: '2024-10-30'
-    }
-  },
-  {
-    id: 8,
-    name: "Adison Aminoff",
-    phone: "5684236533",
-    address: "Lorem ipsum elit. Nulla...",
-    spaceType: "Conference Room",
-    start: "1 JAN 2025",
-    end: "1 JAN 2025",
-    unit: "605",
-    amount: "5158",
-    mail: "sbdhbi@136gmail.com",
-    contactDetails: "Phone: 5684236533, Email: sbdhbi@136gmail.com",
-    kyc: {
-      status: 'Verified',
-      idType: 'Driver License',
-      idNumber: 'DL567890',
-      dateOfBirth: '1987-08-30',
-      nationality: 'Italian',
-      occupation: 'Business Analyst',
-      verificationDate: '2024-07-12'
-    }
-  },
-  {
-    id: 9,
-    name: "Alfredo Aminoff",
-    phone: "5684236534",
-    address: "Lorem ipsum elit. Nulla...",
-    spaceType: "Private Office",
-    start: "1 JAN 2025",
-    end: "1 JAN 2025",
-    unit: "605",
-    amount: "5158",
-    mail: "sbdhbi@136gmail.com",
-    contactDetails: "Phone: 5684236534, Email: sbdhbi@136gmail.com",
-    kyc: {
-      status: 'Verified',
-      idType: 'Passport',
-      idNumber: 'P5432109',
-      dateOfBirth: '1994-01-14',
-      nationality: 'Dutch',
-      occupation: 'UX Designer',
-      verificationDate: '2024-09-08'
-    }
-  },
-];
-
 const PastMembers = () => {
+  const [pastMembersData, setPastMembersData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedMember, setSelectedMember] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await membersApi.fetchPastMembers();
+        const data = response?.data || response || [];
+        setPastMembersData(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Failed to fetch past members:', err);
+        setError(err.message || 'Failed to load past members');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   const handleKycDetailsClick = (member) => {
     setSelectedMember(member);
@@ -269,6 +90,17 @@ const PastMembers = () => {
           }}
         />
       </div>
+
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+          <CircularProgress />
+        </Box>
+      ) : error ? (
+        <Box sx={{ py: 4, textAlign: 'center' }}>
+          <Typography color="error">{error}</Typography>
+        </Box>
+      ) : (
+      <>
       {/* Table */}
       <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff" }}>
         <thead>
@@ -288,15 +120,21 @@ const PastMembers = () => {
           </tr>
         </thead>
         <tbody>
-          {pastMembersData.map((member) => (
-            <tr key={member.id} style={{ borderBottom: "1px solid #F0F0F0" }}>
+          {pastMembersData.length === 0 ? (
+            <tr>
+              <td colSpan={12} style={{ padding: "32px", textAlign: "center", color: "#888" }}>
+                No past members found.
+              </td>
+            </tr>
+          ) : pastMembersData.map((member, index) => (
+            <tr key={member.id || index} style={{ borderBottom: "1px solid #F0F0F0" }}>
               <td style={{ padding: "12px" }}>
                 <input type="checkbox" />
               </td>
               <td style={{ padding: "12px" }}>{member.id}</td>
               <td style={{ padding: "12px" }}>
-                <div style={{ fontWeight: 600 }}>{member.name}</div>
-                <div style={{ fontSize: "12px", color: "#888" }}>{member.phone}</div>
+                <div style={{ fontWeight: 600 }}>{member.name || member.username || member.full_name}</div>
+                <div style={{ fontSize: "12px", color: "#888" }}>{member.phone || member.mobile}</div>
               </td>
               <td style={{ padding: "12px" }}>{member.address}</td>
               <td style={{ padding: "12px" }}>
@@ -308,21 +146,23 @@ const PastMembers = () => {
                   fontSize: "12px",
                   fontWeight: 500
                 }}>
-                  {member.spaceType}
+                  {member.spaceType || member.space_type || member.space_name || '—'}
                 </span>
               </td>
-              <td style={{ padding: "12px" }}>{member.start}</td>
-              <td style={{ padding: "12px" }}>{member.end}</td>
-              <td style={{ padding: "12px", fontWeight: 600 }}>{member.unit}</td>
-              <td style={{ padding: "12px" }}>{member.amount}</td>
-              <td style={{ padding: "12px" }}>{member.mail}</td>
-              <td style={{ padding: "12px", fontSize: "12px", color: "#666" }}>{member.contactDetails}</td>
+              <td style={{ padding: "12px" }}>{member.start || member.start_date}</td>
+              <td style={{ padding: "12px" }}>{member.end || member.end_date}</td>
+              <td style={{ padding: "12px", fontWeight: 600 }}>{member.unit || member.unit_number}</td>
+              <td style={{ padding: "12px" }}>{member.amount || member.total_amount}</td>
+              <td style={{ padding: "12px" }}>{member.mail || member.email}</td>
+              <td style={{ padding: "12px", fontSize: "12px", color: "#666" }}>
+                {member.contactDetails || `${member.phone || member.mobile || ''} ${member.mail || member.email || ''}`.trim() || '—'}
+              </td>
               <td style={{ padding: "12px", textAlign: "center" }}>
-                <button 
+                <button
                   onClick={() => handleKycDetailsClick(member)}
-                  style={{ 
-                    background: 'none', 
-                    border: 'none', 
+                  style={{
+                    background: 'none',
+                    border: 'none',
                     cursor: 'pointer',
                     padding: '4px'
                   }}
@@ -334,38 +174,8 @@ const PastMembers = () => {
           ))}
         </tbody>
       </table>
-      {/* Pagination */}
-      <div style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginTop: "16px",
-        fontSize: "14px",
-        color: "#888"
-      }}>
-        <span>1-10 of 97</span>
-        <div>
-          <button style={{
-            border: "none",
-            background: "#F5F6FA",
-            borderRadius: "8px",
-            width: "32px",
-            height: "32px",
-            marginRight: "4px",
-            cursor: "pointer"
-          }}>{'<'}</button>
-          <button style={{
-            border: "none",
-            background: "#F5F6FA",
-            borderRadius: "8px",
-            width: "32px",
-            height: "32px",
-            marginLeft: "4px",
-            cursor: "pointer"
-          }}>{'>'}</button>
-        </div>
-        <span>Rows per page: 10 ▼ &nbsp; 1/10</span>
-      </div>
+      </>
+      )}
 
       {/* KYC Details Modal */}
       <Modal open={modalOpen} onClose={handleCloseModal}>
@@ -373,82 +183,84 @@ const PastMembers = () => {
           {selectedMember && (
             <>
               <Typography variant="h5" sx={{ mb: 3, fontWeight: 600, color: '#333' }}>
-                KYC Details - {selectedMember.name}
+                KYC Details - {selectedMember.name || selectedMember.username || selectedMember.full_name}
               </Typography>
-              
+
               <Box sx={{ mb: 4, p: 3, backgroundColor: '#F8F9FA', borderRadius: 2 }}>
                 <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3 }}>
                   <Box>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                       Verification Status:
                     </Typography>
-                    <Box 
-                      sx={{ 
+                    <Box
+                      sx={{
                         display: 'inline-block',
-                        px: 2, 
-                        py: 0.5, 
+                        px: 2,
+                        py: 0.5,
                         borderRadius: 2,
-                        ...getKycStatusColor(selectedMember.kyc.status),
+                        ...getKycStatusColor(selectedMember.kyc?.status || selectedMember.kyc_status),
                         fontWeight: 600,
                         fontSize: '0.875rem'
                       }}
                     >
-                      {selectedMember.kyc.status}
+                      {selectedMember.kyc?.status || selectedMember.kyc_status || 'N/A'}
                     </Box>
                   </Box>
-                  
+
                   <Box>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                       ID Type:
                     </Typography>
                     <Typography variant="body1" fontWeight={600}>
-                      {selectedMember.kyc.idType}
+                      {selectedMember.kyc?.idType || selectedMember.id_type || '—'}
                     </Typography>
                   </Box>
-                  
+
                   <Box>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                       ID Number:
                     </Typography>
                     <Typography variant="body1" fontWeight={600}>
-                      {selectedMember.kyc.idNumber}
+                      {selectedMember.kyc?.idNumber || selectedMember.id_number || '—'}
                     </Typography>
                   </Box>
-                  
+
                   <Box>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                       Date of Birth:
                     </Typography>
                     <Typography variant="body1">
-                      {new Date(selectedMember.kyc.dateOfBirth).toLocaleDateString()}
+                      {selectedMember.kyc?.dateOfBirth || selectedMember.date_of_birth
+                        ? new Date(selectedMember.kyc?.dateOfBirth || selectedMember.date_of_birth).toLocaleDateString()
+                        : '—'}
                     </Typography>
                   </Box>
-                  
+
                   <Box>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                       Nationality:
                     </Typography>
                     <Typography variant="body1">
-                      {selectedMember.kyc.nationality}
+                      {selectedMember.kyc?.nationality || selectedMember.nationality || '—'}
                     </Typography>
                   </Box>
-                  
+
                   <Box>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                       Occupation:
                     </Typography>
                     <Typography variant="body1">
-                      {selectedMember.kyc.occupation}
+                      {selectedMember.kyc?.occupation || selectedMember.occupation || '—'}
                     </Typography>
                   </Box>
-                  
+
                   <Box sx={{ gridColumn: 'span 2' }}>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                       Verification Date:
                     </Typography>
                     <Typography variant="body1">
-                      {selectedMember.kyc.verificationDate 
-                        ? new Date(selectedMember.kyc.verificationDate).toLocaleDateString()
+                      {selectedMember.kyc?.verificationDate || selectedMember.verification_date
+                        ? new Date(selectedMember.kyc?.verificationDate || selectedMember.verification_date).toLocaleDateString()
                         : 'Not verified yet'}
                     </Typography>
                   </Box>

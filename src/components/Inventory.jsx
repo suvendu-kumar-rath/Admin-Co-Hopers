@@ -256,18 +256,24 @@ const StyledDialogTitle = styled(DialogTitle)({
   color: '#1F2937',
 });
 
-const UploadArea = styled(Box)({
-  border: '2px dashed #D1D5DB',
-  borderRadius: '8px',
-  padding: '20px',
+const UploadArea = styled(Box)(({ disabled }) => ({
+  border: `2px dashed ${disabled ? '#E5E7EB' : '#818CF8'}`,
+  borderRadius: '16px',
+  padding: '32px 20px',
   textAlign: 'center',
-  cursor: 'pointer',
+  cursor: disabled ? 'not-allowed' : 'pointer',
   marginBottom: '16px',
-  '&:hover': {
-    borderColor: '#9CA3AF',
-    backgroundColor: '#F9FAFB',
+  background: disabled
+    ? '#F9FAFB'
+    : 'linear-gradient(135deg, #EEF2FF 0%, #F5F3FF 100%)',
+  transition: 'all 0.25s ease',
+  '&:hover': disabled ? {} : {
+    borderColor: '#6366F1',
+    background: 'linear-gradient(135deg, #E0E7FF 0%, #EDE9FE 100%)',
+    transform: 'translateY(-2px)',
+    boxShadow: '0 8px 24px rgba(99,102,241,0.12)',
   },
-});
+}));
 
 const AvailabilityButton = styled(Button)(({ selected, availabilitytype }) => {
   let backgroundColor, color, hoverColor;
@@ -2830,13 +2836,13 @@ const Inventory = () => {
           </Typography>
           
           {/* Upload Section */}
-          <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
-            Upload New Space Photos* (Minimum 1, Maximum 5 photos)
+          <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: '#374151' }}>
+            Space Photos
           </Typography>
-          <Typography variant="caption" sx={{ color: '#6B7280', mb: 2, display: 'block' }}>
-            Upload spaceImages of the new space (at least 1 photo required, maximum 5 photos)
+          <Typography variant="caption" sx={{ color: '#9CA3AF', mb: 2, display: 'block' }}>
+            Upload up to 5 photos for this space
           </Typography>
-          
+
           <input
             accept="image/*"
             style={{ display: 'none' }}
@@ -2846,96 +2852,169 @@ const Inventory = () => {
             onChange={handleFileUpload}
             disabled={formData.spaceImages.length >= 5}
           />
-          <label htmlFor="file-upload">
-            <UploadArea component="span" sx={{ 
-              opacity: formData.spaceImages.length >= 5 ? 0.5 : 1,
-              cursor: formData.spaceImages.length >= 5 ? 'not-allowed' : 'pointer'
-            }}>
-              <CloudUploadIcon sx={{ fontSize: 24, color: '#6B7280', mb: 1 }} />
-              <Typography variant="body2" sx={{ color: '#6B7280' }}>
-                {formData.spaceImages.length >= 5 ? 'Maximum 5 photos reached' : 'Add Files'}
-              </Typography>
-              <Typography variant="caption" sx={{ color: '#6B7280', display: 'block' }}>
-                {formData.spaceImages.length}/5 photos selected
-              </Typography>
-            </UploadArea>
-          </label>
 
-          {/* Display uploaded spaceImages */}
-          {formData.spaceImages.length > 0 && (
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
-                Selected Photos:
+          <Box sx={{ mb: 2 }}>
+            <Button
+              component="label"
+              htmlFor="file-upload"
+              variant="contained"
+              startIcon={<CloudUploadIcon />}
+              disabled={formData.spaceImages.length >= 5}
+              sx={{
+                background: 'linear-gradient(135deg, #6366F1, #8B5CF6)',
+                borderRadius: '10px',
+                textTransform: 'none',
+                fontWeight: 600,
+                px: 3,
+                py: 1.2,
+                boxShadow: '0 4px 14px rgba(99,102,241,0.35)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #4F46E5, #7C3AED)',
+                  boxShadow: '0 6px 20px rgba(99,102,241,0.45)',
+                },
+              }}
+            >
+              Upload Photos
+            </Button>
+            {formData.spaceImages.length === 0 && (
+              <Typography variant="caption" sx={{ color: '#9CA3AF', ml: 2 }}>
+                PNG, JPG, WEBP &bull; Max 5 photos
               </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            )}
+          </Box>
+
+          {/* Image preview grid */}
+          {formData.spaceImages.length > 0 && (
+            <Box sx={{ mt: 1, mb: 2 }}>
+              <Typography variant="body2" sx={{ mb: 1.5, fontWeight: 600, color: '#374151' }}>
+                Uploaded Photos ({formData.spaceImages.length}/5)
+              </Typography>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))',
+                  gap: 1.5,
+                }}
+              >
                 {formData.spaceImages.map((image, index) => {
-                  // Handle both File objects and URL strings
                   let imageUrl;
-                  const imageData = image.value || image; // Support both old and new structure
-                  
+                  const imageData = image.value || image;
                   if (imageData instanceof File) {
                     imageUrl = URL.createObjectURL(imageData);
                   } else if (typeof imageData === 'string') {
-                    // Handle relative URLs from API - remove extra /api
                     if (imageData.startsWith('http')) {
                       imageUrl = imageData;
                     } else {
-                      let apiURL = process.env.REACT_APP_API_URL || 'https://api.boldtribe.in/api';
-                      const baseURL = apiURL.replace(/\/api$/, ''); // Remove trailing /api
+                      const apiURL = process.env.REACT_APP_API_URL || 'https://api.boldtribe.in/api';
+                      const baseURL = apiURL.replace(/\/api$/, '');
                       imageUrl = imageData.startsWith('/') ? `${baseURL}${imageData}` : `${baseURL}/${imageData}`;
                     }
                   }
-                  
                   return (
                     <Box
                       key={index}
                       sx={{
                         position: 'relative',
-                        width: 80,
-                        height: 80,
-                        borderRadius: '8px',
+                        width: '100%',
+                        paddingTop: '100%',
+                        borderRadius: '12px',
                         overflow: 'hidden',
-                        border: '1px solid #E5E7EB',
-                        backgroundColor: '#F9FAFB',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
+                        border: '2px solid #E0E7FF',
+                        backgroundColor: '#F5F3FF',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                        '&:hover .remove-overlay': { opacity: 1 },
                       }}
                     >
                       <img
                         src={imageUrl}
                         alt={`Preview ${index + 1}`}
                         style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
                           width: '100%',
                           height: '100%',
                           objectFit: 'cover',
                         }}
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.parentElement.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:#999;">❌</div>';
-                        }}
+                        onError={(e) => { e.target.style.display = 'none'; }}
                       />
-                      <IconButton
-                        size="small"
-                        onClick={() => handleRemoveImage(index)}
+                      <Box
+                        className="remove-overlay"
                         sx={{
                           position: 'absolute',
-                          top: 2,
-                          right: 2,
-                          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                          color: 'white',
-                          width: 20,
-                          height: 20,
-                          '&:hover': {
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                          },
+                          inset: 0,
+                          background: 'rgba(0,0,0,0.45)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          opacity: 0,
+                          transition: 'opacity 0.2s',
                         }}
                       >
-                        <CloseIcon sx={{ fontSize: 12 }} />
-                      </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleRemoveImage(index)}
+                          sx={{
+                            backgroundColor: '#EF4444',
+                            color: 'white',
+                            width: 32,
+                            height: 32,
+                            '&:hover': { backgroundColor: '#DC2626' },
+                          }}
+                        >
+                          <CloseIcon sx={{ fontSize: 16 }} />
+                        </IconButton>
+                      </Box>
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          bottom: 4,
+                          left: 4,
+                          background: 'rgba(0,0,0,0.55)',
+                          borderRadius: '6px',
+                          px: 0.75,
+                          py: 0.25,
+                        }}
+                      >
+                        <Typography variant="caption" sx={{ color: 'white', fontSize: '0.65rem', fontWeight: 600 }}>
+                          {index + 1}
+                        </Typography>
+                      </Box>
                     </Box>
                   );
                 })}
+                {/* Add more slot */}
+                {formData.spaceImages.length < 5 && (
+                  <label htmlFor="file-upload" style={{ cursor: 'pointer' }}>
+                    <Box
+                      sx={{
+                        width: '100%',
+                        paddingTop: '100%',
+                        position: 'relative',
+                        borderRadius: '12px',
+                        border: '2px dashed #C7D2FE',
+                        backgroundColor: '#EEF2FF',
+                        transition: 'all 0.2s',
+                        '&:hover': { borderColor: '#6366F1', backgroundColor: '#E0E7FF' },
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%,-50%)',
+                          textAlign: 'center',
+                        }}
+                      >
+                        <AddIcon sx={{ color: '#6366F1', fontSize: 28 }} />
+                        <Typography variant="caption" sx={{ color: '#6366F1', display: 'block', fontWeight: 600, fontSize: '0.65rem' }}>
+                          Add
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </label>
+                )}
               </Box>
             </Box>
           )}
