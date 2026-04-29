@@ -100,7 +100,7 @@ const StatCard = styled(motion.div)(({ theme, color = '#667eea' }) => ({
   border: '1px solid rgba(255, 255, 255, 0.3)',
   position: 'relative',
   overflow: 'hidden',
-  cursor: 'pointer',
+  cursor: 'default',
   transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
   '&::before': {
     content: '""',
@@ -412,7 +412,7 @@ const Dashboard = () => {
       isIncrease: true 
     },
     { 
-      title: 'Meeting Rooms', 
+      title: 'Booked  Meeting Rooms', 
       value: dashboardData.totalMeetingRoomBookings, 
       icon: MeetingRoomIcon, 
       color: '#f59e0b',
@@ -420,20 +420,20 @@ const Dashboard = () => {
       isIncrease: true 
     },
     { 
-      title: 'Total Earnings', 
-      value: formatCurrency(dashboardData.totalEarnings), 
-      icon: MoneyIcon, 
-      color: '#8b5cf6',
-      change: '+18%',
-      isIncrease: true 
+      title: 'Active Users',
+      value: dashboardData.activeUsers || 0,
+      icon: PeopleIcon,
+      color: '#2563eb',
+      change: 'Now',
+      isIncrease: true
     },
     { 
-      title: 'Monthly Earnings', 
-      value: formatCurrency(dashboardData.monthlyEarnings), 
-      icon: EarningsIcon, 
-      color: '#ef4444',
-      change: 'This month',
-      isIncrease: true 
+      title: 'Available Spaces',
+      value: dashboardData.availableSpaces || 0,
+      icon: AssessmentIcon,
+      color: '#0ea5e9',
+      change: 'Now',
+      isIncrease: true
     },
     { 
       title: 'Total Spaces', 
@@ -724,7 +724,7 @@ const Dashboard = () => {
                       opacity: 0.8,
                     }}
                   >
-                    {index < 4 ? 'Updated now' : 'Live data'}
+                    {index < 4 ? 'Updated' : 'Live data'}
                   </Typography>
                 </Box>
               </StatCard>
