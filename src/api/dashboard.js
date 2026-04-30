@@ -73,29 +73,31 @@ export const dashboardApi = {
       
       // Map backend data structure to frontend expectations
       const stats = {
-        // Map backend keys to frontend expectations
-        totalUsers: dashboardData.totalUsers || 15,
-        totalSpaceBookings: dashboardData.totalSpaceBookings || 25,
-        totalMeetingRoomBookings: dashboardData.totalMeetingRoomBookings || 45,
-        totalEarnings: dashboardData.totalEarnings || 125000,
-        monthlyEarnings: dashboardData.monthlyEarnings || 15000,
-        totalSpaces: dashboardData.totalSpaces || 30,
-        totalMeetingRooms: dashboardData.totalMeetingRooms || 8,
-        pendingBookings: dashboardData.pendingBookings || 5,
+        // Map backend keys to frontend expectations (use ?? to handle 0 values correctly)
+        totalUsers: dashboardData.totalUsers ?? 15,
+        totalSpaceBookings: dashboardData.totalSpaceBookings ?? 25,
+        totalMeetingRoomBookings: dashboardData.totalMeetingRoomBookings ?? 45,
+        totalEarnings: dashboardData.totalEarnings ?? 125000,
+        monthlyEarnings: dashboardData.monthlyEarnings ?? 15000,
+        totalSpaces: dashboardData.totalSpaces ?? 30,
+        totalMeetingRooms: dashboardData.totalMeetingRooms ?? 8,
+        pendingBookings: dashboardData.pendingBookings ?? 5,
+        activeUsers: dashboardData.activeUsers ?? 0,
+        availableSpaces: dashboardData.availableSpaces ?? 0,
         
         // Generate sample data for charts if not provided by backend
-        recentSpaceBookings: dashboardData.recentSpaceBookings || generateSampleBookings(8, 1500),
-        recentMeetingRoomBookings: dashboardData.recentMeetingRoomBookings || generateSampleBookings(6, 300),
+        recentSpaceBookings: dashboardData.recentSpaceBookings?.length ? dashboardData.recentSpaceBookings : generateSampleBookings(8, 1500),
+        recentMeetingRoomBookings: dashboardData.recentMeetingRoomBookings?.length ? dashboardData.recentMeetingRoomBookings : generateSampleBookings(6, 300),
         
         // Chart data for visualization
-        bookingStats: dashboardData.bookingStats || {
-          spaceBookings: dashboardData.totalSpaceBookings || 25,
-          meetingRoomBookings: dashboardData.totalMeetingRoomBookings || 45
+        bookingStats: dashboardData.bookingStats ?? {
+          spaceBookings: dashboardData.totalSpaceBookings ?? 25,
+          meetingRoomBookings: dashboardData.totalMeetingRoomBookings ?? 45
         },
-        earningsStats: dashboardData.earningsStats || {
-          spaceEarnings: Math.floor((dashboardData.totalEarnings || 125000) * 0.6),
-          meetingRoomEarnings: Math.floor((dashboardData.totalEarnings || 125000) * 0.4),
-          totalEarnings: dashboardData.totalEarnings || 125000
+        earningsStats: dashboardData.earningsStats ?? {
+          spaceEarnings: Math.floor((dashboardData.totalEarnings ?? 125000) * 0.6),
+          meetingRoomEarnings: Math.floor((dashboardData.totalEarnings ?? 125000) * 0.4),
+          totalEarnings: dashboardData.totalEarnings ?? 125000
         }
       };
       

@@ -291,20 +291,22 @@ const Dashboard = () => {
 
   // State management
   const [dashboardData, setDashboardData] = useState({
-    totalUsers: 7,
-    totalSpaceBookings: 7,
-    totalMeetingRoomBookings: 30,
-    totalEarnings: 58826,
-    monthlyEarnings: 5124,
-    totalSpaces: 25,
-    totalMeetingRooms: 2,
-    pendingBookings: 6,
+    totalUsers: 0,
+    activeUsers: 0,
+    availableSpaces: 0,
+    totalSpaceBookings: 0,
+    totalMeetingRoomBookings: 0,
+    totalEarnings: 0,
+    monthlyEarnings: 0,
+    totalSpaces: 0,
+    totalMeetingRooms: 0,
+    pendingBookings: 0,
     recentSpaceBookings: [],
     recentMeetingRoomBookings: [],
-    bookingStats: { spaceBookings: 7, meetingRoomBookings: 30 },
-    earningsStats: { spaceEarnings: 21000, meetingRoomEarnings: 37826, totalEarnings: 58826 }
+    bookingStats: { spaceBookings: 0, meetingRoomBookings: 0 },
+    earningsStats: { spaceEarnings: 0, meetingRoomEarnings: 0, totalEarnings: 0 }
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Fetch dashboard data on component mount
@@ -314,66 +316,38 @@ const Dashboard = () => {
         setLoading(true);
         setError(null);
         
-        // Actual API call - replace with your API endpoint
+        // Actual API call - returns processed stats object
         const response = await dashboardApi.fetchDashboardStats();
         console.log('Dashboard API Response:', response);
         
-        // Handle different response formats
-        let apiData = response;
-        if (response.data) {
-          apiData = response.data;
+        // The response is already the stats object (not wrapped in {success, data})
+        if (response && typeof response === 'object') {
+          const apiData = response;
+          
+          // Map API response to component state
+          setDashboardData({
+            totalUsers: apiData.totalUsers ?? 0,
+            activeUsers: apiData.activeUsers ?? 0,
+            availableSpaces: apiData.availableSpaces ?? 0,
+            totalSpaceBookings: apiData.totalSpaceBookings ?? 0,
+            totalMeetingRoomBookings: apiData.totalMeetingRoomBookings ?? 0,
+            totalEarnings: apiData.totalEarnings ?? 0,
+            monthlyEarnings: apiData.monthlyEarnings ?? 0,
+            totalSpaces: apiData.totalSpaces ?? 0,
+            totalMeetingRooms: apiData.totalMeetingRooms ?? 0,
+            pendingBookings: apiData.pendingBookings ?? 0,
+            recentSpaceBookings: Array.isArray(apiData.recentSpaceBookings) ? apiData.recentSpaceBookings : [],
+            recentMeetingRoomBookings: Array.isArray(apiData.recentMeetingRoomBookings) ? apiData.recentMeetingRoomBookings : [],
+            bookingStats: apiData.bookingStats ?? { spaceBookings: 0, meetingRoomBookings: 0 },
+            earningsStats: apiData.earningsStats ?? { spaceEarnings: 0, meetingRoomEarnings: 0, totalEarnings: 0 }
+          });
+        } else {
+          setError('Invalid response format from server');
         }
-        if (response.success && response.data) {
-          apiData = response.data;
-        }
-        
-        // Map API response to component state
-        setDashboardData({
-          totalUsers: apiData.totalUsers || 0,
-          totalSpaceBookings: apiData.totalSpaceBookings || 0,
-          totalMeetingRoomBookings: apiData.totalMeetingRoomBookings || 0,
-          totalEarnings: apiData.totalEarnings || 0,
-          monthlyEarnings: apiData.monthlyEarnings || 0,
-          totalSpaces: apiData.totalSpaces || 0,
-          totalMeetingRooms: apiData.totalMeetingRooms || 0,
-          pendingBookings: apiData.pendingBookings || 0,
-          recentSpaceBookings: apiData.recentSpaceBookings || [],
-          recentMeetingRoomBookings: apiData.recentMeetingRoomBookings || [],
-          bookingStats: apiData.bookingStats || { spaceBookings: 0, meetingRoomBookings: 0 },
-          earningsStats: apiData.earningsStats || { spaceEarnings: 0, meetingRoomEarnings: 0, totalEarnings: 0 }
-        });
         
       } catch (err) {
         console.error('Failed to fetch dashboard data:', err);
         setError(err.message || 'Failed to load dashboard data');
-        
-        // Fallback to sample data if API fails
-        setDashboardData({
-          totalUsers: 7,
-          totalSpaceBookings: 7,
-          totalMeetingRoomBookings: 30,
-          totalEarnings: 58826,
-          monthlyEarnings: 5124,
-          totalSpaces: 25,
-          totalMeetingRooms: 2,
-          pendingBookings: 6,
-          recentSpaceBookings: [
-            { id: 7, date: "2025-09-01", amount: "1500.00", status: "Pending", user: { username: "manoranjan" }, space: { space_name: "Executive Cabin" } },
-            { id: 6, date: "2025-10-08", amount: "1500.00", status: "Confirm", user: { username: "Das Consultancy" }, space: { space_name: "Executive Cabin" } },
-            { id: 5, date: "2025-09-01", amount: "1500.00", status: "Pending", user: { username: "manoranjan" }, space: { space_name: "Executive Cabin" } },
-            { id: 4, date: "2025-09-01", amount: "1500.00", status: "Pending", user: { username: "manoranjan123" }, space: { space_name: "Executive Cabin" } },
-            { id: 3, date: "2025-09-01", amount: "1500.00", status: "Confirm", user: { username: "manoranjan" }, space: { space_name: "Executive Cabin" } }
-          ],
-          recentMeetingRoomBookings: [
-            { id: 30, bookingDate: "2025-09-29", totalAmount: "236.00", status: "confirmed", username: "manoranjan", MeetingRoom: { name: "Large Conference Room" } },
-            { id: 29, bookingDate: "2025-09-28", totalAmount: "236.00", status: "confirmed", username: "manoranjan", MeetingRoom: { name: "Large Conference Room" } },
-            { id: 28, bookingDate: "2025-09-25", totalAmount: "295.00", status: "pending", username: "manoranjan", MeetingRoom: { name: "Large Conference Room" } },
-            { id: 27, bookingDate: "2025-09-25", totalAmount: "295.00", status: "pending", username: "manoranjan", MeetingRoom: { name: "Large Conference Room" } },
-            { id: 26, bookingDate: "2025-09-25", totalAmount: "472.00", status: "confirmed", username: "manoranjan", MeetingRoom: { name: "Large Conference Room" } }
-          ],
-          bookingStats: { spaceBookings: 7, meetingRoomBookings: 30 },
-          earningsStats: { spaceEarnings: 21000, meetingRoomEarnings: 37826, totalEarnings: 58826 }
-        });
       } finally {
         setLoading(false);
       }
@@ -400,7 +374,15 @@ const Dashboard = () => {
       value: dashboardData.totalUsers, 
       icon: PeopleIcon, 
       color: '#3b82f6',
-      change: '+12%',
+      change: 'Total',
+      isIncrease: true 
+    },
+    { 
+      title: 'Active Users', 
+      value: dashboardData.activeUsers, 
+      icon: PeopleIcon, 
+      color: '#2563eb',
+      change: 'Online',
       isIncrease: true 
     },
     { 
@@ -408,28 +390,12 @@ const Dashboard = () => {
       value: dashboardData.totalSpaceBookings, 
       icon: BusinessIcon, 
       color: '#10b981',
-      change: '+8%',
+      change: 'Total',
       isIncrease: true 
-    },
-    { 
-      title: 'Booked  Meeting Rooms', 
-      value: dashboardData.totalMeetingRoomBookings, 
-      icon: MeetingRoomIcon, 
-      color: '#f59e0b',
-      change: '+25%',
-      isIncrease: true 
-    },
-    { 
-      title: 'Active Users',
-      value: dashboardData.activeUsers || 0,
-      icon: PeopleIcon,
-      color: '#2563eb',
-      change: 'Now',
-      isIncrease: true
     },
     { 
       title: 'Available Spaces',
-      value: dashboardData.availableSpaces || 0,
+      value: dashboardData.availableSpaces,
       icon: AssessmentIcon,
       color: '#0ea5e9',
       change: 'Now',
@@ -446,9 +412,17 @@ const Dashboard = () => {
     { 
       title: 'Total Meeting Rooms', 
       value: dashboardData.totalMeetingRooms, 
+      icon: MeetingRoomIcon, 
+      color: '#f59e0b',
+      change: 'Available',
+      isIncrease: true 
+    },
+    { 
+      title: 'Booked Meeting Rooms', 
+      value: dashboardData.totalMeetingRoomBookings, 
       icon: BookingIcon, 
       color: '#84cc16',
-      change: 'Available',
+      change: 'Bookings',
       isIncrease: true 
     },
     { 
@@ -456,22 +430,44 @@ const Dashboard = () => {
       value: dashboardData.pendingBookings, 
       icon: PendingIcon, 
       color: '#f97316',
-      change: 'Needs attention',
-      isIncrease: false 
+      change: 'Attention',
+      isIncrease: dashboardData.pendingBookings === 0
+    },
+    { 
+      title: 'Monthly Earnings', 
+      value: dashboardData.monthlyEarnings, 
+      icon: MoneyIcon, 
+      color: '#ec4899',
+      change: 'This month',
+      isIncrease: true,
+      isCurrency: true
+    },
+    { 
+      title: 'Total Earnings', 
+      value: dashboardData.totalEarnings, 
+      icon: EarningsIcon, 
+      color: '#8b5cf6',
+      change: 'All time',
+      isIncrease: true,
+      isCurrency: true
     },
   ];
 
   // Chart configurations
   const spaceBookingsChartData = {
-    labels: dashboardData.recentSpaceBookings?.map((booking, index) => 
-      `Booking ${index + 1}`
-    ) || [],
+    labels: dashboardData.recentSpaceBookings?.length > 0
+      ? dashboardData.recentSpaceBookings.map((booking, index) => 
+          `${booking.space?.spaceName || 'Space'} - ${new Date(booking.date).toLocaleDateString()}`
+        )
+      : ['No data'],
     datasets: [
       {
         label: 'Space Bookings Amount (₹)',
-        data: dashboardData.recentSpaceBookings?.map(booking => 
-          parseFloat(booking.amount)
-        ) || [],
+        data: dashboardData.recentSpaceBookings?.length > 0
+          ? dashboardData.recentSpaceBookings.map(booking => 
+              parseFloat(booking.amount || 0)
+            )
+          : [0],
         backgroundColor: 'rgba(59, 130, 246, 0.8)',
         borderColor: 'rgba(59, 130, 246, 1)',
         borderWidth: 2,
@@ -481,15 +477,19 @@ const Dashboard = () => {
   };
 
   const meetingRoomChartData = {
-    labels: dashboardData.recentMeetingRoomBookings?.map((booking, index) => 
-      `Room ${index + 1}`
-    ) || [],
+    labels: dashboardData.recentMeetingRoomBookings?.length > 0
+      ? dashboardData.recentMeetingRoomBookings.map((booking, index) => 
+          `Meeting Room ${index + 1}`
+        )
+      : ['No data'],
     datasets: [
       {
         label: 'Meeting Room Earnings (₹)',
-        data: dashboardData.recentMeetingRoomBookings?.map(booking => 
-          parseFloat(booking.totalAmount)
-        ) || [],
+        data: dashboardData.recentMeetingRoomBookings?.length > 0
+          ? dashboardData.recentMeetingRoomBookings.map(booking => 
+              parseFloat(booking.totalAmount || 0)
+            )
+          : [0],
         backgroundColor: 'rgba(16, 185, 129, 0.8)',
         borderColor: 'rgba(16, 185, 129, 1)',
         borderWidth: 2,
@@ -713,7 +713,9 @@ const Dashboard = () => {
                 </Box>
                 
                 <StatLabel>{stat.title}</StatLabel>
-                <StatValue color={stat.color}>{stat.value}</StatValue>
+                <StatValue color={stat.color}>
+                  {stat.isCurrency ? formatCurrency(stat.value) : stat.value}
+                </StatValue>
                 
                 <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid rgba(0,0,0,0.06)' }}>
                   <Typography
