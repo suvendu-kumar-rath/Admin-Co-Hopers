@@ -28,6 +28,7 @@ import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
 import kycApprovalApi from '../api/kycApproval';
 import { formatDocumentUrl as formatDocUrl } from '../utils/imagePath';
 import { pushNotificationsApi } from '../api';
+import { realtimeSyncManager } from '../utils/realtimeSync';
 
 const PageContainer = styled(Box)(({ theme }) => ({
   padding: theme.spacing(3),
@@ -100,7 +101,42 @@ const KycApproval = () => {
   const [subscribedTopics, setSubscribedTopics] = useState([]);
 
   useEffect(() => {
+    // Start real-time synchronization for KYC data
+    // This ensures all admin devices see updates instantly
+    console.log('🔄 Starting real-time KYC sync...');
+    
+    const unsubscribe = realtimeSyncManager.startPolling(
+      'kyc-approval-data',
+      fetchKycData,
+      5000, // Poll every 5 seconds
+      (newData) => {
+        // Update data when changes are detected
+        if (newData && Array.isArray(newData.data || newData)) {
+          const kycArray = Array.isArray(newData) ? newData : (newData.data || []);
+          setKycData(kycArray);
+          console.log('📱 KYC data synced from server:', kycArray);
+        }
+      }
+    );
+
+    // Fetch data immediately on component mount
     fetchKycData();
+
+    // Subscribe to updates from other devices
+    const dataUnsubscribe = realtimeSyncManager.subscribe('kyc-approval-data', (newData) => {
+      if (newData) {
+        const kycArray = Array.isArray(newData) ? newData : (newData.data || []);
+        setKycData(kycArray);
+        console.log('✅ Real-time update received from another device');
+      }
+    });
+
+    // Cleanup on unmount
+    return () => {
+      unsubscribe();
+      dataUnsubscribe();
+      realtimeSyncManager.stopPolling('kyc-approval-data');
+    };
   }, []);
 
   const fetchKycData = async () => {
@@ -110,13 +146,17 @@ const KycApproval = () => {
       const response = await kycApprovalApi.fetchPendingKyc();
       
       if (response.success && response.data) {
-        setKycData(Array.isArray(response.data) ? response.data : []);
+        const kycArray = Array.isArray(response.data) ? response.data : [];
+        setKycData(kycArray);
+        return kycArray; // Return data for polling
       } else {
         setKycData([]);
+        return [];
       }
     } catch (err) {
       setError(err.message || 'Failed to fetch pending KYC submissions');
       setKycData([]);
+      return [];
     } finally {
       setLoading(false);
     }
@@ -172,11 +212,13 @@ const KycApproval = () => {
         })
       );
       
-      setSuccessMessage('KYC approved successfully');
+      setSuccessMessage('KYC approved successfully ✅');
       setTimeout(() => setSuccessMessage(''), 3000);
       
-      // Optionally refresh from server to get updated list
-      setTimeout(() => fetchKycData(), 1000);
+      // Trigger update to notify all subscribers (other devices)
+      realtimeSyncManager.triggerUpdate('kyc-approval-data', kycData);
+      
+      // The polling will handle syncing from server automatically
       
     } catch (err) {
       console.error('Approve error:', err);
@@ -222,12 +264,14 @@ const KycApproval = () => {
         })
       );
       
-      setSuccessMessage('KYC rejected successfully');
+      setSuccessMessage('KYC rejected successfully ❌');
       handleCloseRejectModal();
       setTimeout(() => setSuccessMessage(''), 3000);
       
-      // Optionally refresh from server to get updated list
-      setTimeout(() => fetchKycData(), 1000);
+      // Trigger update to notify all subscribers (other devices)
+      realtimeSyncManager.triggerUpdate('kyc-approval-data', kycData);
+      
+      // The polling will handle syncing from server automatically
       
     } catch (err) {
       console.error('Reject error:', err);

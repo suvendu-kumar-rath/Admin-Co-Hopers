@@ -39,6 +39,7 @@ import EmailIcon from '@mui/icons-material/Email';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
 import { pushNotificationsApi } from '../api';
+import { realtimeSyncManager } from '../utils/realtimeSync';
 //hi
 // Styled components
 const PageContainer = styled(Box)(({ theme }) => ({
@@ -162,7 +163,40 @@ const BookMeetingRoom = () => {
 
   // Fetch bookings on component mount
   useEffect(() => {
+    // Start real-time synchronization for booking data
+    console.log('🔄 Starting real-time booking sync...');
+    
+    const unsubscribe = realtimeSyncManager.startPolling(
+      'meeting-room-bookings',
+      fetchBookings,
+      5000, // Poll every 5 seconds
+      (newData) => {
+        if (newData) {
+          const bookingsArray = Array.isArray(newData) ? newData : (newData.data || []);
+          setBookings(bookingsArray);
+          console.log('📱 Bookings synced from server:', bookingsArray);
+        }
+      }
+    );
+
+    // Fetch data immediately on component mount
     fetchBookings();
+
+    // Subscribe to updates from other devices
+    const dataUnsubscribe = realtimeSyncManager.subscribe('meeting-room-bookings', (newData) => {
+      if (newData) {
+        const bookingsArray = Array.isArray(newData) ? newData : (newData.data || []);
+        setBookings(bookingsArray);
+        console.log('✅ Real-time booking update received');
+      }
+    });
+
+    // Cleanup on unmount
+    return () => {
+      unsubscribe();
+      dataUnsubscribe();
+      realtimeSyncManager.stopPolling('meeting-room-bookings');
+    };
   }, []);
 
   const fetchBookings = async () => {
@@ -175,6 +209,7 @@ const BookMeetingRoom = () => {
       
       console.log('Fetched bookings:', bookingsData);
       setBookings(Array.isArray(bookingsData) ? bookingsData : []);
+      return Array.isArray(bookingsData) ? bookingsData : []; // Return data for polling
       
     } catch (error) {
       console.error('Failed to fetch bookings:', error);
@@ -184,6 +219,7 @@ const BookMeetingRoom = () => {
       
       // Fallback to sample data for development
       setBookings(sampleData);
+      return [];
     } finally {
       setLoading(false);
     }
@@ -220,9 +256,12 @@ const BookMeetingRoom = () => {
         })
       );
       
-      setSnackbarMessage('Booking confirmed successfully!');
+      setSnackbarMessage('Booking confirmed successfully! ✅');
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
+      
+      // Trigger update to notify all subscribers (other devices)
+      realtimeSyncManager.triggerUpdate('meeting-room-bookings', bookings);
       
     } catch (error) {
       console.error('❌ Failed to confirm booking:', error);
@@ -273,9 +312,12 @@ const BookMeetingRoom = () => {
         })
       );
       
-      setSnackbarMessage('Booking rejected successfully!');
+      setSnackbarMessage('Booking rejected successfully! ❌');
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
+      
+      // Trigger update to notify all subscribers (other devices)
+      realtimeSyncManager.triggerUpdate('meeting-room-bookings', bookings);
       
     } catch (error) {
       console.error('❌ Failed to reject booking:', error);
