@@ -290,21 +290,14 @@ const User = () => {
       // Map the status to proper format (CONFIRMED/REJECTED for UI)
       const uiStatus = newStatus === 'Confirm' ? 'CONFIRMED' : 'REJECTED';
       
-      // Try to update via API first
+      console.log(`📤 Sending ${newStatus} request with negotiated amount: ${negotiatedAmount}`);
+      
       try {
+        // Call API and WAIT for confirmation
         const response = await bookingsApi.updatePaymentStatus(bookingId, newStatus, negotiatedAmount);
-        console.log('API Response:', response);
+        console.log('✅ Backend confirmed status update. Response:', response);
         
-        // Save to localStorage for persistence
-        const localUpdates = JSON.parse(localStorage.getItem('spaceBookingUpdates') || '{}');
-        localUpdates[bookingId] = {
-          paymentStatus: uiStatus,
-          status: uiStatus,
-          ...(negotiatedAmount && { negotiatedAmount })
-        };
-        localStorage.setItem('spaceBookingUpdates', JSON.stringify(localUpdates));
-        
-        // Update local state on success with proper status
+        // ONLY update local state AFTER backend confirms
         setBookings(prevBookings =>
           prevBookings.map(booking => {
             const id = booking.id || booking._id || booking.bookingId;
@@ -319,43 +312,29 @@ const User = () => {
           })
         );
         
+        // Save to localStorage as backup
+        const localUpdates = JSON.parse(localStorage.getItem('spaceBookingUpdates') || '{}');
+        localUpdates[bookingId] = {
+          paymentStatus: uiStatus,
+          status: uiStatus,
+          ...(negotiatedAmount && { negotiatedAmount })
+        };
+        localStorage.setItem('spaceBookingUpdates', JSON.stringify(localUpdates));
+        
         setSnackbar({
           open: true,
-          message: `Space booking ${newStatus.toLowerCase()}ed successfully!`,
+          message: `✅ Space booking ${newStatus.toLowerCase()}ed successfully and updated in backend!`,
           severity: 'success'
         });
         
       } catch (apiError) {
-        console.warn('API update failed, updating locally:', apiError.message);
+        console.error('❌ Backend status update failed:', apiError);
         
-        // Save to localStorage for persistence even when API fails
-        const localUpdates = JSON.parse(localStorage.getItem('spaceBookingUpdates') || '{}');
-        localUpdates[bookingId] = {
-          paymentStatus: uiStatus,
-          status: uiStatus,
-          ...(negotiatedAmount && { negotiatedAmount })
-        };
-        localStorage.setItem('spaceBookingUpdates', JSON.stringify(localUpdates));
-        
-        // Fallback to local state update with proper status
-        setBookings(prevBookings =>
-          prevBookings.map(booking => {
-            const id = booking.id || booking._id || booking.bookingId;
-            return id == bookingId
-              ? { 
-                  ...booking, 
-                  paymentStatus: uiStatus, 
-                  status: uiStatus,
-                  ...(negotiatedAmount && { negotiatedAmount })
-                }
-              : booking;
-          })
-        );
-        
+        // DO NOT update UI if backend fails
         setSnackbar({
           open: true,
-          message: `Space booking ${newStatus.toLowerCase()}ed locally (API unavailable)`,
-          severity: 'warning'
+          message: `❌ Failed to update backend: ${apiError.message}. Changes NOT saved.`,
+          severity: 'error'
         });
       }
       

@@ -163,39 +163,29 @@ const BookMeetingRoom = () => {
 
   // Fetch bookings on component mount
   useEffect(() => {
-    // Start real-time synchronization for booking data
-    console.log('🔄 Starting real-time booking sync...');
-    
-    const unsubscribe = realtimeSyncManager.startPolling(
-      'meeting-room-bookings',
-      fetchBookings,
-      5000, // Poll every 5 seconds
-      (newData) => {
-        if (newData) {
-          const bookingsArray = Array.isArray(newData) ? newData : (newData.data || []);
-          setBookings(bookingsArray);
-          console.log('📱 Bookings synced from server:', bookingsArray);
-        }
-      }
-    );
-
     // Fetch data immediately on component mount
+    console.log('📥 Loading meeting room bookings on mount...');
     fetchBookings();
 
-    // Subscribe to updates from other devices
+    // Subscribe to REAL-TIME updates from other devices (when actions happen, not polling)
     const dataUnsubscribe = realtimeSyncManager.subscribe('meeting-room-bookings', (newData) => {
       if (newData) {
         const bookingsArray = Array.isArray(newData) ? newData : (newData.data || []);
-        setBookings(bookingsArray);
-        console.log('✅ Real-time booking update received');
+        
+        // Only update if data actually changed
+        setBookings(prevBookings => {
+          if (prevBookings.length !== bookingsArray.length || JSON.stringify(prevBookings) !== JSON.stringify(bookingsArray)) {
+            console.log('✅ Real-time booking update received from another device');
+            return bookingsArray;
+          }
+          return prevBookings;
+        });
       }
     });
 
     // Cleanup on unmount
     return () => {
-      unsubscribe();
       dataUnsubscribe();
-      realtimeSyncManager.stopPolling('meeting-room-bookings');
     };
   }, []);
 

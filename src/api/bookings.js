@@ -49,7 +49,7 @@ export const bookingsApi = {
 
   // Verify space booking (confirm/reject)
   updatePaymentStatus: async (bookingId, status, negotiatedAmount = null) => {
-    console.log('Verifying space booking status:', { bookingId, status, negotiatedAmount });
+    console.log('📤 Verifying space booking status:', { bookingId, status, negotiatedAmount });
     
     const token = localStorage.getItem('authToken');
     const requestBody = {
@@ -61,6 +61,8 @@ export const bookingsApi = {
       requestBody.negotiatedAmount = negotiatedAmount;
     }
     
+    console.log('📋 Request body:', JSON.stringify(requestBody));
+    
     try {
       const response = await axios.put(`${baseURL}/admin/space-bookings/${bookingId}/verify`, requestBody, {
         headers: {
@@ -71,10 +73,34 @@ export const bookingsApi = {
       });
       
       console.log('✅ Space booking status updated successfully:', response.data);
+      console.log('Response status:', response.status);
+      
+      if (!response.data) {
+        throw new Error('Server returned empty response');
+      }
+      
       return response.data;
       
     } catch (error) {
-      console.error('❌ Failed to update space booking status:', error.response?.data || error.message);
+      console.error('❌ Failed to update space booking status');
+      console.error('Error message:', error.message);
+      console.error('Error status:', error.response?.status);
+      console.error('Error response:', error.response?.data);
+      
+      if (error.response?.status === 401) {
+        throw new Error('Unauthorized. Please login again. Your session may have expired.');
+      } else if (error.response?.status === 403) {
+        throw new Error('Access forbidden. Admin rights required.');
+      } else if (error.response?.status === 404) {
+        throw new Error('Booking not found. It may have been deleted.');
+      } else if (error.response?.status === 500) {
+        throw new Error(`Server error: ${error.response.data?.message || 'Internal server error'}`);
+      } else if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      } else if (error.request) {
+        throw new Error('Network error. Please check your connection.');
+      }
+      
       throw error;
     }
   },

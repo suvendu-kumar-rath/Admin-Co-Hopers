@@ -101,41 +101,29 @@ const KycApproval = () => {
   const [subscribedTopics, setSubscribedTopics] = useState([]);
 
   useEffect(() => {
-    // Start real-time synchronization for KYC data
-    // This ensures all admin devices see updates instantly
-    console.log('🔄 Starting real-time KYC sync...');
-    
-    const unsubscribe = realtimeSyncManager.startPolling(
-      'kyc-approval-data',
-      fetchKycData,
-      5000, // Poll every 5 seconds
-      (newData) => {
-        // Update data when changes are detected
-        if (newData && Array.isArray(newData.data || newData)) {
-          const kycArray = Array.isArray(newData) ? newData : (newData.data || []);
-          setKycData(kycArray);
-          console.log('📱 KYC data synced from server:', kycArray);
-        }
-      }
-    );
-
     // Fetch data immediately on component mount
+    console.log('📥 Loading KYC data on mount...');
     fetchKycData();
 
-    // Subscribe to updates from other devices
+    // Subscribe to REAL-TIME updates from other devices (when actions happen, not polling)
     const dataUnsubscribe = realtimeSyncManager.subscribe('kyc-approval-data', (newData) => {
       if (newData) {
         const kycArray = Array.isArray(newData) ? newData : (newData.data || []);
-        setKycData(kycArray);
-        console.log('✅ Real-time update received from another device');
+        
+        // Only update if data actually changed
+        setKycData(prevData => {
+          if (prevData.length !== kycArray.length || JSON.stringify(prevData) !== JSON.stringify(kycArray)) {
+            console.log('✅ Real-time KYC update received from another device');
+            return kycArray;
+          }
+          return prevData;
+        });
       }
     });
 
     // Cleanup on unmount
     return () => {
-      unsubscribe();
       dataUnsubscribe();
-      realtimeSyncManager.stopPolling('kyc-approval-data');
     };
   }, []);
 
@@ -196,34 +184,36 @@ const KycApproval = () => {
     
     try {
       setActionLoading(true);
-      console.log('Approving KYC with ID:', kycId, 'Full KYC object:', kyc);
+      console.log('📤 Approving KYC with ID:', kycId, 'Full KYC object:', kyc);
+      
+      // Call API and WAIT for confirmation
       const response = await kycApprovalApi.approveKyc(kycId);
       
-      console.log('Approve response:', response);
+      console.log('✅ Backend confirmed approval. Response:', response);
       
-      // Update local state immediately to change button to chip
+      // ONLY update local state AFTER backend confirms
       setKycData(prevData => 
         prevData.map(item => {
           const itemId = item.id || item._id || item.kycId || item.bookingId;
           if (itemId === kycId) {
+            console.log('Updating local KYC state to Approved');
             return { ...item, status: 'Approved', verification_status: 'approved' };
           }
           return item;
         })
       );
       
-      setSuccessMessage('KYC approved successfully ✅');
-      setTimeout(() => setSuccessMessage(''), 3000);
+      setSuccessMessage('✅ KYC approved successfully and updated in backend!');
+      setTimeout(() => setSuccessMessage(''), 5000);
       
       // Trigger update to notify all subscribers (other devices)
       realtimeSyncManager.triggerUpdate('kyc-approval-data', kycData);
       
-      // The polling will handle syncing from server automatically
-      
     } catch (err) {
-      console.error('Approve error:', err);
-      setError(err.message || 'Failed to approve KYC');
-      setTimeout(() => setError(null), 3000);
+      console.error('❌ Backend approval failed:', err);
+      setError(`❌ Failed to approve KYC: ${err.message}`);
+      console.log('⚠️ KYC approval was NOT updated in backend. Please check error above.');
+      setTimeout(() => setError(null), 5000);
     } finally {
       setActionLoading(false);
     }
@@ -248,35 +238,37 @@ const KycApproval = () => {
 
     try {
       setActionLoading(true);
-      console.log('Rejecting KYC with ID:', kycId, 'Reason:', rejectReason);
+      console.log('📤 Rejecting KYC with ID:', kycId, 'Reason:', rejectReason);
+      
+      // Call API and WAIT for confirmation
       const response = await kycApprovalApi.rejectKyc(kycId, rejectReason);
       
-      console.log('Reject response:', response);
+      console.log('✅ Backend confirmed rejection. Response:', response);
       
-      // Update local state immediately to change button to chip
+      // ONLY update local state AFTER backend confirms
       setKycData(prevData => 
         prevData.map(item => {
           const itemId = item.id || item._id || item.kycId || item.bookingId;
           if (itemId === kycId) {
+            console.log('Updating local KYC state to Rejected');
             return { ...item, status: 'Rejected', verification_status: 'rejected' };
           }
           return item;
         })
       );
       
-      setSuccessMessage('KYC rejected successfully ❌');
+      setSuccessMessage('✅ KYC rejected successfully and updated in backend!');
       handleCloseRejectModal();
-      setTimeout(() => setSuccessMessage(''), 3000);
+      setTimeout(() => setSuccessMessage(''), 5000);
       
       // Trigger update to notify all subscribers (other devices)
       realtimeSyncManager.triggerUpdate('kyc-approval-data', kycData);
       
-      // The polling will handle syncing from server automatically
-      
     } catch (err) {
-      console.error('Reject error:', err);
-      setError(err.message || 'Failed to reject KYC');
-      setTimeout(() => setError(null), 3000);
+      console.error('❌ Backend rejection failed:', err);
+      setError(`❌ Failed to reject KYC: ${err.message}`);
+      console.log('⚠️ KYC rejection was NOT updated in backend. Please check error above.');
+      setTimeout(() => setError(null), 5000);
     } finally {
       setActionLoading(false);
     }

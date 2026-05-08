@@ -44,6 +44,7 @@ import { styled } from '@mui/material/styles';
 import refreshmentApi from '../api/refreshment';
 import { pushNotificationsApi } from '../api';
 import { onMessageListener } from '../config/firebase';
+import realtimeSyncManager from '../utils/realtimeSync';
 
 const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
   marginTop: theme.spacing(3),
@@ -360,16 +361,6 @@ const Refreshment = () => {
     return () => { delete window.__testOrderNotification; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-refresh orders every 15 seconds to catch new orders quickly
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      console.log('🔄 Auto-refreshing orders...');
-      fetchRef.current(); // always calls the latest version
-    }, 15000); // 15 seconds
-
-    return () => clearInterval(intervalId);
-  }, []);
-
   // Listen for push notifications (FCM) and refresh immediately
   useEffect(() => {
     console.log('🎧 Setting up FCM notification listener for Refreshment page...');
@@ -475,8 +466,21 @@ const Refreshment = () => {
           return order;
         });
         
-        setRefreshmentData(finalData);
-        setFilteredData(finalData);
+        // Only update state if data actually changed (prevents blinking)
+        setRefreshmentData(prevData => {
+          if (prevData.length !== finalData.length || JSON.stringify(prevData) !== JSON.stringify(finalData)) {
+            return finalData;
+          }
+          return prevData; // Don't re-render if data hasn't changed
+        });
+        
+        setFilteredData(prevData => {
+          if (prevData.length !== finalData.length || JSON.stringify(prevData) !== JSON.stringify(finalData)) {
+            return finalData;
+          }
+          return prevData; // Don't re-render if data hasn't changed
+        });
+        
         setLastRefreshTime(new Date());
         
       } catch (apiError) {
@@ -493,9 +497,21 @@ const Refreshment = () => {
           return order;
         });
         
-        // Fallback to sample data if API is not available
-        setRefreshmentData(updatedSampleData);
-        setFilteredData(updatedSampleData);
+        // Only update state if data changed (prevents blinking)
+        setRefreshmentData(prevData => {
+          if (prevData.length !== updatedSampleData.length || JSON.stringify(prevData) !== JSON.stringify(updatedSampleData)) {
+            return updatedSampleData;
+          }
+          return prevData;
+        });
+        
+        setFilteredData(prevData => {
+          if (prevData.length !== updatedSampleData.length || JSON.stringify(prevData) !== JSON.stringify(updatedSampleData)) {
+            return updatedSampleData;
+          }
+          return prevData;
+        });
+        
         setLastRefreshTime(new Date());
         
         setSnackbar({
@@ -521,8 +537,21 @@ const Refreshment = () => {
       
       // Load sample data as last resort
       console.log('🆘 Loading sample data as last resort...');
-      setRefreshmentData(updatedSampleData);
-      setFilteredData(updatedSampleData);
+      
+      // Only update if data changed
+      setRefreshmentData(prevData => {
+        if (prevData.length !== updatedSampleData.length || JSON.stringify(prevData) !== JSON.stringify(updatedSampleData)) {
+          return updatedSampleData;
+        }
+        return prevData;
+      });
+      
+      setFilteredData(prevData => {
+        if (prevData.length !== updatedSampleData.length || JSON.stringify(prevData) !== JSON.stringify(updatedSampleData)) {
+          return updatedSampleData;
+        }
+        return prevData;
+      });
       
     } finally {
       setLoading(false);
@@ -626,19 +655,14 @@ const Refreshment = () => {
     try {
       setProcessingOrderId(orderId);
       
-      // Send status directly to API - backend expects 'Confirmed' or 'Rejected'
-      const apiStatus = newStatus;
+      console.log(`📤 Sending status update for order ${orderId} to: ${newStatus}`);
       
-      // Update via API if available
       try {
-        await refreshmentApi.updateOrderStatus(orderId, apiStatus);
+        // Call API with proper format {status, paid} - backend expects 'Confirmed', 'Pending', or 'Rejected'
+        const response = await refreshmentApi.updateOrderStatus(orderId, { status: newStatus });
+        console.log('✅ Backend confirmed status update. Response:', response);
         
-        // Save to localStorage for persistence
-        const localUpdates = JSON.parse(localStorage.getItem('refreshmentOrderUpdates') || '{}');
-        localUpdates[orderId] = { status: newStatus };
-        localStorage.setItem('refreshmentOrderUpdates', JSON.stringify(localUpdates));
-        
-        // Update local state
+        // ONLY update local state AFTER backend confirms
         setRefreshmentData(prevData =>
           prevData.map(order => {
             const id = order.id || order._id || order.orderId;
@@ -646,38 +670,42 @@ const Refreshment = () => {
           })
         );
         
+        // Also update filtered data
+        setFilteredData(prevData =>
+          prevData.map(order => {
+            const id = order.id || order._id || order.orderId;
+            return id == orderId ? { ...order, status: newStatus } : order;
+          })
+        );
+        
+        // Save to localStorage as backup
+        const localUpdates = JSON.parse(localStorage.getItem('refreshmentOrderUpdates') || '{}');
+        localUpdates[orderId] = { status: newStatus };
+        localStorage.setItem('refreshmentOrderUpdates', JSON.stringify(localUpdates));
+        
         setSnackbar({
           open: true,
-          message: `Order ${newStatus.toLowerCase()} successfully!`,
+          message: `✅ Order ${newStatus.toLowerCase()} successfully and updated in backend!`,
           severity: 'success'
         });
+        
+        // Notify other devices of the change (real-time sync)
+        realtimeSyncManager.triggerUpdate('refreshment-orders-data', refreshmentData);
       } catch (apiError) {
-        console.warn('API update failed, updating locally:', apiError.message);
+        console.error('❌ Backend status update failed:', apiError);
         
-        // Save to localStorage even when API fails
-        const localUpdates = JSON.parse(localStorage.getItem('refreshmentOrderUpdates') || '{}');
-        localUpdates[orderId] = { status: newStatus };
-        localStorage.setItem('refreshmentOrderUpdates', JSON.stringify(localUpdates));
-        
-        // Update local state
-        setRefreshmentData(prevData =>
-          prevData.map(order => {
-            const id = order.id || order._id || order.orderId;
-            return id == orderId ? { ...order, status: newStatus } : order;
-          })
-        );
-        
+        // DO NOT update UI if backend fails
         setSnackbar({
           open: true,
-          message: `Order ${newStatus.toLowerCase()} locally (API unavailable)`,
-          severity: 'warning'
+          message: `❌ Failed to update backend: ${apiError.message}. Changes NOT saved.`,
+          severity: 'error'
         });
       }
     } catch (err) {
       console.error('Error updating order status:', err);
       setSnackbar({
         open: true,
-        message: 'Failed to update order status',
+        message: 'Failed to process status update',
         severity: 'error'
       });
     } finally {

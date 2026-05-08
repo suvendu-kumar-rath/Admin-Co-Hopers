@@ -213,16 +213,29 @@ const BookedSpaceDetails = () => {
     try {
       setProcessingBookingId(bookingId);
       
-      // newStatus is already in CONFIRMED/REJECTED format from button click
+      console.log(`📤 Sending ${newStatus} request to backend for booking:`, bookingId);
       
-      // Try to update via API first
+      // Map to API format (Confirm/Reject)
+      const apiStatus = newStatus === 'CONFIRMED' ? 'Confirm' : 'Reject';
+      
       try {
-        // Map to API format (Confirm/Reject)
-        const apiStatus = newStatus === 'CONFIRMED' ? 'Confirm' : 'Reject';
+        // Make the API call and WAIT for response
         const response = await bookingsApi.updatePaymentStatus(bookingId, apiStatus);
-        console.log('API Response:', response);
+        console.log('✅ Backend confirmed status update. Response:', response);
         
-        // Save to localStorage for persistence
+        // ONLY update local state AFTER backend confirms
+        setBookings(prevBookings =>
+          prevBookings.map(booking => {
+            const id = booking.id || booking._id || booking.bookingId;
+            if (id == bookingId) {
+              console.log(`✅ Updating UI state to ${newStatus} for booking:`, bookingId);
+              return { ...booking, paymentStatus: newStatus, status: newStatus };
+            }
+            return booking;
+          })
+        );
+        
+        // Save to localStorage as backup
         const localUpdates = JSON.parse(localStorage.getItem('spaceBookingUpdates') || '{}');
         localUpdates[bookingId] = {
           paymentStatus: newStatus,
@@ -230,46 +243,19 @@ const BookedSpaceDetails = () => {
         };
         localStorage.setItem('spaceBookingUpdates', JSON.stringify(localUpdates));
         
-        // Update local state on success with UI format
-        setBookings(prevBookings =>
-          prevBookings.map(booking => {
-            const id = booking.id || booking._id || booking.bookingId;
-            return id == bookingId
-              ? { ...booking, paymentStatus: newStatus, status: newStatus }
-              : booking;
-          })
-        );
-        
         setSnackbar({
           open: true,
-          message: `Space booking ${newStatus.toLowerCase()} successfully!`,
+          message: `✅ Space booking ${newStatus.toLowerCase()} successfully and updated in backend!`,
           severity: 'success'
         });
       } catch (apiError) {
-        console.warn('API call failed, updating locally only:', apiError.message);
+        console.error('❌ Backend update failed:', apiError);
         
-        // Save to localStorage for persistence even when API fails
-        const localUpdates = JSON.parse(localStorage.getItem('spaceBookingUpdates') || '{}');
-        localUpdates[bookingId] = {
-          paymentStatus: newStatus,
-          status: newStatus
-        };
-        localStorage.setItem('spaceBookingUpdates', JSON.stringify(localUpdates));
-        
-        // Fallback: update locally only
-        setBookings(prevBookings =>
-          prevBookings.map(booking => {
-            const id = booking.id || booking._id || booking.bookingId;
-            return id == bookingId
-              ? { ...booking, paymentStatus: newStatus, status: newStatus }
-              : booking;
-          })
-        );
-        
+        // DO NOT update UI if backend fails
         setSnackbar({
           open: true,
-          message: `Space booking ${newStatus.toLowerCase()} locally (API unavailable)`,
-          severity: 'warning'
+          message: `❌ Failed to update backend: ${apiError.message}. Changes NOT saved to backend.`,
+          severity: 'error'
         });
       }
       
@@ -278,6 +264,12 @@ const BookedSpaceDetails = () => {
       console.error('Error updating space booking status:', err);
       setProcessingBookingId(null);
       setSnackbar({
+        open: true,
+        message: `❌ Failed to process request: ${err.message}`,
+        severity: 'error'
+      });
+    }
+  };
         open: true,
         message: 'Failed to update space booking status',
         severity: 'error'

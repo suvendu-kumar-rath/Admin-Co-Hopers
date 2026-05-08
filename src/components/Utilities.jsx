@@ -291,29 +291,42 @@ const Utilities = () => {
   const handleStatusUpdate = async (orderId, newStatus) => {
     try {
       setProcessingOrderId(orderId);
+      
+      console.log(`📤 Sending status update for utilities order ${orderId} to: ${newStatus}`);
 
       try {
-        await utilitiesApi.updateOrderStatus(orderId, newStatus);
+        // Call API and WAIT for confirmation
+        const response = await utilitiesApi.updateOrderStatus(orderId, newStatus);
+        console.log('✅ Backend confirmed status update. Response:', response);
+        
+        // ONLY update local state AFTER backend confirms
+        setUtilitiesData(prevData =>
+          prevData.map(order => {
+            const id = order.id || order._id || order.orderId;
+            return id == orderId ? { ...order, status: newStatus } : order;
+          })
+        );
+        
+        // Save to localStorage as backup
+        const localUpdates = JSON.parse(localStorage.getItem('utilitiesOrderUpdates') || '{}');
+        localUpdates[orderId] = { ...localUpdates[orderId], status: newStatus };
+        localStorage.setItem('utilitiesOrderUpdates', JSON.stringify(localUpdates));
+        
+        setSnackbar({
+          open: true,
+          message: `✅ Order ${newStatus.toLowerCase()} successfully and updated in backend!`,
+          severity: 'success'
+        });
       } catch (apiError) {
-        console.warn('API status update failed, updating locally:', apiError.message);
+        console.error('❌ Backend status update failed:', apiError);
+        
+        // DO NOT update UI if backend fails
+        setSnackbar({
+          open: true,
+          message: `❌ Failed to update backend: ${apiError.message}. Changes NOT saved.`,
+          severity: 'error'
+        });
       }
-
-      // Persist locally regardless of API result
-      const localUpdates = JSON.parse(localStorage.getItem('utilitiesOrderUpdates') || '{}');
-      localUpdates[orderId] = { ...localUpdates[orderId], status: newStatus };
-      localStorage.setItem('utilitiesOrderUpdates', JSON.stringify(localUpdates));
-
-      setUtilitiesData(prevData =>
-        prevData.map(order => {
-          const id = order.id || order._id || order.orderId;
-          return id == orderId ? { ...order, status: newStatus } : order;
-        })
-      );
-      setSnackbar({
-        open: true,
-        message: `Order ${newStatus.toLowerCase()} successfully!`,
-        severity: 'success'
-      });
     } catch (err) {
       console.error('Error updating order status:', err);
       setSnackbar({

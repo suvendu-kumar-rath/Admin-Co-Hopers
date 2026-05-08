@@ -14,6 +14,7 @@ import {
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '../api';
+import logoImage from '../assets/images/BoldTribe Logo-3.png';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -103,7 +104,7 @@ const Login = () => {
         >
           <Box sx={{ mb: 3, textAlign: 'center' }}>
             <img 
-              src={process.env.PUBLIC_URL + '/assets/images/BoldTribe Logo-3.png'} 
+              src={logoImage}
               alt="Co-Hopers Logo" 
               style={{ height: '60px', marginBottom: '16px' }} 
             />

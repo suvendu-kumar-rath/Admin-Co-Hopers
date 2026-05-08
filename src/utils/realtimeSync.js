@@ -35,6 +35,7 @@ class RealtimeSyncManager {
 
     let lastData = null;
     let isPolling = true;
+    let isFirstPoll = true; // Track first poll to always trigger
 
     const poll = async () => {
       if (!isPolling) return;
@@ -42,15 +43,19 @@ class RealtimeSyncManager {
       try {
         const newData = await fetchFn();
         
-        // Only trigger update if data has changed (deep comparison would be ideal)
-        if (JSON.stringify(newData) !== JSON.stringify(lastData)) {
-          lastData = newData;
+        // Compare data for changes - only trigger update if different
+        const dataChanged = isFirstPoll || JSON.stringify(newData) !== JSON.stringify(lastData);
+        
+        if (dataChanged) {
+          lastData = JSON.parse(JSON.stringify(newData)); // Deep copy to avoid reference issues
           if (onUpdate) {
             onUpdate(newData);
           }
           // Notify all subscribers for this key
           this.notifySubscribers(key, newData);
         }
+        
+        isFirstPoll = false;
       } catch (error) {
         console.error(`Error polling data for ${key}:`, error);
       }
