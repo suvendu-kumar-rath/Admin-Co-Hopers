@@ -115,7 +115,7 @@ const StatusChip = styled(Chip)(({ status, theme }) => ({
     backgroundColor: theme.palette.success.main,
     color: theme.palette.success.contrastText,
   }),
-  ...(status === 'Rejected' && {
+  ...(status === 'Cancelled' && {
     backgroundColor: theme.palette.error.main,
     color: theme.palette.error.contrastText,
   }),
@@ -1211,7 +1211,7 @@ const Refreshment = () => {
               <option value="All">All Status</option>
               <option value="Pending">Pending</option>
               <option value="Confirmed">Confirmed</option>
-              <option value="Rejected">Rejected</option>
+              <option value="Cancelled">Cancelled</option>
               <option value="Completed">Completed</option>
             </TextField>
           </Box>
@@ -1468,7 +1468,7 @@ const Refreshment = () => {
                         >
                           <MenuItem value="Confirmed">Accept</MenuItem>
                           <MenuItem value="Pending">Pending</MenuItem>
-                          <MenuItem value="Rejected">Reject</MenuItem>
+                          <MenuItem value="Cancelled">Reject</MenuItem>
                         </TextField>
                       </TableCell>
                     </StyledTableRow>
