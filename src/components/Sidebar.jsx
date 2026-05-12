@@ -45,6 +45,7 @@ const SidebarContainer = styled(MotionBox, {
   height: '100%',
   minHeight: '100vh',
   padding: theme.spacing(2),
+  paddingTop: '60px',
   color: 'white',
   position: 'fixed',
   left: 0,
@@ -75,6 +76,7 @@ const SidebarContainer = styled(MotionBox, {
   scrollbarWidth: 'thin',
   scrollbarColor: 'rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1)',
   [theme.breakpoints.down('lg')]: {
+    paddingTop: '16px',
     transform: isopen ? 'translateX(0)' : 'translateX(-100%)',
   },
   [theme.breakpoints.up('lg')]: {
@@ -84,16 +86,36 @@ const SidebarContainer = styled(MotionBox, {
 
 const MobileMenuButton = styled(IconButton)(({ theme }) => ({
   position: 'fixed',
-  top: 20,
-  left: 20,
-  zIndex: 1300,
+  top: 16,
+  left: 16,
+  zIndex: 1301,
   backgroundColor: '#8EC8D4',
   color: 'white',
+  width: 50,
+  height: 50,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+  pointerEvents: 'auto',
+  cursor: 'pointer',
   '&:hover': {
     backgroundColor: '#7BB8C5',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
   },
+  transition: 'all 0.3s ease',
   [theme.breakpoints.up('lg')]: {
     display: 'none',
+  },
+  [theme.breakpoints.down('md')]: {
+    width: 48,
+    height: 48,
+  },
+  [theme.breakpoints.down('sm')]: {
+    width: 44,
+    height: 44,
+    top: 12,
+    left: 12,
   },
 }));
 
@@ -111,16 +133,25 @@ const Overlay = styled(Box)(({ theme }) => ({
 }));
 
 const Logo = styled(MotionBox)(({ theme }) => ({
-  padding: '10px 0',
-  marginTop: '-80px',
+  padding: '16px 0',
+  marginTop: 0,
+  marginBottom: '20px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  overflow: 'visible',
   '& img': {
-    width: 180,
+    width: 160,
     height: 'auto',
+    maxHeight: '80px',
+    objectFit: 'contain',
     [theme.breakpoints.down('md')]: {
-      width: 140,
+      width: 130,
+      maxHeight: '65px',
     },
     [theme.breakpoints.down('sm')]: {
-      width: 120,
+      width: 110,
+      maxHeight: '55px',
     },
   },
 }));
@@ -168,8 +199,8 @@ const MenuItemIcon = styled(ListItemIcon)(({ theme }) => ({
 
 // Animation variants
 const sidebarVariants = {
-  initial: { x: -250, opacity: 0 },
-  animate: { x: 0, opacity: 1 },
+  hidden: { x: -250, opacity: 0 },
+  visible: { x: 0, opacity: 1 },
   transition: { type: "spring", stiffness: 100, damping: 20 }
 };
 
@@ -242,7 +273,13 @@ const Sidebar = () => {
   return (
     <>
       {/* Mobile menu button */}
-      <MobileMenuButton onClick={toggleSidebar}>
+      <MobileMenuButton 
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleSidebar();
+        }}
+      >
         <MenuIcon />
       </MobileMenuButton>
 
@@ -253,19 +290,25 @@ const Sidebar = () => {
 
       <SidebarContainer
         isopen={isOpen}
-        initial="initial"
-        animate="animate"
+        initial="hidden"
+        animate={isOpen ? "visible" : "hidden"}
         variants={sidebarVariants}
+        onClick={(e) => e.stopPropagation()}
       >
       {/* Mobile close button */}
       {!isLargeScreen && (
         <IconButton
-          onClick={closeSidebar}
+          onClick={(e) => {
+            e.stopPropagation();
+            closeSidebar();
+          }}
           sx={{
             position: 'absolute',
             top: 16,
             right: 16,
             color: 'white',
+            zIndex: 1,
+            pointerEvents: 'auto',
             '&:hover': {
               backgroundColor: 'rgba(255, 255, 255, 0.1)',
             },
@@ -278,7 +321,7 @@ const Sidebar = () => {
       <Logo
         variants={logoVariants}
         initial="initial"
-        animate="animate"
+        animate={isOpen ? "animate" : "initial"}
       >
         <motion.img 
           src={CoHopersLogo} 
@@ -291,6 +334,8 @@ const Sidebar = () => {
       <MotionList 
         sx={{ mt: 2 }}
         variants={listVariants}
+        initial="initial"
+        animate={isOpen ? "animate" : "initial"}
       >
         {menuItems.map((item, index) => (
           <MenuItem 

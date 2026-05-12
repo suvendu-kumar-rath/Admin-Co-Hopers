@@ -29,25 +29,32 @@ const StyledAppBar = styled(MotionAppBar)(({ theme }) => ({
   backgroundColor: 'transparent',
   boxShadow: 'none',
   color: '#000',
-  marginTop: '20px',
+  marginTop: '0px',
   marginLeft: 0,
   width: '100%',
-  padding: '0 20px',
+  padding: '16px 20px',
+  boxSizing: 'border-box',
+  position: 'relative',
+  zIndex: 1000,
   [theme.breakpoints.up('lg')]: {
     marginLeft: 0,
     width: '100%',
+    padding: '16px 24px',
+    marginTop: 0,
   },
   [theme.breakpoints.down('lg')]: {
     marginLeft: 0,
-    marginTop: '80px', // Account for mobile menu button
+    marginTop: 0,
+    padding: '16px 20px',
   },
   [theme.breakpoints.down('md')]: {
-    marginTop: '70px',
-    padding: '0 16px',
+    marginTop: 0,
+    padding: '12px 16px',
   },
   [theme.breakpoints.down('sm')]: {
-    marginTop: '60px',
-    padding: '0 12px',
+    marginTop: 0,
+    padding: '12px 12px',
+    paddingLeft: '70px', // Space for hamburger menu
   },
 }));
 

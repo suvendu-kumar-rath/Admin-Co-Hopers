@@ -46,14 +46,17 @@ const theme = createTheme({
 const ResponsiveLayout = ({ children }) => {
   const theme = useTheme();
   const isLargeScreen = useMediaQuery(theme.breakpoints.up('lg'));
+  const isMediumScreen = useMediaQuery(theme.breakpoints.up('md'));
   
   return (
     <Box 
       sx={{ 
         display: 'flex', 
         minHeight: '100vh', 
+        maxHeight: '100vh',
         bgcolor: 'background.default',
         position: 'relative',
+        width: '100%',
       }}
     >
       <Box 
@@ -61,11 +64,13 @@ const ResponsiveLayout = ({ children }) => {
           flexGrow: 1,
           marginLeft: isLargeScreen ? '250px' : '0',
           minHeight: '100vh',
-          maxHeight: '100vh',
+          height: '100vh',
           transition: 'margin-left 0.3s ease-in-out',
           width: isLargeScreen ? 'calc(100% - 250px)' : '100%',
           overflowY: 'auto',
           overflowX: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
           // Custom scrollbar styling
           '&::-webkit-scrollbar': {
             width: '10px',
