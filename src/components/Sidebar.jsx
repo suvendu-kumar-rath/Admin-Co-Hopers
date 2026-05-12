@@ -80,7 +80,8 @@ const SidebarContainer = styled(MotionBox, {
     transform: isopen ? 'translateX(0)' : 'translateX(-100%)',
   },
   [theme.breakpoints.up('lg')]: {
-    transform: 'translateX(0)',
+    transform: 'translateX(0) !important',
+    position: 'fixed',
   },
 }));
 
@@ -290,8 +291,8 @@ const Sidebar = () => {
 
       <SidebarContainer
         isopen={isOpen}
-        initial="hidden"
-        animate={isOpen ? "visible" : "hidden"}
+        initial="visible"
+        animate={isLargeScreen ? "visible" : (isOpen ? "visible" : "hidden")}
         variants={sidebarVariants}
         onClick={(e) => e.stopPropagation()}
       >
@@ -320,8 +321,8 @@ const Sidebar = () => {
 
       <Logo
         variants={logoVariants}
-        initial="initial"
-        animate={isOpen ? "animate" : "initial"}
+        initial="animate"
+        animate={isLargeScreen || isOpen ? "animate" : "initial"}
       >
         <motion.img 
           src={CoHopersLogo} 
@@ -334,8 +335,8 @@ const Sidebar = () => {
       <MotionList 
         sx={{ mt: 2 }}
         variants={listVariants}
-        initial="initial"
-        animate={isOpen ? "animate" : "initial"}
+        initial="animate"
+        animate={isLargeScreen || isOpen ? "animate" : "initial"}
       >
         {menuItems.map((item, index) => (
           <MenuItem 
