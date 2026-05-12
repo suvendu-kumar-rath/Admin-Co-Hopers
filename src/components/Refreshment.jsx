@@ -131,6 +131,31 @@ const ActionButton = styled(Button)(({ theme }) => ({
 }));
 
 const Refreshment = () => {
+    // Smart comparison function to avoid blinking (faster than JSON.stringify)
+    const hasDataChanged = (prevData, newData) => {
+      if (prevData.length !== newData.length) return true;
+      
+      // Check if any order IDs changed or key fields changed
+      for (let i = 0; i < newData.length; i++) {
+        const prev = prevData[i];
+        const curr = newData[i];
+        
+        if (!prev || !curr) return true;
+        
+        // Quick check: compare ID, status, amount, and payment status
+        if (
+          prev.id !== curr.id ||
+          prev.status !== curr.status ||
+          prev.paymentStatus !== curr.paymentStatus ||
+          prev.amount !== curr.amount
+        ) {
+          return true;
+        }
+      }
+      
+      return false; // Data is the same, no update needed
+    };
+    
     // Toggle payment status handler
     const handlePaymentStatusToggle = (orderId, currentStatus) => {
       const newStatus = currentStatus === 'Paid' ? 'Not Paid' : 'Paid';
@@ -383,6 +408,23 @@ const Refreshment = () => {
     };
   }, [playNotificationSound]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Auto-refresh every 5 seconds
+  useEffect(() => {
+    console.log('⏱️ Setting up auto-refresh polling (5 seconds interval)...');
+    
+    // Set up interval for auto-refresh
+    const pollInterval = setInterval(() => {
+      console.log('🔄 Auto-refresh triggered...');
+      fetchRef.current();
+    }, 5000); // Refresh every 5 seconds
+    
+    // Cleanup interval on unmount
+    return () => {
+      console.log('⏱️ Clearing auto-refresh polling interval');
+      clearInterval(pollInterval);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const fetchRefreshmentOrders = async () => {
     try {
       setLoading(prev => isFirstLoadRef.current ? true : prev); // Only show spinner on first load
@@ -468,14 +510,14 @@ const Refreshment = () => {
         
         // Only update state if data actually changed (prevents blinking)
         setRefreshmentData(prevData => {
-          if (prevData.length !== finalData.length || JSON.stringify(prevData) !== JSON.stringify(finalData)) {
+          if (hasDataChanged(prevData, finalData)) {
             return finalData;
           }
           return prevData; // Don't re-render if data hasn't changed
         });
         
         setFilteredData(prevData => {
-          if (prevData.length !== finalData.length || JSON.stringify(prevData) !== JSON.stringify(finalData)) {
+          if (hasDataChanged(prevData, finalData)) {
             return finalData;
           }
           return prevData; // Don't re-render if data hasn't changed
@@ -499,14 +541,14 @@ const Refreshment = () => {
         
         // Only update state if data changed (prevents blinking)
         setRefreshmentData(prevData => {
-          if (prevData.length !== updatedSampleData.length || JSON.stringify(prevData) !== JSON.stringify(updatedSampleData)) {
+          if (hasDataChanged(prevData, updatedSampleData)) {
             return updatedSampleData;
           }
           return prevData;
         });
         
         setFilteredData(prevData => {
-          if (prevData.length !== updatedSampleData.length || JSON.stringify(prevData) !== JSON.stringify(updatedSampleData)) {
+          if (hasDataChanged(prevData, updatedSampleData)) {
             return updatedSampleData;
           }
           return prevData;
@@ -540,14 +582,14 @@ const Refreshment = () => {
       
       // Only update if data changed
       setRefreshmentData(prevData => {
-        if (prevData.length !== updatedSampleData.length || JSON.stringify(prevData) !== JSON.stringify(updatedSampleData)) {
+        if (hasDataChanged(prevData, updatedSampleData)) {
           return updatedSampleData;
         }
         return prevData;
       });
       
       setFilteredData(prevData => {
-        if (prevData.length !== updatedSampleData.length || JSON.stringify(prevData) !== JSON.stringify(updatedSampleData)) {
+        if (hasDataChanged(prevData, updatedSampleData)) {
           return updatedSampleData;
         }
         return prevData;
