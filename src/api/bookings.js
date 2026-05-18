@@ -48,8 +48,8 @@ export const bookingsApi = {
   },
 
   // Verify space booking (confirm/reject)
-  updatePaymentStatus: async (bookingId, status, negotiatedAmount = null) => {
-    console.log('📤 Verifying space booking status:', { bookingId, status, negotiatedAmount });
+  updatePaymentStatus: async (bookingId, status, negotiatedAmount = null, depositedAmount = null) => {
+    console.log('📤 Verifying space booking status:', { bookingId, status, negotiatedAmount, depositedAmount });
     
     const token = localStorage.getItem('authToken');
     const requestBody = {
@@ -59,6 +59,11 @@ export const bookingsApi = {
     // Add negotiated amount if provided (backend expects 'finalAmount')
     if (negotiatedAmount !== null && negotiatedAmount !== undefined) {
       requestBody.finalAmount = negotiatedAmount;
+    }
+
+    // Add deposited amount if provided
+    if (depositedAmount !== null && depositedAmount !== undefined) {
+      requestBody.depositedAmount = depositedAmount;
     }
     
     console.log('📋 Request body:', JSON.stringify(requestBody));

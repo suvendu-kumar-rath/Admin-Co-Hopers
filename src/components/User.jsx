@@ -108,6 +108,7 @@ const User = () => {
   const [imageLoadError, setImageLoadError] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
   const [negotiatedAmountValues, setNegotiatedAmountValues] = useState({});
+  const [depositedAmountValues, setDepositedAmountValues] = useState({});
 
   // Mock data for space bookings - replace with actual API call
   const mockBookings = [
@@ -206,10 +207,13 @@ const User = () => {
   // Initialize negotiated amount values from bookings
   useEffect(() => {
     const initialValues = {};
+    const initialDeposited = {};
     bookings.forEach(booking => {
       initialValues[booking.id] = booking.negotiatedAmount || '';
+      initialDeposited[booking.id] = booking.depositedAmount || '';
     });
     setNegotiatedAmountValues(initialValues);
+    setDepositedAmountValues(initialDeposited);
   }, [bookings]);
 
   const fetchBookings = async () => {
@@ -272,6 +276,10 @@ const User = () => {
       // Get the negotiated amount from the input field
       const inputNegotiatedAmount = negotiatedAmountValues[bookingId];
       const negotiatedAmount = inputNegotiatedAmount ? parseFloat(inputNegotiatedAmount) : null;
+
+      // Get the deposited amount from the input field
+      const inputDepositedAmount = depositedAmountValues[bookingId];
+      const depositedAmount = inputDepositedAmount ? parseFloat(inputDepositedAmount) : null;
       
       // If confirming, check if negotiated amount is set and valid
       if (newStatus === 'Confirm') {
@@ -290,11 +298,11 @@ const User = () => {
       // Map the status to proper format (CONFIRMED/REJECTED for UI)
       const uiStatus = newStatus === 'Confirm' ? 'CONFIRMED' : 'REJECTED';
       
-      console.log(`📤 Sending ${newStatus} request with negotiated amount: ${negotiatedAmount}`);
+      console.log(`📤 Sending ${newStatus} request with negotiated amount: ${negotiatedAmount}, deposited amount: ${depositedAmount}`);
       
       try {
         // Call API and WAIT for confirmation
-        const response = await bookingsApi.updatePaymentStatus(bookingId, newStatus, negotiatedAmount);
+        const response = await bookingsApi.updatePaymentStatus(bookingId, newStatus, negotiatedAmount, depositedAmount);
         console.log('✅ Backend confirmed status update. Response:', response);
         
         // ONLY update local state AFTER backend confirms
@@ -306,7 +314,8 @@ const User = () => {
                   ...booking, 
                   paymentStatus: uiStatus, 
                   status: uiStatus,
-                  ...(negotiatedAmount && { negotiatedAmount })
+                  ...(negotiatedAmount && { negotiatedAmount }),
+                  ...(depositedAmount && { depositedAmount })
                 }
               : booking;
           })
@@ -317,7 +326,8 @@ const User = () => {
         localUpdates[bookingId] = {
           paymentStatus: uiStatus,
           status: uiStatus,
-          ...(negotiatedAmount && { negotiatedAmount })
+          ...(negotiatedAmount && { negotiatedAmount }),
+          ...(depositedAmount && { depositedAmount })
         };
         localStorage.setItem('spaceBookingUpdates', JSON.stringify(localUpdates));
         
@@ -460,6 +470,7 @@ const User = () => {
                 <StyledTableCell>Booking Period</StyledTableCell>
                 <StyledTableCell>Amount</StyledTableCell>
                 <StyledTableCell>Negotiated Amount</StyledTableCell>
+                <StyledTableCell>Deposited Amount</StyledTableCell>
                 <StyledTableCell>Payment Proof</StyledTableCell>
                 <StyledTableCell align="center">Status / Actions</StyledTableCell>
               </TableRow>
@@ -528,6 +539,24 @@ const User = () => {
                         value={negotiatedAmountValues[booking.id] || ''}
                         onChange={(e) => setNegotiatedAmountValues({
                           ...negotiatedAmountValues,
+                          [booking.id]: e.target.value
+                        })}
+                        placeholder="Enter amount"
+                        sx={{ width: 150 }}
+                        InputProps={{
+                          startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                        }}
+                        disabled={booking.paymentStatus === 'CONFIRMED' || booking.paymentStatus === 'REJECTED'}
+                      />
+                    </TableCell>
+
+                    <TableCell>
+                      <TextField
+                        size="small"
+                        type="number"
+                        value={depositedAmountValues[booking.id] || ''}
+                        onChange={(e) => setDepositedAmountValues({
+                          ...depositedAmountValues,
                           [booking.id]: e.target.value
                         })}
                         placeholder="Enter amount"

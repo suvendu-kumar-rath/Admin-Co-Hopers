@@ -578,6 +578,7 @@ const BookedSpaceDetails = () => {
               <StyledTableCell>Duration</StyledTableCell>
               <StyledTableCell>Amount</StyledTableCell>
               <StyledTableCell>Negotiated Amount</StyledTableCell>
+              <StyledTableCell>Deposited Amount</StyledTableCell>
               <StyledTableCell>Payment</StyledTableCell>
               <StyledTableCell>Status / Actions</StyledTableCell>
             </TableRow>
@@ -598,6 +599,7 @@ const BookedSpaceDetails = () => {
               const endDate = booking.endDate || booking.end_date || booking.checkOut || booking.to_date;
               const amount = booking.amount || booking.price || booking.total || booking.cost || 0;
               const negotiatedAmount = booking.negotiatedAmount || booking.negotiated_amount || booking.finalAmount || booking.final_amount || 0;
+              const depositedAmount = booking.depositedAmount || booking.deposited_amount || 0;
               const paymentScreenshot = booking.paymentScreenshot || booking.payment_screenshot || booking.paymentProof;
               const paymentStatus = booking.paymentStatus || booking.payment_status || booking.status || 'PENDING';
               
@@ -655,6 +657,11 @@ const BookedSpaceDetails = () => {
                   <TableCell>
                     <Typography variant="h6" color="secondary.main">
                       {negotiatedAmount > 0 ? `₹${Number(negotiatedAmount).toLocaleString()}` : 'N/A'}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="h6" color="warning.main">
+                      {depositedAmount > 0 ? `₹${Number(depositedAmount).toLocaleString()}` : 'N/A'}
                     </Typography>
                   </TableCell>
                   <TableCell>
