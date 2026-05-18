@@ -56,9 +56,9 @@ export const bookingsApi = {
       status: status
     };
     
-    // Add negotiated amount if provided
+    // Add negotiated amount if provided (backend expects 'finalAmount')
     if (negotiatedAmount !== null && negotiatedAmount !== undefined) {
-      requestBody.negotiatedAmount = negotiatedAmount;
+      requestBody.finalAmount = negotiatedAmount;
     }
     
     console.log('📋 Request body:', JSON.stringify(requestBody));
