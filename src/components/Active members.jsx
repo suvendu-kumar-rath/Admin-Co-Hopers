@@ -345,74 +345,13 @@ const ActiveMembers = () => {
         isFromAPI: true
       }));
       
-      // Also load any local confirmed leads as fallback
-      const confirmedLeads = JSON.parse(localStorage.getItem('activeMembers') || '[]');
-      const transformedConfirmedLeads = confirmedLeads.map((lead, index) => ({
-        id: `local_${index}`,
-        name: lead.name,
-        phone: lead.mobile,
-        address: lead.address,
-        spaceType: 'Hot Desk',
-        start: new Date(lead.confirmationDate).toLocaleDateString('en-US', { 
-          day: 'numeric', 
-          month: 'short', 
-          year: 'numeric' 
-        }).toUpperCase(),
-        end: 'Ongoing',
-        unit: 'TBD',
-        amount: 'TBD',
-        mail: lead.email,
-        kyc: {
-          status: 'Pending',
-          idType: 'TBD',
-          idNumber: 'TBD',
-          dateOfBirth: 'TBD',
-          nationality: 'TBD',
-          occupation: 'TBD',
-          verificationDate: null
-        },
-        isConfirmedLead: true
-      }));
-      
-      // Combine API data with local leads (if any)
-      const allMembersData = [...transformedMembers, ...transformedConfirmedLeads];
-      setAllMembers(allMembersData);
+      setAllMembers(transformedMembers);
       
     } catch (err) {
       console.error('Failed to fetch active members:', err);
       setError(err.message || 'Failed to load active members');
       
-      // Fallback to static data and local storage
-      const confirmedLeads = JSON.parse(localStorage.getItem('activeMembers') || '[]');
-      const transformedConfirmedLeads = confirmedLeads.map((lead, index) => ({
-        id: `fallback_${index}`,
-        name: lead.name,
-        phone: lead.mobile,
-        address: lead.address,
-        spaceType: 'Hot Desk',
-        start: new Date(lead.confirmationDate).toLocaleDateString('en-US', { 
-          day: 'numeric', 
-          month: 'short', 
-          year: 'numeric' 
-        }).toUpperCase(),
-        end: 'Ongoing',
-        unit: 'TBD',
-        amount: 'TBD',
-        mail: lead.email,
-        kyc: {
-          status: 'Pending',
-          idType: 'TBD',
-          idNumber: 'TBD',
-          dateOfBirth: 'TBD',
-          nationality: 'TBD',
-          occupation: 'TBD',
-          verificationDate: null
-        },
-        isConfirmedLead: true
-      }));
-      
-      // Use static rows as fallback + any local leads
-      setAllMembers([ ...transformedConfirmedLeads]);
+      setAllMembers([]);
     } finally {
       setLoading(false);
     }
